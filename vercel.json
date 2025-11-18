@@ -1,0 +1,11 @@
+{
+  "git": {
+    "deploymentEnabled": true
+  },
+  "crons": [
+    {
+      "path": "/api/cron/recovery-emails",
+      "schedule": "0 * * * *"
+    }
+  ]
+}
