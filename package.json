@@ -1,6 +1,6 @@
 {
-  "name": "adwyse",
-  "version": "0.1.0",
+  "name": "deals-dashboard",
+  "version": "0.1.1",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
@@ -12,7 +12,7 @@
     "@anthropic-ai/sdk": "^0.65.0",
     "@react-email/render": "^1.3.2",
     "@shopify/app-bridge": "^3.7.10",
-    "@supabase/supabase-js": "^2.83.0",
+    "@supabase/supabase-js": "^2.49.2",
     "next": "15.5.4",
     "posthog-js": "^1.275.1",
     "react": "19.1.0",
@@ -26,7 +26,6 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "dotenv": "^17.2.3",
     "eslint": "^9",
     "eslint-config-next": "15.5.4",
     "tailwindcss": "^4",
