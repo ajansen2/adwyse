@@ -400,7 +400,7 @@ export async function GET(request: NextRequest) {
     // For embedded apps, use relative path in Shopify admin to avoid URL stacking
     // This redirects directly to our embedded dashboard after approval
     const shopName = shop.replace('.myshopify.com', '');
-    const returnUrl = `https://admin.shopify.com/store/${shopName}/apps/argora-cart-recovery/dashboard?billing=success&shop=${shop}&store_id=${store.id}`;
+    const returnUrl = `https://admin.shopify.com/store/${shopName}/apps/adwyse/dashboard?billing=success&shop=${shop}&store_id=${store.id}`;
 
     console.log('💰 Creating billing charge with return_url:', returnUrl);
     console.log('💰 Shop:', shop);
@@ -415,9 +415,9 @@ export async function GET(request: NextRequest) {
       },
       body: JSON.stringify({
         recurring_application_charge: {
-          name: 'Argora Cart Recovery - Pro Plan',
-          price: 29.99,
-          trial_days: 14,
+          name: 'AdWyse - Pro Plan',
+          price: 99,
+          trial_days: 7,
           return_url: returnUrl,
           test: isTestCharge, // Test mode for development stores
         }
