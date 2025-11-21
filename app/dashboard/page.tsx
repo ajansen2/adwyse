@@ -3,9 +3,8 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getSupabaseClient } from '@/lib/supabase-client';
-import { initializeAppBridge, isEmbeddedInShopify, navigateInApp, getShopifySessionToken, redirectToOAuth } from '@/lib/shopify-app-bridge';
+import { initializeAppBridge, isEmbeddedInShopify, navigateInApp, getShopifySessionToken } from '@/lib/shopify-app-bridge';
 import Link from 'next/link';
-import Image from 'next/image';
 
 interface Merchant {
   id: string;
@@ -19,30 +18,40 @@ interface Store {
   id: string;
   store_name: string;
   store_url: string;
-  platform: string;
+  shopify_domain: string;
   status: string;
 }
 
-interface AbandonedCart {
+interface Order {
   id: string;
-  customer_email: string;
-  customer_first_name: string | null;
-  customer_last_name: string | null;
-  cart_value: number;
-  status: string;
-  abandoned_at: string;
-  store_id: string;
-  emails_sent?: number;
-  first_email_sent_at?: string | null;
-  second_email_sent_at?: string | null;
-  third_email_sent_at?: string | null;
+  shopify_order_id: string;
+  shopify_order_number: string;
+  customer_email: string | null;
+  order_total: number;
+  currency: string;
+  ad_source: string;
+  campaign_name: string | null;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  created_at: string;
+}
+
+interface Campaign {
+  id: string;
+  name: string;
+  platform: string;
+  total_spend: number;
+  total_revenue: number;
+  total_orders: number;
 }
 
 function DashboardContent() {
   const [loading, setLoading] = useState(true);
   const [merchant, setMerchant] = useState<Merchant | null>(null);
   const [stores, setStores] = useState<Store[]>([]);
-  const [abandonedCarts, setAbandonedCarts] = useState<AbandonedCart[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showBillingSuccess, setShowBillingSuccess] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -108,13 +117,10 @@ function DashboardContent() {
         initializeAppBridge();
 
         // Get session token for Shopify's automated checks
-        // This demonstrates we're using session tokens even though we use shop param for auth
         const sessionToken = await getShopifySessionToken();
         if (sessionToken) {
           console.log('✅ Got Shopify session token');
 
-          // Make a fetch request to let App Bridge attach session token to header
-          // This satisfies Shopify's automated checks that look for session token usage
           try {
             const healthCheck = await fetch('/api/health');
             const healthData = await healthCheck.json();
@@ -132,11 +138,10 @@ function DashboardContent() {
 
           // Use API to bypass RLS for embedded apps
           try {
-            console.log('🔍 About to fetch /api/stores/lookup?shop=' + shop);
+            console.log('🔍 Fetching store data for:', shop);
 
-            // Use XMLHttpRequest instead of fetch to avoid App Bridge interception
             const xhr = new XMLHttpRequest();
-            xhr.open('GET', `/api/stores/lookup?shop=${encodeURIComponent(shop)}`, false); // Synchronous for now
+            xhr.open('GET', `/api/stores/lookup?shop=${encodeURIComponent(shop)}`, false);
             xhr.send();
 
             console.log('🔍 XHR response status:', xhr.status);
@@ -147,13 +152,11 @@ function DashboardContent() {
               console.log('✅ Got merchant data:', data.merchant.id);
               merchantData = data.merchant as Merchant;
 
-              // Also set the store if returned
               if (data.store) {
                 console.log('✅ Got store data:', data.store.id);
                 setStores([data.store as Store]);
               }
             } else if (xhr.status === 404) {
-              // Store not found - this is first install, create merchant/store records
               console.log('⚠️  Store not found, creating records for first install:', shop);
 
               try {
@@ -196,7 +199,6 @@ function DashboardContent() {
         const { data: { session } } = await supabase.auth.getSession();
 
         if (session) {
-          // Get merchant profile via Supabase auth
           const { data, error: merchantError } = await supabase
             .from('merchants')
             .select('*')
@@ -232,14 +234,11 @@ function DashboardContent() {
       // If still no merchant, handle based on whether embedded or not
       if (!merchantData) {
         if (embedded) {
-          // For embedded apps, show error instead of redirecting to connect-store
-          // This prevents violation of Shopify's "no manual shop URL entry" rule
           console.error('❌ Unable to load merchant data for embedded app');
           setLoadError('Unable to load your store data. Please try reinstalling the app or contact support.');
           setLoading(false);
           return;
         } else {
-          // For non-embedded, redirect to connect-store
           navigateInApp('/dashboard/connect-store');
           return;
         }
@@ -247,42 +246,49 @@ function DashboardContent() {
 
       setMerchant(merchantData as Merchant);
 
-      console.log('🔍 DEBUG - Merchant ID:', (merchantData as Merchant).id);
-
       // Get active stores only (skip if embedded since we got it from API already)
       if (!embedded) {
-        const { data: storesData, error: storesError } = await supabase
+        const { data: storesData } = await supabase
           .from('stores')
           .select('*')
           .eq('merchant_id', (merchantData as Merchant).id)
           .eq('status', 'active');
-
-        console.log('🔍 DEBUG - Stores found:', storesData?.length || 0, storesData);
-        console.log('🔍 DEBUG - Stores error:', storesError);
 
         if (storesData) {
           setStores(storesData as Store[]);
         }
       }
 
-      // Get abandoned carts via API (bypasses RLS for cookie-based auth)
-      try {
-        console.log('🔍 About to fetch carts for merchant:', (merchantData as Merchant).id);
+      // Get orders and campaigns via API
+      if (stores.length > 0 || embedded) {
+        try {
+          console.log('🔍 Fetching orders for merchant:', (merchantData as Merchant).id);
 
-        // Use XMLHttpRequest to avoid App Bridge interception
-        const cartsXhr = new XMLHttpRequest();
-        cartsXhr.open('GET', `/api/carts/list?merchant_id=${(merchantData as Merchant).id}`, false);
-        cartsXhr.send();
+          const ordersXhr = new XMLHttpRequest();
+          ordersXhr.open('GET', `/api/orders/list?merchant_id=${(merchantData as Merchant).id}`, false);
+          ordersXhr.send();
 
-        console.log('🔍 Carts XHR status:', cartsXhr.status);
-        const cartsJson = JSON.parse(cartsXhr.responseText);
-        console.log('🔍 Carts response:', cartsJson);
+          if (ordersXhr.status === 200) {
+            const ordersJson = JSON.parse(ordersXhr.responseText);
+            if (ordersJson.orders) {
+              setOrders(ordersJson.orders);
+            }
+          }
 
-        if (cartsJson.carts) {
-          setAbandonedCarts(cartsJson.carts);
+          // Get campaigns
+          const campaignsXhr = new XMLHttpRequest();
+          campaignsXhr.open('GET', `/api/campaigns/list?merchant_id=${(merchantData as Merchant).id}`, false);
+          campaignsXhr.send();
+
+          if (campaignsXhr.status === 200) {
+            const campaignsJson = JSON.parse(campaignsXhr.responseText);
+            if (campaignsJson.campaigns) {
+              setCampaigns(campaignsJson.campaigns);
+            }
+          }
+        } catch (error) {
+          console.error('❌ Error fetching data:', error);
         }
-      } catch (error) {
-        console.error('❌ Error fetching carts:', error);
       }
 
       console.log('✅ Setting loading to false');
@@ -299,19 +305,19 @@ function DashboardContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-solid border-purple-600 border-r-transparent mb-4"></div>
+          <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-solid border-orange-600 border-r-transparent mb-4"></div>
           <div className="text-white text-xl">Loading dashboard...</div>
         </div>
       </div>
     );
   }
 
-  // Show error if failed to load merchant data (embedded apps only)
+  // Show error if failed to load merchant data
   if (loadError) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900 flex items-center justify-center p-6">
         <div className="max-w-lg w-full bg-red-500/10 border-2 border-red-500/50 rounded-xl p-8 text-center">
           <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -321,7 +327,7 @@ function DashboardContent() {
           <h2 className="text-2xl font-bold text-white mb-3">Unable to Load Dashboard</h2>
           <p className="text-white/80 mb-6">{loadError}</p>
           <p className="text-white/60 text-sm">
-            If this issue persists, please contact support at support@argora.ai
+            If this issue persists, please contact support at adam@adwyse.ca
           </p>
         </div>
       </div>
@@ -334,26 +340,20 @@ function DashboardContent() {
 
   const hasStores = stores.length > 0;
 
-  // Calculate metrics from abandoned carts
-  const totalCarts = abandonedCarts.length;
-  const recoveredCarts = abandonedCarts.filter(cart => cart.status === 'recovered').length;
-  const recoveryRate = totalCarts > 0 ? ((recoveredCarts / totalCarts) * 100).toFixed(1) : '0';
-  const revenueRecovered = abandonedCarts
-    .filter(cart => cart.status === 'recovered')
-    .reduce((sum, cart) => sum + cart.cart_value, 0);
+  // Calculate metrics from orders
+  const totalOrders = orders.length;
+  const attributedOrders = orders.filter(order => order.ad_source && order.ad_source !== 'direct').length;
+  const totalRevenue = orders.reduce((sum, order) => sum + order.order_total, 0);
+  const attributedRevenue = orders
+    .filter(order => order.ad_source && order.ad_source !== 'direct')
+    .reduce((sum, order) => sum + order.order_total, 0);
 
-  // Calculate total emails sent across all carts
-  const totalEmailsSent = abandonedCarts.reduce((sum, cart) => {
-    // Count emails based on timestamps (more reliable than emails_sent field)
-    let emailCount = 0;
-    if (cart.first_email_sent_at) emailCount++;
-    if (cart.second_email_sent_at) emailCount++;
-    if (cart.third_email_sent_at) emailCount++;
-    return sum + emailCount;
-  }, 0);
+  // Calculate total ad spend and average ROAS
+  const totalSpend = campaigns.reduce((sum, campaign) => sum + campaign.total_spend, 0);
+  const avgROAS = totalSpend > 0 ? (attributedRevenue / totalSpend) : 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
@@ -367,8 +367,10 @@ function DashboardContent() {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="p-6 border-b border-white/10">
-            <Link href="/" className="flex items-center">
-              <Image src="/logo 3.png" alt="ARGORA" width={120} height={40} style={{ objectFit: 'contain' }} />
+            <Link href="/" className="text-2xl font-bold">
+              <span className="bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
+                AdWyse
+              </span>
             </Link>
           </div>
 
@@ -376,7 +378,7 @@ function DashboardContent() {
           <nav className="flex-1 p-4 space-y-2">
             <button
               onClick={() => navigateInApp('/dashboard')}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-purple-600/20 text-purple-300 border border-purple-500/30 transition"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-orange-600/20 text-orange-300 border border-orange-500/30 transition"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -385,13 +387,23 @@ function DashboardContent() {
             </button>
 
             <button
-              onClick={() => navigateInApp('/dashboard/analytics')}
+              onClick={() => navigateInApp('/dashboard/orders')}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-white/60 hover:bg-white/5 hover:text-white transition cursor-pointer"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              </svg>
+              <span className="font-medium">Orders</span>
+            </button>
+
+            <button
+              onClick={() => navigateInApp('/dashboard/campaigns')}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-white/60 hover:bg-white/5 hover:text-white transition cursor-pointer"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
-              <span className="font-medium">Analytics</span>
+              <span className="font-medium">Campaigns</span>
             </button>
 
             <button
@@ -409,7 +421,7 @@ function DashboardContent() {
           {/* User Profile */}
           <div className="p-4 border-t border-white/10">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold">
+              <div className="w-10 h-10 rounded-full bg-orange-600 flex items-center justify-center text-white font-bold">
                 {merchant.full_name?.charAt(0) || merchant.email.charAt(0).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
@@ -435,7 +447,7 @@ function DashboardContent() {
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="lg:hidden text-white hover:text-purple-400 transition"
+                className="lg:hidden text-white hover:text-orange-400 transition"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -450,7 +462,7 @@ function DashboardContent() {
                 </span>
               ) : merchant.subscription_tier === 'trial' ? (
                 <span className="px-3 py-1 bg-blue-600/20 border border-blue-500/30 rounded-full text-blue-300 text-sm font-medium">
-                  14-Day Trial
+                  7-Day Trial
                 </span>
               ) : (
                 <span className="px-3 py-1 bg-gray-600/20 border border-gray-500/30 rounded-full text-gray-300 text-sm font-medium">
@@ -479,9 +491,9 @@ function DashboardContent() {
                 </svg>
               </div>
               <div className="flex-1">
-                <h3 className="text-2xl font-bold text-white mb-2">Welcome to Argora Cart Recovery! 🎉</h3>
+                <h3 className="text-2xl font-bold text-white mb-2">Welcome to AdWyse! 🎉</h3>
                 <p className="text-green-100 text-lg mb-3">
-                  Your Pro Plan subscription is now active with a <span className="font-bold">14-day free trial</span>!
+                  Your Pro Plan subscription is now active with a <span className="font-bold">7-day free trial</span>!
                 </p>
                 <div className="space-y-2 text-white/80">
                   <div className="flex items-center gap-2">
@@ -494,17 +506,17 @@ function DashboardContent() {
                     <svg className="w-5 h-5 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
-                    <span>Abandoned cart detection is running</span>
+                    <span>Order attribution tracking is running</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <svg className="w-5 h-5 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
-                    <span>AI-powered recovery emails will be sent automatically</span>
+                    <span>AI-powered insights will be generated weekly</span>
                   </div>
                 </div>
                 <p className="text-white/60 text-sm mt-4">
-                  You'll be charged $29.99/month starting Nov 1, 2025. Cancel anytime before then.
+                  You'll be charged $99/month after your trial ends. Cancel anytime.
                 </p>
               </div>
             </div>
@@ -517,21 +529,20 @@ function DashboardContent() {
             // Empty State: No Stores Connected
             <div className="max-w-2xl mx-auto mt-20">
               <div className="bg-white/5 backdrop-blur border border-white/10 rounded-2xl p-12 text-center">
-                <div className="w-20 h-20 bg-purple-600/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <svg className="w-10 h-10 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                <div className="w-20 h-20 bg-orange-600/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <svg className="w-10 h-10 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                   </svg>
                 </div>
                 <h2 className="text-3xl font-bold text-white mb-3">Connect Your Shopify Store</h2>
                 <p className="text-white/60 text-lg mb-8">
-                  Get started by connecting your Shopify store to start recovering abandoned carts with AI-powered emails.
+                  Get started by connecting your Shopify store to track ad attribution and calculate ROAS.
                 </p>
                 <button
                   onClick={() => {
-                    // Redirect to connect-store page (works with both session and cookie auth)
                     window.location.href = '/dashboard/connect-store';
                   }}
-                  className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg text-white font-semibold hover:opacity-90 transition text-lg"
+                  className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-orange-600 to-red-600 rounded-lg text-white font-semibold hover:opacity-90 transition text-lg"
                 >
                   <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M16.373 0c-.343 0-1.02.188-1.547.562-1.105.785-1.92 2.012-2.298 3.456-.75.3-1.39.566-1.828.764-.99.45-1.02.48-1.148.72-.1.183-.187.42-.27.7-1.23.397-2.46.784-2.976 1.13C3.563 8.5 3.375 10.874 3 12v4.78l15-3.562V8.5c0-2.437-1.5-4-3.75-4h-1.5c.327-1.163.97-2.25 2.058-3.008C15.39.934 15.933.718 16.375.5c.345-.17.564-.29.747-.406C17.28.002 17.39 0 17.625 0h-1.252zm-1.998 8.5c-.69 0-1.25.56-1.25 1.25s.56 1.25 1.25 1.25 1.25-.56 1.25-1.25-.56-1.25-1.25-1.25zm1.5 7.5H3v4.5c0 1.656 1.344 3 3 3h12c1.656 0 3-1.344 3-3V16h-4.125z"/>
@@ -544,57 +555,59 @@ function DashboardContent() {
               </div>
             </div>
           ) : (
-            // Dashboard with Stats (when stores are connected)
+            // Dashboard with Stats
             <div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6">
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-white/60 text-sm font-medium">Abandoned Carts</h3>
-                    <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                    <h3 className="text-white/60 text-sm font-medium">Total Orders</h3>
+                    <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                     </svg>
                   </div>
-                  <div className="text-3xl font-bold text-white mb-1">{totalCarts}</div>
+                  <div className="text-3xl font-bold text-white mb-1">{totalOrders}</div>
                   <div className="text-white/40 text-sm">
-                    {totalCarts === 0 ? 'No carts detected yet' : `${abandonedCarts.filter(c => c.status === 'abandoned' || c.status === 'recovering').length} awaiting recovery`}
+                    {attributedOrders} from ads
                   </div>
                 </div>
 
                 <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6">
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-white/60 text-sm font-medium">Emails Sent</h3>
-                    <svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <div className="text-3xl font-bold text-white mb-1">{totalEmailsSent}</div>
-                  <div className="text-white/40 text-sm">
-                    {totalEmailsSent === 0 ? 'No campaigns yet' : 'Recovery emails sent'}
-                  </div>
-                </div>
-
-                <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-white/60 text-sm font-medium">Recovery Rate</h3>
+                    <h3 className="text-white/60 text-sm font-medium">Total Revenue</h3>
                     <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                    </svg>
-                  </div>
-                  <div className="text-3xl font-bold text-white mb-1">{recoveryRate}%</div>
-                  <div className="text-white/40 text-sm">
-                    {totalCarts === 0 ? 'Waiting for data' : `${recoveredCarts} of ${totalCarts} recovered`}
-                  </div>
-                </div>
-
-                <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-white/60 text-sm font-medium">Revenue Recovered</h3>
-                    <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
-                  <div className="text-3xl font-bold text-white mb-1">${revenueRecovered.toFixed(2)}</div>
-                  <div className="text-white/40 text-sm">Last 30 days</div>
+                  <div className="text-3xl font-bold text-white mb-1">${totalRevenue.toFixed(2)}</div>
+                  <div className="text-white/40 text-sm">
+                    ${attributedRevenue.toFixed(2)} attributed
+                  </div>
+                </div>
+
+                <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-white/60 text-sm font-medium">Ad Spend</h3>
+                    <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  </div>
+                  <div className="text-3xl font-bold text-white mb-1">${totalSpend.toFixed(2)}</div>
+                  <div className="text-white/40 text-sm">
+                    {campaigns.length} active campaigns
+                  </div>
+                </div>
+
+                <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-white/60 text-sm font-medium">Average ROAS</h3>
+                    <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                  </div>
+                  <div className="text-3xl font-bold text-white mb-1">{avgROAS.toFixed(2)}x</div>
+                  <div className="text-white/40 text-sm">
+                    {totalSpend === 0 ? 'No spend data yet' : 'Return on ad spend'}
+                  </div>
                 </div>
               </div>
 
@@ -605,14 +618,14 @@ function DashboardContent() {
                   {stores.map((store) => (
                     <div key={store.id} className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-purple-600/20 rounded-lg flex items-center justify-center">
-                          <svg className="w-6 h-6 text-purple-400" fill="currentColor" viewBox="0 0 24 24">
+                        <div className="w-10 h-10 bg-orange-600/20 rounded-lg flex items-center justify-center">
+                          <svg className="w-6 h-6 text-orange-400" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M16.373 0c-.343 0-1.02.188-1.547.562-1.105.785-1.92 2.012-2.298 3.456-.75.3-1.39.566-1.828.764-.99.45-1.02.48-1.148.72-.1.183-.187.42-.27.7-1.23.397-2.46.784-2.976 1.13C3.563 8.5 3.375 10.874 3 12v4.78l15-3.562V8.5c0-2.437-1.5-4-3.75-4h-1.5c.327-1.163.97-2.25 2.058-3.008C15.39.934 15.933.718 16.375.5c.345-.17.564-.29.747-.406C17.28.002 17.39 0 17.625 0h-1.252z"/>
                           </svg>
                         </div>
                         <div>
                           <div className="text-white font-medium">{store.store_name}</div>
-                          <div className="text-white/40 text-sm">{store.store_url}</div>
+                          <div className="text-white/40 text-sm">{store.shopify_domain}</div>
                         </div>
                       </div>
                       <span className={`px-3 py-1 rounded-full text-sm font-medium ${
@@ -627,8 +640,8 @@ function DashboardContent() {
                 </div>
               </div>
 
-              {/* How Cart Tracking Works - Info Box */}
-              {abandonedCarts.length === 0 && (
+              {/* Info box when no orders */}
+              {orders.length === 0 && (
                 <div className="bg-blue-500/10 backdrop-blur border border-blue-500/30 rounded-xl p-6 mb-6">
                   <div className="flex items-start gap-4">
                     <div className="flex-shrink-0">
@@ -637,40 +650,39 @@ function DashboardContent() {
                       </svg>
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-white font-semibold mb-2">How Cart Tracking Works</h3>
+                      <h3 className="text-white font-semibold mb-2">How Attribution Tracking Works</h3>
                       <p className="text-white/70 text-sm mb-3">
-                        Abandoned carts are automatically tracked when customers <strong>enter their email address at checkout</strong> and then leave without completing their purchase.
+                        AdWyse automatically tracks every order from your Shopify store and attributes it to your ad campaigns using UTM parameters, Facebook Click IDs (FBCLID), and Google Click IDs (GCLID).
                       </p>
                       <div className="bg-white/5 rounded-lg p-4 text-sm text-white/60">
-                        <p className="mb-2"><strong className="text-white/80">To test cart tracking:</strong></p>
+                        <p className="mb-2"><strong className="text-white/80">To test attribution tracking:</strong></p>
                         <ol className="list-decimal list-inside space-y-1 ml-2">
-                          <li>Add items to cart on your store</li>
-                          <li>Proceed to checkout</li>
-                          <li><strong className="text-blue-300">Enter an email address</strong> (this is required)</li>
-                          <li>Close the tab without completing payment</li>
-                          <li>The abandoned cart will appear here within a few moments</li>
+                          <li>Visit your store with UTM parameters (e.g., ?utm_source=facebook&utm_campaign=test)</li>
+                          <li>Add items to cart and complete checkout</li>
+                          <li>The order will appear here with attribution data</li>
+                          <li>Connect Facebook/Google Ads to auto-sync campaign spend</li>
                         </ol>
                       </div>
                       <p className="text-white/50 text-xs mt-3">
-                        Note: Shopify only sends cart data once an email is provided. This is standard for all Shopify cart recovery apps.
+                        Webhooks are active and tracking all new orders automatically.
                       </p>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Recent Abandoned Carts */}
-              {abandonedCarts.length > 0 && (
+              {/* Recent Orders */}
+              {orders.length > 0 && (
                 <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-bold text-white">Recent Abandoned Carts</h2>
+                    <h2 className="text-xl font-bold text-white">Recent Orders</h2>
                     <div className="text-white/60 text-sm">
-                      Showing {Math.min((currentPage - 1) * itemsPerPage + 1, abandonedCarts.length)}-{Math.min(currentPage * itemsPerPage, abandonedCarts.length)} of {abandonedCarts.length} carts | Page {currentPage} of {Math.ceil(abandonedCarts.length / itemsPerPage)}
+                      Showing {Math.min((currentPage - 1) * itemsPerPage + 1, orders.length)}-{Math.min(currentPage * itemsPerPage, orders.length)} of {orders.length}
                     </div>
                   </div>
                   <div className="space-y-3">
-                    {abandonedCarts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((cart) => {
-                      const timeAgo = new Date(cart.abandoned_at).toLocaleDateString('en-US', {
+                    {orders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((order) => {
+                      const timeAgo = new Date(order.created_at).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
                         hour: 'numeric',
@@ -678,37 +690,35 @@ function DashboardContent() {
                       });
 
                       return (
-                        <div key={cart.id} className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10">
+                        <div key={order.id} className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10">
                           <div className="flex items-center gap-4 flex-1">
-                            <div className="w-12 h-12 bg-purple-600/20 rounded-full flex items-center justify-center">
-                              <span className="text-purple-300 font-bold text-lg">
-                                {cart.customer_first_name?.charAt(0) || cart.customer_email.charAt(0).toUpperCase()}
+                            <div className="w-12 h-12 bg-orange-600/20 rounded-full flex items-center justify-center">
+                              <span className="text-orange-300 font-bold text-lg">
+                                {order.customer_email?.charAt(0).toUpperCase() || '#'}
                               </span>
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="text-white font-medium">
-                                {cart.customer_first_name && cart.customer_last_name
-                                  ? `${cart.customer_first_name} ${cart.customer_last_name}`
-                                  : cart.customer_email}
+                                Order #{order.shopify_order_number}
                               </div>
-                              <div className="text-white/40 text-sm truncate">{cart.customer_email}</div>
+                              <div className="text-white/40 text-sm truncate">{order.customer_email || 'No email'}</div>
                             </div>
                           </div>
                           <div className="flex items-center gap-6">
                             <div className="text-right">
-                              <div className="text-white font-bold text-lg">${cart.cart_value.toFixed(2)}</div>
+                              <div className="text-white font-bold text-lg">${order.order_total.toFixed(2)}</div>
                               <div className="text-white/40 text-sm">{timeAgo}</div>
                             </div>
                             <span className={`px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap ${
-                              cart.status === 'recovered'
-                                ? 'bg-green-500/20 text-green-300'
-                                : cart.status === 'recovering'
+                              order.ad_source === 'facebook'
                                 ? 'bg-blue-500/20 text-blue-300'
-                                : cart.status === 'abandoned'
-                                ? 'bg-yellow-500/20 text-yellow-300'
-                                : 'bg-red-500/20 text-red-300'
+                                : order.ad_source === 'google'
+                                ? 'bg-red-500/20 text-red-300'
+                                : order.ad_source === 'tiktok'
+                                ? 'bg-pink-500/20 text-pink-300'
+                                : 'bg-gray-500/20 text-gray-300'
                             }`}>
-                              {cart.status.charAt(0).toUpperCase() + cart.status.slice(1)}
+                              {order.ad_source || 'direct'}
                             </span>
                           </div>
                         </div>
@@ -716,10 +726,9 @@ function DashboardContent() {
                     })}
                   </div>
 
-                  {/* Pagination Controls */}
-                  {Math.ceil(abandonedCarts.length / itemsPerPage) > 1 && (
+                  {/* Pagination */}
+                  {Math.ceil(orders.length / itemsPerPage) > 1 && (
                     <div className="flex items-center justify-center gap-2 mt-6">
-                      {/* Previous Button */}
                       <button
                         onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                         disabled={currentPage === 1}
@@ -731,57 +740,14 @@ function DashboardContent() {
                       >
                         ← Previous
                       </button>
-
-                      {/* Page Numbers */}
-                      <div className="flex gap-1">
-                        {(() => {
-                          const totalPages = Math.ceil(abandonedCarts.length / itemsPerPage);
-                          const pageNumbers = [];
-
-                          // Always show first page
-                          if (totalPages > 0) pageNumbers.push(1);
-
-                          // Show ellipsis and pages around current page
-                          if (currentPage > 3) pageNumbers.push('...');
-
-                          for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
-                            pageNumbers.push(i);
-                          }
-
-                          // Show ellipsis before last page
-                          if (currentPage < totalPages - 2) pageNumbers.push('...');
-
-                          // Always show last page
-                          if (totalPages > 1) pageNumbers.push(totalPages);
-
-                          return pageNumbers.map((page, idx) => {
-                            if (page === '...') {
-                              return <span key={`ellipsis-${idx}`} className="px-2 text-white/40">...</span>;
-                            }
-
-                            return (
-                              <button
-                                key={page}
-                                onClick={() => setCurrentPage(page as number)}
-                                className={`w-10 h-10 rounded-lg font-medium transition-all ${
-                                  currentPage === page
-                                    ? 'bg-purple-600 text-white'
-                                    : 'bg-white/10 text-white hover:bg-white/20'
-                                }`}
-                              >
-                                {page}
-                              </button>
-                            );
-                          });
-                        })()}
+                      <div className="text-white/60 text-sm px-4">
+                        Page {currentPage} of {Math.ceil(orders.length / itemsPerPage)}
                       </div>
-
-                      {/* Next Button */}
                       <button
-                        onClick={() => setCurrentPage(p => Math.min(Math.ceil(abandonedCarts.length / itemsPerPage), p + 1))}
-                        disabled={currentPage === Math.ceil(abandonedCarts.length / itemsPerPage)}
+                        onClick={() => setCurrentPage(p => Math.min(Math.ceil(orders.length / itemsPerPage), p + 1))}
+                        disabled={currentPage === Math.ceil(orders.length / itemsPerPage)}
                         className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                          currentPage === Math.ceil(abandonedCarts.length / itemsPerPage)
+                          currentPage === Math.ceil(orders.length / itemsPerPage)
                             ? 'bg-white/5 text-white/30 cursor-not-allowed'
                             : 'bg-white/10 text-white hover:bg-white/20'
                         }`}
@@ -803,9 +769,9 @@ function DashboardContent() {
 export default function DashboardPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-solid border-purple-600 border-r-transparent mb-4"></div>
+          <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-solid border-orange-600 border-r-transparent mb-4"></div>
           <div className="text-white text-xl">Loading dashboard...</div>
         </div>
       </div>
