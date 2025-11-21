@@ -1,10 +1,8 @@
-// app/about/page.tsx
 'use client';
 
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import ShopifyAppStoreBadge from '@/components/ShopifyAppStoreBadge';
 
 export default function AboutPage() {
   const parallaxRef = useRef<HTMLDivElement>(null);
@@ -22,7 +20,7 @@ export default function AboutPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900">
       <style jsx global>{`
         @keyframes gradient {
           0% { background-position: 0% 50%; }
@@ -36,7 +34,7 @@ export default function AboutPage() {
         }
 
         .gradient-text {
-          background: linear-gradient(-45deg, #667eea, #764ba2, #667eea, #764ba2);
+          background: linear-gradient(-45deg, #f59e0b, #ef4444, #f59e0b, #ef4444);
           background-size: 400% 400%;
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
@@ -49,7 +47,7 @@ export default function AboutPage() {
 
         .glow-button:hover {
           transform: translateY(-2px);
-          box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4);
+          box-shadow: 0 10px 40px rgba(245, 158, 11, 0.4);
         }
 
         .floating {
@@ -60,8 +58,8 @@ export default function AboutPage() {
       {/* Header */}
       <header className="border-b border-white/10 backdrop-blur-md bg-slate-900/50 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <Link href="/" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-            <Image src="/logo 3.png" alt="ARGORA" width={140} height={47} style={{ objectFit: 'contain' }} />
+          <Link href="/" style={{ cursor: 'pointer', fontSize: '24px', fontWeight: 800 }}>
+            <span className="gradient-text">AdWyse</span>
           </Link>
           <nav className="flex gap-8">
             <Link href="/" className="text-white/80 hover:text-white transition-colors">Home</Link>
@@ -74,34 +72,62 @@ export default function AboutPage() {
       {/* Hero Section */}
       <section className="relative py-24 overflow-hidden">
         <div ref={parallaxRef} className="absolute inset-0 opacity-20">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-purple-500 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-20 right-10 w-96 h-96 bg-blue-500 rounded-full blur-3xl"></div>
+          <div className="absolute top-20 left-10 w-72 h-72 bg-orange-500 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-20 right-10 w-96 h-96 bg-red-500 rounded-full blur-3xl"></div>
         </div>
 
         <div className="max-w-7xl mx-auto px-6 relative z-10">
           <div className="text-center mb-16">
             <h1 className="text-6xl font-bold text-white mb-6">
-              About <span className="gradient-text">ARGORA</span>
+              About <span className="gradient-text">AdWyse</span>
             </h1>
             <p className="text-xl text-white/70 max-w-3xl mx-auto">
-              An AI-powered abandoned cart recovery system for e-commerce businesses
+              AI-powered ad attribution that helps Shopify merchants know exactly which ads make them money
             </p>
           </div>
         </div>
       </section>
 
-      {/* Adam's Story */}
+      {/* The Problem */}
       <section className="py-20 relative">
         <div className="max-w-7xl mx-auto px-6">
+          <div className="bg-gradient-to-br from-orange-600/10 to-red-600/10 backdrop-blur-sm border border-white/10 rounded-2xl p-12 mb-20">
+            <h2 className="text-4xl font-bold text-white mb-6 text-center">The Problem We Solve</h2>
+            <div className="grid md:grid-cols-3 gap-8">
+              <div>
+                <div className="text-5xl font-bold gradient-text mb-4">70%</div>
+                <h3 className="text-xl font-bold text-white mb-2">Broken Tracking</h3>
+                <p className="text-white/70">
+                  Apple's iOS 14 update destroyed Facebook and Google ad tracking. Merchants are flying blind, not knowing which ads actually work.
+                </p>
+              </div>
+              <div>
+                <div className="text-5xl font-bold gradient-text mb-4">$2.4B</div>
+                <h3 className="text-xl font-bold text-white mb-2">Wasted Ad Spend</h3>
+                <p className="text-white/70">
+                  Shopify merchants waste billions annually on ads that don't convert because they can't track attribution accurately.
+                </p>
+              </div>
+              <div>
+                <div className="text-5xl font-bold gradient-text mb-4">$599</div>
+                <h3 className="text-xl font-bold text-white mb-2">Expensive Solutions</h3>
+                <p className="text-white/70">
+                  Triple Whale and Polar Analytics charge $129-599/month for attribution tools that are too complex and overpriced for most merchants.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Adam's Story */}
           <div className="grid md:grid-cols-2 gap-16 items-center">
             <div className="relative">
-              <div className="bg-gradient-to-br from-purple-600/20 to-blue-600/20 backdrop-blur-sm border border-white/10 rounded-2xl p-2">
+              <div className="bg-gradient-to-br from-orange-600/20 to-red-600/20 backdrop-blur-sm border border-white/10 rounded-2xl p-2">
                 <div className="bg-slate-800/50 rounded-xl p-12 text-center">
                   <div className="w-48 h-48 rounded-full mx-auto mb-6 overflow-hidden">
                     <Image src="/profile2.png" alt="Adam - Founder" width={192} height={192} style={{ objectFit: 'cover' }} />
                   </div>
                   <h3 className="text-2xl font-bold text-white mb-2">Adam</h3>
-                  <p className="text-purple-400 mb-4">Founder</p>
+                  <p className="text-orange-400 mb-4">Founder</p>
                   <div className="flex justify-center gap-4">
                     <a href="#" className="text-white/60 hover:text-white transition-colors">
                       <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
@@ -114,73 +140,73 @@ export default function AboutPage() {
             </div>
 
             <div>
-              <h2 className="text-4xl font-bold text-white mb-6">Why I Built This</h2>
+              <h2 className="text-4xl font-bold text-white mb-6">Why I Built AdWyse</h2>
               <p className="text-lg text-white/70 mb-4">
-                Hi, I'm Adam. I built ARGORA to solve a massive problem in e-commerce: 70% of online shopping carts are abandoned, costing Shopify businesses billions in lost revenue every year.
+                Hi, I'm Adam. I built AdWyse to solve the biggest problem in e-commerce advertising: broken attribution tracking.
               </p>
               <p className="text-lg text-white/70 mb-4">
-                Most abandoned cart recovery tools send generic, robotic messages that get ignored. I wanted to build something different - a Shopify app that uses AI to write personalized, human-like recovery emails that actually convert.
+                After iOS 14, Facebook and Google's tracking became unreliable. Merchants started spending thousands on ads without knowing which ones actually drove sales. I watched businesses waste 30-40% of their ad budgets on campaigns that didn't work.
               </p>
               <p className="text-lg text-white/70 mb-4">
-                ARGORA uses AI to generate unique emails for each abandoned cart, mentioning specific products and creating genuine urgency. The result? 33% recovery rates compared to the typical 8-15% from generic tools.
+                Existing solutions like Triple Whale ($129-599/month) and Polar Analytics ($199-599/month) are too expensive and complex. Most Shopify merchants spending $1k-50k/month on ads can't justify those prices.
               </p>
               <p className="text-lg text-white/70">
-                It's a Shopify App that installs in 2 minutes and costs $19.99/month. If you're tired of watching revenue slip away from abandoned carts, give it a try.
+                AdWyse tracks every order back to its source using UTM parameters and platform click IDs. But we don't just show data - Claude AI analyzes it and tells you exactly what to do: "Pause this campaign (losing $47/day)" or "Scale this one (5.2x ROAS)." All for $99/month.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* The Technology */}
-      <section className="py-20 relative bg-gradient-to-b from-transparent via-purple-900/10 to-transparent">
+      {/* How AdWyse Works */}
+      <section className="py-20 relative bg-gradient-to-b from-transparent via-orange-900/10 to-transparent">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-white mb-6">
-              How <span className="gradient-text">ARGORA</span> Works
+              How <span className="gradient-text">AdWyse</span> Works
             </h2>
             <p className="text-xl text-white/70 max-w-3xl mx-auto">
-              Built with cutting-edge AI and proven messaging channels
+              Built with cutting-edge attribution technology and AI-powered insights
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
             {/* Card 1 */}
-            <div className="bg-gradient-to-br from-purple-600/10 to-blue-600/10 backdrop-blur-sm border border-white/10 rounded-2xl p-8 hover:border-purple-500/50 transition-all">
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl flex items-center justify-center mb-6">
+            <div className="bg-gradient-to-br from-orange-600/10 to-red-600/10 backdrop-blur-sm border border-white/10 rounded-2xl p-8 hover:border-orange-500/50 transition-all">
+              <div className="w-16 h-16 bg-gradient-to-br from-orange-600 to-red-600 rounded-xl flex items-center justify-center mb-6">
                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-white mb-4">AI-Powered Messaging</h3>
+              <h3 className="text-2xl font-bold text-white mb-4">Accurate Attribution</h3>
               <p className="text-white/70">
-                Advanced AI generates personalized recovery messages tailored to each customer and cart. Not templates - real, human-like messages.
+                Track orders using UTM parameters, Facebook Click IDs (FBCLID), and Google Click IDs (GCLID). Every sale gets matched to the exact ad that drove it.
               </p>
             </div>
 
             {/* Card 2 */}
-            <div className="bg-gradient-to-br from-purple-600/10 to-blue-600/10 backdrop-blur-sm border border-white/10 rounded-2xl p-8 hover:border-purple-500/50 transition-all">
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl flex items-center justify-center mb-6">
+            <div className="bg-gradient-to-br from-orange-600/10 to-red-600/10 backdrop-blur-sm border border-white/10 rounded-2xl p-8 hover:border-orange-500/50 transition-all">
+              <div className="w-16 h-16 bg-gradient-to-br from-orange-600 to-red-600 rounded-xl flex items-center justify-center mb-6">
                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-white mb-4">Email via Resend</h3>
+              <h3 className="text-2xl font-bold text-white mb-4">Real ROAS Calculations</h3>
               <p className="text-white/70">
-                Automated email sequences sent at 1hr, 24hr, and 72hr after abandonment. Cost-effective and scalable for any store size.
+                We pull ad spend data from Facebook and Google APIs, match it with your Shopify orders, and calculate true Return on Ad Spend for each campaign.
               </p>
             </div>
 
             {/* Card 3 */}
-            <div className="bg-gradient-to-br from-purple-600/10 to-blue-600/10 backdrop-blur-sm border border-white/10 rounded-2xl p-8 hover:border-purple-500/50 transition-all">
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl flex items-center justify-center mb-6">
+            <div className="bg-gradient-to-br from-orange-600/10 to-red-600/10 backdrop-blur-sm border border-white/10 rounded-2xl p-8 hover:border-orange-500/50 transition-all">
+              <div className="w-16 h-16 bg-gradient-to-br from-orange-600 to-red-600 rounded-xl flex items-center justify-center mb-6">
                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-white mb-4">Email Sequences</h3>
+              <h3 className="text-2xl font-bold text-white mb-4">AI-Powered Insights</h3>
               <p className="text-white/70">
-                Automated follow-up emails at 24hr, 48hr, and 72hr intervals. Cost-effective and perfect for nurturing hesitant buyers.
+                Claude AI analyzes your campaigns daily and generates actionable recommendations. Not just data - specific actions to take with estimated ROI impact.
               </p>
             </div>
           </div>
@@ -190,10 +216,10 @@ export default function AboutPage() {
       {/* Why Now? */}
       <section className="py-20 relative">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="bg-gradient-to-br from-purple-600/10 to-blue-600/10 backdrop-blur-sm border border-white/10 rounded-2xl p-12">
+          <div className="bg-gradient-to-br from-orange-600/10 to-red-600/10 backdrop-blur-sm border border-white/10 rounded-2xl p-12">
             <h2 className="text-4xl font-bold text-white mb-6 text-center">Simple Pricing, Powerful Results</h2>
             <p className="text-xl text-white/70 mb-8 text-center max-w-3xl mx-auto">
-              One price, unlimited cart recoveries. Install from Shopify App Store and start recovering revenue today.
+              One price, unlimited tracking. Get the attribution insights you need without breaking the bank.
             </p>
 
             <div className="grid md:grid-cols-2 gap-8 mb-8">
@@ -204,8 +230,8 @@ export default function AboutPage() {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-white mb-2">$19.99/Month</h3>
-                  <p className="text-white/70">Simple subscription. No setup fees, no hidden costs, no contracts. Cancel anytime.</p>
+                  <h3 className="text-xl font-bold text-white mb-2">$99/Month Flat Fee</h3>
+                  <p className="text-white/70">Simple subscription. No setup fees, no hidden costs, no contracts. Cancel anytime. Compare to Triple Whale ($129-599/month) or Polar ($199-599/month).</p>
                 </div>
               </div>
 
@@ -217,7 +243,7 @@ export default function AboutPage() {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-white mb-2">2-Minute Setup</h3>
-                  <p className="text-white/70">One-click install from Shopify App Store. OAuth connects automatically. Start recovering carts immediately.</p>
+                  <p className="text-white/70">Install from Shopify App Store. Connect Facebook and Google Ads via OAuth. Start tracking orders immediately. No technical knowledge required.</p>
                 </div>
               </div>
 
@@ -228,8 +254,8 @@ export default function AboutPage() {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-white mb-2">14-Day Free Trial</h3>
-                  <p className="text-white/70">Try it risk-free. No credit card required. See results before you pay.</p>
+                  <h3 className="text-xl font-bold text-white mb-2">7-Day Free Trial</h3>
+                  <p className="text-white/70">Try it risk-free. No credit card required. See exactly which ads are working (and which aren't) before you pay.</p>
                 </div>
               </div>
 
@@ -240,21 +266,38 @@ export default function AboutPage() {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-white mb-2">850%+ ROI</h3>
-                  <p className="text-white/70">Most merchants recover $4,000+/month in lost sales. That's 40x your investment.</p>
+                  <h3 className="text-xl font-bold text-white mb-2">15x+ ROI Typical</h3>
+                  <p className="text-white/70">Most merchants save $1,500-3,000/month by cutting bad campaigns and scaling winners. That's 15-30x return on your $99 investment.</p>
                 </div>
               </div>
             </div>
 
             <div className="text-center">
-              <div className="flex justify-center">
-                <ShopifyAppStoreBadge
-                  variant="preferred"
-                  appUrl="https://apps.shopify.com/argora-cart-recovery"
-                  height={70}
-                />
-              </div>
-              <p className="text-white/60 text-sm mt-4">🎉 Now Available on Shopify App Store!</p>
+              <button
+                onClick={() => window.location.href = '/dashboard'}
+                style={{
+                  background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
+                  border: 'none',
+                  padding: '16px 48px',
+                  borderRadius: '12px',
+                  fontSize: '18px',
+                  fontWeight: 600,
+                  color: 'white',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)'
+                  e.currentTarget.style.boxShadow = '0 10px 40px rgba(245, 158, 11, 0.4)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)'
+                  e.currentTarget.style.boxShadow = 'none'
+                }}
+              >
+                Start Free Trial
+              </button>
+              <p className="text-white/60 text-sm mt-4">🎉 7-day free trial • No credit card required</p>
             </div>
           </div>
         </div>
@@ -265,8 +308,8 @@ export default function AboutPage() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
-              <div className="text-2xl font-bold gradient-text mb-4">ARGORA</div>
-              <p className="text-white/60">AI-powered cart recovery for e-commerce</p>
+              <div className="text-2xl font-bold gradient-text mb-4">AdWyse</div>
+              <p className="text-white/60">AI-powered ad attribution for Shopify</p>
             </div>
             <div>
               <h4 className="text-white font-semibold mb-4">Product</h4>
@@ -285,11 +328,11 @@ export default function AboutPage() {
             </div>
             <div>
               <h4 className="text-white font-semibold mb-4">Contact</h4>
-              <p className="text-white/60">adam@argora.ai</p>
+              <p className="text-white/60">adam@adwyse.ca</p>
             </div>
           </div>
           <div className="border-t border-white/10 pt-8 text-center text-white/60">
-            <p>&copy; 2025 ARGORA. All rights reserved.</p>
+            <p>&copy; 2025 AdWyse. All rights reserved.</p>
           </div>
         </div>
       </footer>

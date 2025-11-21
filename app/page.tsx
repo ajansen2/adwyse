@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import ShopifyAppStoreBadge from '@/components/ShopifyAppStoreBadge'
 
 export default function HomePage() {
   const router = useRouter()
@@ -12,25 +11,13 @@ export default function HomePage() {
 
   // Redirect to dashboard if loaded as embedded app
   useEffect(() => {
-    // Check if we're in an iframe (embedded in Shopify)
     const isEmbedded = window.self !== window.top
-
-    console.log('🔍 Homepage: isEmbedded =', isEmbedded)
-
     if (isEmbedded) {
-      // Get params from URL or use App Bridge
       const urlParams = new URLSearchParams(window.location.search)
       const shop = urlParams.get('shop')
-
-      console.log('🔍 Homepage: shop param =', shop)
-
       if (shop) {
-        // Has shop param - redirect with params
-        console.log('🔍 Homepage: Redirecting to /dashboard with params')
         window.location.href = `/dashboard?${urlParams.toString()}`
       } else {
-        // No shop param but embedded - just redirect to dashboard
-        console.log('🔍 Homepage: Redirecting to /dashboard')
         window.location.href = '/dashboard'
       }
     }
@@ -76,7 +63,6 @@ export default function HomePage() {
           scroll-behavior: smooth;
         }
 
-        /* Gradient text animation */
         @keyframes gradient {
           0% { background-position: 0% 50%; }
           50% { background-position: 100% 50%; }
@@ -84,7 +70,7 @@ export default function HomePage() {
         }
 
         .gradient-text {
-          background: linear-gradient(-45deg, #667eea, #764ba2, #667eea, #764ba2);
+          background: linear-gradient(-45deg, #f59e0b, #ef4444, #f59e0b, #ef4444);
           background-size: 400% 400%;
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
@@ -92,7 +78,6 @@ export default function HomePage() {
           animation: gradient 3s ease infinite;
         }
 
-        /* Glow button */
         .glow-button {
           position: relative;
           overflow: hidden;
@@ -101,7 +86,7 @@ export default function HomePage() {
 
         .glow-button:hover {
           transform: translateY(-2px);
-          box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4);
+          box-shadow: 0 10px 40px rgba(245, 158, 11, 0.4);
         }
 
         .glow-button::before {
@@ -119,7 +104,6 @@ export default function HomePage() {
           left: 100%;
         }
 
-        /* Fade in animation */
         .fade-in {
           opacity: 0;
           transform: translateY(30px);
@@ -131,7 +115,6 @@ export default function HomePage() {
           transform: translateY(0);
         }
 
-        /* Float animation */
         @keyframes float {
           0%, 100% { transform: translateY(0px); }
           50% { transform: translateY(-20px); }
@@ -139,17 +122,6 @@ export default function HomePage() {
 
         .floating {
           animation: float 6s ease-in-out infinite;
-        }
-
-        /* Pulse animation */
-        @keyframes pulse {
-          0% { transform: scale(1); }
-          50% { transform: scale(1.05); }
-          100% { transform: scale(1); }
-        }
-
-        .pulse {
-          animation: pulse 2s ease-in-out infinite;
         }
       `}</style>
 
@@ -185,13 +157,13 @@ export default function HomePage() {
                 cursor: 'pointer',
                 fontSize: '28px',
                 fontWeight: 800,
-                background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
               }}
               onClick={() => window.scrollTo(0, 0)}
             >
-              ARGORA
+              AdWyse
             </div>
             <div style={{ display: 'flex', gap: '30px', alignItems: 'center' }}>
               {[
@@ -211,8 +183,8 @@ export default function HomePage() {
                     paddingBottom: '2px'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.color = '#667eea'
-                    e.currentTarget.style.borderBottom = '2px solid #667eea'
+                    e.currentTarget.style.color = '#f59e0b'
+                    e.currentTarget.style.borderBottom = '2px solid #f59e0b'
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.color = '#ccc'
@@ -222,33 +194,29 @@ export default function HomePage() {
                   {link.label}
                 </a>
               ))}
-              <a
-                href="https://apps.shopify.com/argora-cart-recovery"
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                onClick={() => window.location.href = '/dashboard'}
                 style={{
-                  background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                  background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
                   border: 'none',
                   padding: '10px 24px',
                   borderRadius: '8px',
                   color: 'white',
                   fontWeight: 600,
                   cursor: 'pointer',
-                  textDecoration: 'none',
-                  display: 'inline-block',
                   transition: 'all 0.3s ease'
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'translateY(-2px)'
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)'
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(245, 158, 11, 0.4)'
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = 'translateY(0)'
                   e.currentTarget.style.boxShadow = 'none'
                 }}
               >
-                Get App →
-              </a>
+                Install App →
+              </button>
             </div>
           </div>
         </nav>
@@ -262,15 +230,14 @@ export default function HomePage() {
           position: 'relative',
           padding: '20px'
         }}>
-          {/* Background particles effect */}
           <div style={{
             position: 'absolute',
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
-            background: `radial-gradient(circle at 20% 50%, rgba(102,126,234,0.1) 0%, transparent 50%),
-                         radial-gradient(circle at 80% 80%, rgba(118,75,162,0.1) 0%, transparent 50%)`,
+            background: `radial-gradient(circle at 20% 50%, rgba(245,158,11,0.1) 0%, transparent 50%),
+                         radial-gradient(circle at 80% 80%, rgba(239,68,68,0.1) 0%, transparent 50%)`,
             transform: `translateY(${scrollY * 0.5}px)`,
           }} />
 
@@ -281,16 +248,16 @@ export default function HomePage() {
           }}>
             <div style={{
               display: 'inline-block',
-              background: 'linear-gradient(135deg, #667eea20, #764ba220)',
-              border: '1px solid #667eea40',
+              background: 'linear-gradient(135deg, rgba(245,158,11,0.2), rgba(239,68,68,0.2))',
+              border: '1px solid rgba(245,158,11,0.4)',
               borderRadius: '50px',
               padding: '8px 20px',
               marginBottom: '30px',
               fontSize: '14px',
               fontWeight: 600,
-              color: '#667eea'
+              color: '#f59e0b'
             }}>
-              🚀 Shopify App • AI-Powered Cart Recovery
+              🎯 AI-Powered Ad Attribution for Shopify
             </div>
 
             <h1 className="gradient-text" style={{
@@ -299,7 +266,7 @@ export default function HomePage() {
               lineHeight: 1.1,
               marginBottom: '30px'
             }}>
-              Recover Lost Sales<br/>With AI-Powered Emails
+              Know Which Ads<br/>Actually Make You Money
             </h1>
             <p style={{
               fontSize: 'clamp(20px, 3vw, 32px)',
@@ -307,9 +274,8 @@ export default function HomePage() {
               marginBottom: '20px',
               fontWeight: 300
             }}>
-              Shopify Cart Recovery Using AI-Powered Personalization
+              Track every order back to the ad that drove it
             </p>
-            {/* Testing auto-deploy workflow */}
             <p style={{
               fontSize: 'clamp(16px, 2vw, 20px)',
               color: '#888',
@@ -317,31 +283,41 @@ export default function HomePage() {
               maxWidth: '700px',
               margin: '0 auto 50px'
             }}>
-              Stop losing 70% of your revenue to abandoned carts. Our AI writes personalized recovery emails that convert 3x better than generic templates. Install in 2 minutes.
+              iOS 14 broke your ad tracking. AdWyse fixes it. Track Facebook, Google, and TikTok ads with AI-powered insights that tell you exactly which campaigns to scale and which to kill.
             </p>
             <div style={{ display: 'flex', gap: '30px', justifyContent: 'center', flexWrap: 'wrap', alignItems: 'center' }}>
-              {/* Official Shopify App Store Badge */}
-              <ShopifyAppStoreBadge
-                variant="preferred"
-                appUrl="https://apps.shopify.com/argora-cart-recovery"
-                height={70}
-              />
+              <button
+                className="glow-button"
+                onClick={() => window.location.href = '/dashboard'}
+                style={{
+                  background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
+                  border: 'none',
+                  padding: '18px 48px',
+                  borderRadius: '12px',
+                  fontSize: '20px',
+                  fontWeight: 600,
+                  color: 'white',
+                  cursor: 'pointer'
+                }}
+              >
+                Start Free Trial
+              </button>
 
               <button
                 onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
                 style={{
                   background: 'transparent',
-                  border: '2px solid #667eea',
+                  border: '2px solid #f59e0b',
                   padding: '18px 48px',
                   borderRadius: '12px',
                   fontSize: '20px',
                   fontWeight: 600,
-                  color: '#667eea',
+                  color: '#f59e0b',
                   cursor: 'pointer',
                   transition: 'all 0.3s ease'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#667eea20'
+                  e.currentTarget.style.background = 'rgba(245,158,11,0.1)'
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = 'transparent'
@@ -351,16 +327,11 @@ export default function HomePage() {
               </button>
             </div>
 
-            {/* Social proof */}
             <div style={{ marginTop: '30px', color: '#888', fontSize: '14px' }}>
-              🎉 Now Available on Shopify App Store!
-            </div>
-            <div style={{ marginTop: '10px', color: '#666', fontSize: '14px' }}>
-              ✓ 2-minute setup • ✓ $19.99/month • ✓ 14-day free trial • ✓ Cancel anytime
+              ✓ 7-day free trial • ✓ $99/month • ✓ 2-minute setup
             </div>
           </div>
 
-          {/* Scroll indicator */}
           <div style={{
             position: 'absolute',
             bottom: '40px',
@@ -383,16 +354,16 @@ export default function HomePage() {
             textAlign: 'center'
           }}>
             {[
-              { number: '70%', label: 'Average Cart Abandonment Rate' },
-              { number: '33%', label: 'AI Recovery Rate' },
-              { number: '3x', label: 'Better Than Generic Templates' },
+              { number: '70%', label: 'Of Ad Tracking Broken by iOS 14' },
+              { number: '$2.4B', label: 'Wasted on Bad Ads Annually' },
+              { number: '5x', label: 'Better ROAS with Attribution' },
               { number: '< 2min', label: 'Setup Time' }
             ].map((stat, i) => (
               <div key={i}>
                 <div style={{
                   fontSize: '48px',
                   fontWeight: 700,
-                  background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                  background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   marginBottom: '10px'
@@ -419,7 +390,7 @@ export default function HomePage() {
               textAlign: 'center',
               marginBottom: '20px'
             }}>
-              Why Choose Argora Over Generic Tools?
+              Why Choose AdWyse?
             </h2>
             <p style={{
               textAlign: 'center',
@@ -429,7 +400,7 @@ export default function HomePage() {
               maxWidth: '700px',
               margin: '0 auto 60px'
             }}>
-              A Shopify app that uses AI to write personalized recovery emails
+              Stop guessing which ads work. Know exactly where your revenue comes from.
             </p>
 
             <div style={{
@@ -439,34 +410,34 @@ export default function HomePage() {
             }}>
               {[
                 {
+                  icon: '🎯',
+                  title: 'Accurate Attribution',
+                  desc: 'Track every order back to its original ad source using UTM parameters, Facebook Click IDs (FBCLID), and Google Click IDs (GCLID). Know exactly which campaign drove each sale.'
+                },
+                {
                   icon: '🤖',
-                  title: 'AI-Powered Personalization',
-                  desc: 'AI generates unique emails for each abandoned cart based on products, customer behavior, and your brand voice. No more robotic templates.'
-                },
-                {
-                  icon: '📧',
-                  title: 'Automated Email Sequences',
-                  desc: 'Set and forget. Emails sent at 1hr, 24hr, and 72hr after abandonment. Sequence stops automatically when customer completes purchase.'
-                },
-                {
-                  icon: '⚡',
-                  title: '2-Minute Setup',
-                  desc: 'Install from Shopify App Store. OAuth connects in seconds. Webhooks configured automatically. Start recovering carts immediately.'
+                  title: 'AI-Powered Insights',
+                  desc: 'Claude AI analyzes your campaigns daily and tells you exactly what to do: "Pause Campaign X (losing $47/day)" or "Scale Campaign Y (5.2x ROAS - increase budget)".'
                 },
                 {
                   icon: '📊',
-                  title: 'Real-Time Analytics',
-                  desc: 'Track recovered revenue, conversion rates, ROI, and email performance. See exactly how much money the app is making you.'
+                  title: 'Real ROAS Calculations',
+                  desc: 'See your true Return on Ad Spend. We match ad spend from Facebook/Google APIs with actual Shopify orders to show you real profit numbers.'
                 },
                 {
-                  icon: '🎨',
-                  title: 'Brand Voice Training',
-                  desc: 'Tell the AI your brand voice (casual, professional, quirky) and it writes emails that sound authentically you.'
+                  icon: '⚡',
+                  title: 'Multi-Platform Tracking',
+                  desc: 'Track Facebook Ads, Google Ads, TikTok Ads, and more - all in one dashboard. Compare performance across platforms instantly.'
+                },
+                {
+                  icon: '🔗',
+                  title: 'Seamless Integration',
+                  desc: '2-minute setup. Connect your Shopify store, authorize Facebook & Google Ads. We handle webhooks, API calls, and data sync automatically.'
                 },
                 {
                   icon: '💰',
-                  title: 'High ROI',
-                  desc: 'Most merchants recover $4,000+ per month in lost sales. At just $19.99/month, the app pays for itself with just one recovered cart.'
+                  title: 'Save Thousands Monthly',
+                  desc: 'Most merchants waste 30%+ of ad spend on bad campaigns. AdWyse helps you cut waste and invest in winners. Typical savings: $1,500-3,000/month.'
                 }
               ].map((item, i) => (
                 <div
@@ -482,7 +453,7 @@ export default function HomePage() {
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = 'translateY(-10px)'
-                    e.currentTarget.style.borderColor = '#667eea'
+                    e.currentTarget.style.borderColor = '#f59e0b'
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.transform = 'translateY(0)'
@@ -525,30 +496,30 @@ export default function HomePage() {
               maxWidth: '700px',
               margin: '0 auto 60px'
             }}>
-              From cart abandonment to recovered revenue in 4 simple steps
+              From ad click to revenue tracking in 4 simple steps
             </p>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '40px' }}>
               {[
                 {
                   step: '01',
-                  title: 'Install Shopify App',
-                  desc: 'One-click install from Shopify App Store. OAuth connects your store automatically. Takes 2 minutes.'
+                  title: 'Install & Connect',
+                  desc: 'Install AdWyse from Shopify App Store. Connect your Facebook Ads and Google Ads accounts via OAuth. Takes 2 minutes.'
                 },
                 {
                   step: '02',
-                  title: 'AI Detects Abandonment',
-                  desc: 'When a customer abandons their cart, our webhook triggers instantly and AI analyzes the cart data.'
+                  title: 'Track Orders',
+                  desc: 'When customers click your ads, we capture UTM parameters and platform click IDs. Every Shopify order gets automatically attributed to its source.'
                 },
                 {
                   step: '03',
-                  title: 'Personalized Email Sent',
-                  desc: 'AI generates a unique email mentioning specific products, customer name, and creates urgency. Sent via your verified domain.'
+                  title: 'Pull Ad Spend Data',
+                  desc: 'We sync daily ad spend from Facebook/Google APIs and match it with your orders to calculate true ROAS for each campaign.'
                 },
                 {
                   step: '04',
-                  title: 'Revenue Recovered',
-                  desc: 'Customer receives email, clicks link, completes purchase. Your dashboard shows real-time recovered revenue and ROI.'
+                  title: 'Get AI Insights',
+                  desc: 'Claude AI analyzes your data and generates actionable insights: which campaigns to pause, scale, or optimize. See results in your dashboard.'
                 }
               ].map((item, i) => (
                 <div key={i} className="floating" style={{
@@ -558,7 +529,7 @@ export default function HomePage() {
                   <div style={{
                     fontSize: '72px',
                     fontWeight: 800,
-                    color: '#667eea20',
+                    color: 'rgba(245,158,11,0.2)',
                     marginBottom: '20px'
                   }}>
                     {item.step}
@@ -571,7 +542,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Why AI Personalization Works */}
+        {/* Comparison Section */}
         <section style={{ padding: '100px 20px', background: '#0f0f0f' }}>
           <div style={{ maxWidth: '1200px', margin: '0 auto', textAlign: 'center' }}>
             <h2 style={{
@@ -579,7 +550,7 @@ export default function HomePage() {
               fontWeight: 700,
               marginBottom: '40px'
             }}>
-              Why AI Personalization Converts 3x Better
+              AdWyse vs. Competitors
             </h2>
 
             <div style={{
@@ -590,24 +561,24 @@ export default function HomePage() {
             }}>
               {[
                 {
-                  icon: '📧',
-                  title: 'Generic vs. AI-Powered',
-                  desc: 'Generic tools send "You left something in your cart" to everyone. Our AI writes unique messages like "Hey Sarah, the Nike Air Max 270 in size 8.5 is selling fast..."'
+                  icon: '💰',
+                  title: 'Affordable Pricing',
+                  desc: 'AdWyse: $99/month flat fee. Triple Whale: $129-599/month. Polar Analytics: $199-599/month. Get the same insights for less.'
+                },
+                {
+                  icon: '🤖',
+                  title: 'AI Recommendations',
+                  desc: 'Most tools just show data. AdWyse uses Claude AI to tell you exactly what to do with that data. "Pause this, scale that, estimated impact: +$1,500/month".'
+                },
+                {
+                  icon: '⚡',
+                  title: 'Simple Setup',
+                  desc: 'Other tools take 30+ minutes to configure. AdWyse: 2-minute OAuth setup. No complex integrations or technical knowledge required.'
                 },
                 {
                   icon: '🎯',
-                  title: 'Product-Specific Details',
-                  desc: 'AI mentions exact products, features, and creates urgency based on real inventory levels. Customers feel like a human wrote the email.'
-                },
-                {
-                  icon: '⏰',
-                  title: 'Perfect Timing',
-                  desc: 'First email at 1hr (when intent is hot), follow-ups at 24hr and 72hr. AI adjusts tone for each message in the sequence.'
-                },
-                {
-                  icon: '💰',
-                  title: 'Pure Profit',
-                  desc: 'Every recovered cart is revenue you were already losing. Zero customer acquisition cost. Just $19.99/month to unlock thousands in recovered sales.'
+                  title: 'Focus on ROI',
+                  desc: 'Built for Shopify merchants spending $1k-50k/month on ads. Not enterprise complexity. Just the metrics that matter: ROAS, attribution, profit.'
                 }
               ].map((item, i) => (
                 <div
@@ -620,7 +591,7 @@ export default function HomePage() {
                     transition: 'all 0.3s ease'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = '#667eea'
+                    e.currentTarget.style.borderColor = '#f59e0b'
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.borderColor = '#333'
@@ -662,17 +633,16 @@ export default function HomePage() {
               maxWidth: '700px',
               margin: '0 auto 60px'
             }}>
-              One price, unlimited cart recoveries. No setup fees, no hidden costs.
+              One price, unlimited tracking. No setup fees, no hidden costs.
             </p>
 
             <div style={{
               maxWidth: '500px',
               margin: '0 auto'
             }}>
-              {/* Shopify App Pricing */}
               <div style={{
-                background: 'linear-gradient(135deg, #667eea20, #764ba220)',
-                border: '3px solid #667eea',
+                background: 'linear-gradient(135deg, rgba(245,158,11,0.2), rgba(239,68,68,0.2))',
+                border: '3px solid #f59e0b',
                 borderRadius: '20px',
                 padding: '50px',
                 position: 'relative',
@@ -682,28 +652,28 @@ export default function HomePage() {
                   position: 'absolute',
                   top: '20px',
                   right: '20px',
-                  background: '#667eea',
+                  background: '#f59e0b',
                   color: 'white',
                   padding: '6px 16px',
                   borderRadius: '20px',
                   fontSize: '12px',
                   fontWeight: 700
                 }}>
-                  SHOPIFY APP
+                  BEST VALUE
                 </div>
 
-                <div style={{ fontSize: '20px', color: '#667eea', marginBottom: '10px', fontWeight: 600 }}>
+                <div style={{ fontSize: '20px', color: '#f59e0b', marginBottom: '10px', fontWeight: 600 }}>
                   Pro Plan
                 </div>
                 <div style={{
                   fontSize: '56px',
                   fontWeight: 700,
                   marginBottom: '10px',
-                  background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                  background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                 }}>
-                  $19.99<span style={{ fontSize: '24px', color: '#ccc' }}>/month</span>
+                  $99<span style={{ fontSize: '24px', color: '#ccc' }}>/month</span>
                 </div>
                 <div style={{ fontSize: '16px', color: '#888', marginBottom: '30px' }}>
                   Billed monthly • Cancel anytime • No contracts
@@ -714,15 +684,15 @@ export default function HomePage() {
                   marginBottom: '30px'
                 }}>
                   {[
-                    '✓ Unlimited cart recoveries',
-                    '✓ AI-powered email generation',
-                    '✓ Automated email sequences (1hr, 24hr, 72hr)',
-                    '✓ Real-time analytics dashboard',
-                    '✓ Brand voice customization',
-                    '✓ Email open/click tracking',
+                    '✓ Unlimited order tracking',
+                    '✓ Facebook Ads integration',
+                    '✓ Google Ads integration',
+                    '✓ TikTok Ads integration (soon)',
+                    '✓ AI-powered insights',
+                    '✓ ROAS calculations',
+                    '✓ Campaign comparison',
                     '✓ Revenue attribution',
-                    '✓ Priority support',
-                    '✓ 14-day free trial'
+                    '✓ 7-day free trial'
                   ].map((feature, i) => (
                     <div key={i} style={{ color: '#ccc', marginBottom: '12px', fontSize: '16px' }}>
                       {feature}
@@ -730,16 +700,26 @@ export default function HomePage() {
                   ))}
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '15px' }}>
-                  <ShopifyAppStoreBadge
-                    variant="preferred"
-                    appUrl="https://apps.shopify.com/argora-cart-recovery"
-                    height={60}
-                  />
-                </div>
+                <button
+                  className="glow-button"
+                  onClick={() => window.location.href = '/dashboard'}
+                  style={{
+                    width: '100%',
+                    background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
+                    border: 'none',
+                    padding: '16px',
+                    borderRadius: '12px',
+                    fontSize: '18px',
+                    fontWeight: 600,
+                    color: 'white',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Start Free Trial
+                </button>
 
                 <div style={{ marginTop: '15px', color: '#888', fontSize: '13px', textAlign: 'center' }}>
-                  🎉 Now Available - Start your 14-day free trial!
+                  🎉 7-day free trial • No credit card required
                 </div>
               </div>
             </div>
@@ -756,13 +736,13 @@ export default function HomePage() {
             }}>
               <h3 style={{ fontSize: '24px', marginBottom: '20px' }}>Quick ROI Calculator</h3>
               <p style={{ color: '#888', marginBottom: '20px' }}>
-                If you're doing $50K/month with 70% cart abandonment and we recover 33%:
+                If you spend $10K/month on ads and waste just 15% on bad campaigns:
               </p>
-              <div style={{ fontSize: '48px', fontWeight: 700, color: '#667eea', marginBottom: '10px' }}>
-                $11,550/month
+              <div style={{ fontSize: '48px', fontWeight: 700, color: '#f59e0b', marginBottom: '10px' }}>
+                $1,500/month saved
               </div>
               <div style={{ color: '#ccc' }}>
-                Recovered revenue • That's <span style={{ color: '#667eea', fontWeight: 600 }}>578x ROI</span> on your $19.99 investment
+                That's <span style={{ color: '#f59e0b', fontWeight: 600 }}>15x ROI</span> on your $99 investment
               </div>
             </div>
           </div>
@@ -776,23 +756,29 @@ export default function HomePage() {
               fontWeight: 700,
               marginBottom: '20px'
             }}>
-              Ready to Recover Lost Revenue?
+              Ready to Stop Wasting Ad Spend?
             </h2>
             <p style={{ fontSize: '20px', color: '#888', marginBottom: '40px' }}>
-              Complete AI-powered email marketing for Shopify. Start your 14-day free trial, then $19.99/month.
+              Join Shopify merchants who track every dollar with AI-powered attribution. Start your 7-day free trial.
             </p>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
-              <ShopifyAppStoreBadge
-                variant="preferred"
-                appUrl="https://apps.shopify.com/argora-cart-recovery"
-                height={70}
-              />
-            </div>
+            <button
+              className="glow-button"
+              onClick={() => window.location.href = '/dashboard'}
+              style={{
+                background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
+                border: 'none',
+                padding: '18px 48px',
+                borderRadius: '12px',
+                fontSize: '20px',
+                fontWeight: 600,
+                color: 'white',
+                cursor: 'pointer'
+              }}
+            >
+              Start Free Trial →
+            </button>
             <div style={{ marginTop: '20px', color: '#888', fontSize: '14px' }}>
-              🎉 Now Available on Shopify App Store!
-            </div>
-            <div style={{ marginTop: '10px', color: '#666', fontSize: '14px' }}>
-              2-minute setup • $19.99/month • 14-day free trial • Cancel anytime
+              2-minute setup • $99/month • 7-day free trial • Cancel anytime
             </div>
           </div>
         </section>
@@ -807,29 +793,21 @@ export default function HomePage() {
             <div style={{
               fontSize: '28px',
               fontWeight: 700,
-              background: 'linear-gradient(135deg, #667eea, #764ba2)',
+              background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               marginBottom: '30px'
             }}>
-              ARGORA
-            </div>
-            {/* Shopify App Store Badge in Footer */}
-            <div style={{ marginBottom: '30px', display: 'flex', justifyContent: 'center' }}>
-              <ShopifyAppStoreBadge
-                variant="alternative"
-                appUrl="https://apps.shopify.com/argora-cart-recovery"
-                height={50}
-              />
+              AdWyse
             </div>
 
             <div style={{ display: 'flex', gap: '30px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '30px' }}>
               <a href="/privacy" style={{ color: '#666', textDecoration: 'none' }}>Privacy Policy</a>
               <a href="/terms" style={{ color: '#666', textDecoration: 'none' }}>Terms of Service</a>
-              <a href="mailto:adam@argora.ai" style={{ color: '#666', textDecoration: 'none' }}>Contact</a>
+              <a href="mailto:adam@adwyse.ca" style={{ color: '#666', textDecoration: 'none' }}>Contact</a>
             </div>
             <div style={{ color: '#666' }}>
-              © 2025 Argora.ai - AI-Powered Cart Recovery for Shopify
+              © 2025 AdWyse - AI-Powered Ad Attribution for Shopify
             </div>
           </div>
         </footer>

@@ -1,10 +1,7 @@
-// app/how-it-works/page.tsx
 'use client';
 
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
-import ShopifyAppStoreBadge from '@/components/ShopifyAppStoreBadge';
 
 export default function HowItWorksPage() {
   const parallaxRef = useRef<HTMLDivElement>(null);
@@ -22,7 +19,7 @@ export default function HowItWorksPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900">
       <style jsx global>{`
         @keyframes gradient {
           0% { background-position: 0% 50%; }
@@ -36,7 +33,7 @@ export default function HowItWorksPage() {
         }
 
         .gradient-text {
-          background: linear-gradient(-45deg, #667eea, #764ba2, #667eea, #764ba2);
+          background: linear-gradient(-45deg, #f59e0b, #ef4444, #f59e0b, #ef4444);
           background-size: 400% 400%;
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
@@ -49,7 +46,7 @@ export default function HowItWorksPage() {
 
         .glow-button:hover {
           transform: translateY(-2px);
-          box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4);
+          box-shadow: 0 10px 40px rgba(245, 158, 11, 0.4);
         }
 
         .floating {
@@ -60,8 +57,8 @@ export default function HowItWorksPage() {
       {/* Header */}
       <header className="border-b border-white/10 backdrop-blur-md bg-slate-900/50 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <Link href="/" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-            <Image src="/logo 3.png" alt="ARGORA" width={140} height={47} style={{ objectFit: 'contain' }} />
+          <Link href="/" style={{ cursor: 'pointer', fontSize: '24px', fontWeight: 800 }}>
+            <span className="gradient-text">AdWyse</span>
           </Link>
           <nav className="flex gap-8">
             <Link href="/" className="text-white/80 hover:text-white transition-colors">Home</Link>
@@ -74,17 +71,17 @@ export default function HowItWorksPage() {
       {/* Hero Section */}
       <section className="relative py-24 overflow-hidden">
         <div ref={parallaxRef} className="absolute inset-0 opacity-20">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-purple-500 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-20 right-10 w-96 h-96 bg-blue-500 rounded-full blur-3xl"></div>
+          <div className="absolute top-20 left-10 w-72 h-72 bg-orange-500 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-20 right-10 w-96 h-96 bg-red-500 rounded-full blur-3xl"></div>
         </div>
 
         <div className="max-w-7xl mx-auto px-6 relative z-10">
           <div className="text-center mb-16">
             <h1 className="text-6xl font-bold text-white mb-6">
-              How <span className="gradient-text">ARGORA</span> Works
+              How <span className="gradient-text">AdWyse</span> Works
             </h1>
             <p className="text-xl text-white/70 max-w-3xl mx-auto">
-              Four simple steps to recover lost revenue from abandoned carts
+              From ad click to revenue attribution in 4 simple steps
             </p>
           </div>
         </div>
@@ -96,55 +93,55 @@ export default function HowItWorksPage() {
           <div className="grid md:grid-cols-4 gap-8 mb-20">
             {/* Step 1 */}
             <div className="relative">
-              <div className="bg-gradient-to-br from-purple-600/10 to-blue-600/10 backdrop-blur-sm border border-white/10 rounded-2xl p-8 hover:border-purple-500/50 transition-all h-full">
-                <div className="w-16 h-16 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center mb-6">
+              <div className="bg-gradient-to-br from-orange-600/10 to-red-600/10 backdrop-blur-sm border border-white/10 rounded-2xl p-8 hover:border-orange-500/50 transition-all h-full">
+                <div className="w-16 h-16 bg-gradient-to-br from-orange-600 to-red-600 rounded-full flex items-center justify-center mb-6">
                   <span className="text-2xl font-bold text-white">1</span>
                 </div>
-                <h3 className="text-2xl font-bold text-white mb-4">Connect Store</h3>
+                <h3 className="text-2xl font-bold text-white mb-4">Install & Connect</h3>
                 <p className="text-white/70">
-                  Connect your Shopify store in minutes. We set up webhooks to detect abandoned carts automatically.
+                  Install AdWyse from Shopify App Store. Connect Facebook Ads and Google Ads via OAuth. Setup takes 2 minutes.
                 </p>
               </div>
-              <div className="hidden md:block absolute top-1/2 -right-4 w-8 h-0.5 bg-gradient-to-r from-purple-600 to-transparent"></div>
+              <div className="hidden md:block absolute top-1/2 -right-4 w-8 h-0.5 bg-gradient-to-r from-orange-600 to-transparent"></div>
             </div>
 
             {/* Step 2 */}
             <div className="relative">
-              <div className="bg-gradient-to-br from-purple-600/10 to-blue-600/10 backdrop-blur-sm border border-white/10 rounded-2xl p-8 hover:border-purple-500/50 transition-all h-full">
-                <div className="w-16 h-16 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center mb-6">
+              <div className="bg-gradient-to-br from-orange-600/10 to-red-600/10 backdrop-blur-sm border border-white/10 rounded-2xl p-8 hover:border-orange-500/50 transition-all h-full">
+                <div className="w-16 h-16 bg-gradient-to-br from-orange-600 to-red-600 rounded-full flex items-center justify-center mb-6">
                   <span className="text-2xl font-bold text-white">2</span>
                 </div>
-                <h3 className="text-2xl font-bold text-white mb-4">AI Generates Messages</h3>
+                <h3 className="text-2xl font-bold text-white mb-4">Track Every Click</h3>
                 <p className="text-white/70">
-                  AI analyzes each cart and creates personalized recovery messages based on the products, customer, and your brand voice.
+                  When customers click your ads, we capture UTM parameters, Facebook Click IDs (FBCLID), and Google Click IDs (GCLID) automatically.
                 </p>
               </div>
-              <div className="hidden md:block absolute top-1/2 -right-4 w-8 h-0.5 bg-gradient-to-r from-purple-600 to-transparent"></div>
+              <div className="hidden md:block absolute top-1/2 -right-4 w-8 h-0.5 bg-gradient-to-r from-orange-600 to-transparent"></div>
             </div>
 
             {/* Step 3 */}
             <div className="relative">
-              <div className="bg-gradient-to-br from-purple-600/10 to-blue-600/10 backdrop-blur-sm border border-white/10 rounded-2xl p-8 hover:border-purple-500/50 transition-all h-full">
-                <div className="w-16 h-16 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center mb-6">
+              <div className="bg-gradient-to-br from-orange-600/10 to-red-600/10 backdrop-blur-sm border border-white/10 rounded-2xl p-8 hover:border-orange-500/50 transition-all h-full">
+                <div className="w-16 h-16 bg-gradient-to-br from-orange-600 to-red-600 rounded-full flex items-center justify-center mb-6">
                   <span className="text-2xl font-bold text-white">3</span>
                 </div>
-                <h3 className="text-2xl font-bold text-white mb-4">Send Email Sequence</h3>
+                <h3 className="text-2xl font-bold text-white mb-4">Match & Calculate</h3>
                 <p className="text-white/70">
-                  Automated recovery sequence: First email at 1hr, then follow-ups at 24hr and 72hr. Sequence stops automatically if cart is recovered.
+                  We sync ad spend from Facebook/Google APIs daily, match orders to campaigns, and calculate true ROAS for each ad.
                 </p>
               </div>
-              <div className="hidden md:block absolute top-1/2 -right-4 w-8 h-0.5 bg-gradient-to-r from-purple-600 to-transparent"></div>
+              <div className="hidden md:block absolute top-1/2 -right-4 w-8 h-0.5 bg-gradient-to-r from-orange-600 to-transparent"></div>
             </div>
 
             {/* Step 4 */}
             <div>
-              <div className="bg-gradient-to-br from-purple-600/10 to-blue-600/10 backdrop-blur-sm border border-white/10 rounded-2xl p-8 hover:border-purple-500/50 transition-all h-full">
-                <div className="w-16 h-16 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center mb-6">
+              <div className="bg-gradient-to-br from-orange-600/10 to-red-600/10 backdrop-blur-sm border border-white/10 rounded-2xl p-8 hover:border-orange-500/50 transition-all h-full">
+                <div className="w-16 h-16 bg-gradient-to-br from-orange-600 to-red-600 rounded-full flex items-center justify-center mb-6">
                   <span className="text-2xl font-bold text-white">4</span>
                 </div>
-                <h3 className="text-2xl font-bold text-white mb-4">Recover Revenue</h3>
+                <h3 className="text-2xl font-bold text-white mb-4">Get AI Insights</h3>
                 <p className="text-white/70">
-                  Watch recovered orders come in. Track performance on your dashboard with real-time analytics on recovery rate, ROI, and revenue.
+                  Claude AI analyzes your data and tells you exactly what to do: which campaigns to pause, scale, or optimize.
                 </p>
               </div>
             </div>
@@ -153,142 +150,144 @@ export default function HowItWorksPage() {
       </section>
 
       {/* Deep Dive Sections */}
-      <section className="py-20 relative bg-gradient-to-b from-transparent via-purple-900/10 to-transparent">
+      <section className="py-20 relative bg-gradient-to-b from-transparent via-orange-900/10 to-transparent">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-white mb-6">Under the Hood</h2>
             <p className="text-xl text-white/70">
-              Here's what makes ARGORA different from generic cart recovery tools
+              Here's what makes AdWyse different from generic attribution tools
             </p>
           </div>
 
           <div className="space-y-12">
-            {/* AI Personalization */}
-            <div className="bg-gradient-to-br from-purple-600/10 to-blue-600/10 backdrop-blur-sm border border-white/10 rounded-2xl p-10">
+            {/* Attribution Tracking */}
+            <div className="bg-gradient-to-br from-orange-600/10 to-red-600/10 backdrop-blur-sm border border-white/10 rounded-2xl p-10">
               <div className="grid md:grid-cols-2 gap-8 items-center">
                 <div>
-                  <h3 className="text-3xl font-bold text-white mb-4">AI-Powered Personalization</h3>
+                  <h3 className="text-3xl font-bold text-white mb-4">Multi-Source Attribution</h3>
                   <p className="text-white/70 mb-4">
-                    Most cart recovery tools use the same generic templates for every customer. ARGORA uses AI to generate unique messages for each abandoned cart.
+                    iOS 14 broke Facebook Pixel and Google Analytics tracking. AdWyse fixes it by using multiple attribution methods simultaneously.
                   </p>
                   <p className="text-white/70 mb-4">
-                    The AI considers:
+                    We track:
                   </p>
                   <ul className="space-y-2 text-white/70">
                     <li className="flex items-start gap-3">
-                      <svg className="w-6 h-6 text-purple-400 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-6 h-6 text-orange-400 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                      <span>Products in the cart (features, price points)</span>
+                      <span><strong>UTM Parameters:</strong> Campaign source, medium, campaign name, content, and term</span>
                     </li>
                     <li className="flex items-start gap-3">
-                      <svg className="w-6 h-6 text-purple-400 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-6 h-6 text-orange-400 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                      <span>Your brand voice and tone</span>
+                      <span><strong>FBCLID:</strong> Facebook Click ID that survives iOS 14 restrictions</span>
                     </li>
                     <li className="flex items-start gap-3">
-                      <svg className="w-6 h-6 text-purple-400 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-6 h-6 text-orange-400 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                      <span>Customer browsing behavior</span>
+                      <span><strong>GCLID:</strong> Google Click ID for precise Google Ads attribution</span>
                     </li>
                     <li className="flex items-start gap-3">
-                      <svg className="w-6 h-6 text-purple-400 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-6 h-6 text-orange-400 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                      <span>Time of day and urgency level</span>
+                      <span><strong>Landing Site Referrer:</strong> Shopify's native tracking data</span>
                     </li>
                   </ul>
                 </div>
                 <div className="bg-slate-800/50 rounded-xl p-6">
-                  <h4 className="text-white font-semibold mb-3">Example Message</h4>
-                  <div className="bg-slate-700/50 rounded-lg p-4 text-white/80 text-sm italic">
-                    "Hey Sarah! 👋 Noticed you left the Nike Air Max 270 in your cart. They're flying off the shelves - only 3 left in your size (8.5). Want me to hold them for you? Complete your order in the next hour and get free shipping! - Team at SportStyle"
+                  <h4 className="text-white font-semibold mb-3">Example Order Attribution</h4>
+                  <div className="bg-slate-700/50 rounded-lg p-4 text-white/80 text-sm font-mono">
+                    Order #12345: $127.50<br/>
+                    Source: facebook<br/>
+                    Campaign: summer_sale_2025<br/>
+                    FBCLID: IwAR3x...<br/>
+                    Ad Spend: $8.40<br/>
+                    <span className="text-green-400">ROAS: 15.2x</span>
                   </div>
-                  <p className="text-purple-400 text-xs mt-3">^ Personalized by AI based on cart contents, customer name, inventory, and brand voice</p>
+                  <p className="text-orange-400 text-xs mt-3">^ Tracked automatically via Shopify webhook</p>
                 </div>
               </div>
             </div>
 
-            {/* Multi-Channel Recovery */}
-            <div className="bg-gradient-to-br from-purple-600/10 to-blue-600/10 backdrop-blur-sm border border-white/10 rounded-2xl p-10">
-              <h3 className="text-3xl font-bold text-white mb-6 text-center">Multi-Channel Recovery Sequence</h3>
+            {/* ROAS Calculations */}
+            <div className="bg-gradient-to-br from-orange-600/10 to-red-600/10 backdrop-blur-sm border border-white/10 rounded-2xl p-10">
+              <h3 className="text-3xl font-bold text-white mb-6 text-center">True ROAS Calculations</h3>
               <div className="grid md:grid-cols-2 gap-8">
                 <div className="bg-slate-800/50 rounded-xl p-6">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
+                    <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center">
                       <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     </div>
                     <div>
-                      <h4 className="text-xl font-bold text-white">First Email (1 hour)</h4>
-                      <p className="text-purple-400 text-sm">40-50% open rate</p>
+                      <h4 className="text-xl font-bold text-white">Facebook's Broken ROAS</h4>
+                      <p className="text-red-400 text-sm">Post-iOS 14</p>
                     </div>
                   </div>
                   <p className="text-white/70 text-sm">
-                    Strike while the iron is hot. First email sent 1 hour after abandonment with AI-personalized product mentions and urgency.
+                    Facebook Ads Manager shows inflated ROAS because it can't track iOS users. Merchants think campaigns are profitable when they're actually losing money.
                   </p>
                 </div>
 
                 <div className="bg-slate-800/50 rounded-xl p-6">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center">
+                    <div className="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center">
                       <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
                     <div>
-                      <h4 className="text-xl font-bold text-white">Email (24/48/72 hr)</h4>
-                      <p className="text-purple-400 text-sm">20-30% open rate</p>
+                      <h4 className="text-xl font-bold text-white">AdWyse's Real ROAS</h4>
+                      <p className="text-green-400 text-sm">Server-Side Tracking</p>
                     </div>
                   </div>
                   <p className="text-white/70 text-sm">
-                    Follow-up nurture sequence with product highlights, reviews, and incentives. Cost-effective for persistent recovery.
+                    We track orders on your Shopify server (not the customer's browser), so iOS 14 doesn't affect us. You see real revenue from real orders matched to exact ad spend.
                   </p>
                 </div>
               </div>
               <div className="mt-6 bg-slate-800/50 rounded-xl p-6">
                 <p className="text-white/70 text-sm">
-                  <span className="text-white font-semibold">Smart Sequencing:</span> Argora automatically stops the sequence if the customer completes their purchase, preventing annoying duplicate messages. Emails are personalized by AI for each cart.
+                  <span className="text-white font-semibold">How we calculate ROAS:</span> We pull your daily ad spend from Facebook/Google APIs. Every Shopify order gets matched to a campaign. ROAS = Total Revenue / Total Ad Spend per campaign. Simple, accurate, profitable.
                 </p>
               </div>
             </div>
 
-            {/* Analytics & Tracking */}
-            <div className="bg-gradient-to-br from-purple-600/10 to-blue-600/10 backdrop-blur-sm border border-white/10 rounded-2xl p-10">
-              <h3 className="text-3xl font-bold text-white mb-6">Real-Time Analytics Dashboard</h3>
+            {/* AI Insights */}
+            <div className="bg-gradient-to-br from-orange-600/10 to-red-600/10 backdrop-blur-sm border border-white/10 rounded-2xl p-10">
+              <h3 className="text-3xl font-bold text-white mb-6">AI-Powered Insights</h3>
               <p className="text-white/70 mb-6">
-                Track every recovered dollar and measure ROI with precision:
+                Most attribution tools just show you data. AdWyse uses Claude AI to tell you exactly what to do:
               </p>
               <div className="grid md:grid-cols-3 gap-6">
                 <div className="bg-slate-800/50 rounded-xl p-6">
-                  <h4 className="text-white font-semibold mb-3">Recovery Metrics</h4>
-                  <ul className="space-y-2 text-white/60 text-sm">
-                    <li>• Total carts abandoned</li>
-                    <li>• Recovery rate (%)</li>
-                    <li>• Revenue recovered ($)</li>
-                    <li>• Average cart value</li>
-                  </ul>
+                  <h4 className="text-white font-semibold mb-3">🚨 Warnings</h4>
+                  <div className="text-sm text-white/70 italic mb-2">"Campaign 'Spring Sale' is losing $47/day with 0.3x ROAS"</div>
+                  <p className="text-white/60 text-xs">
+                    → Action: Pause campaign immediately<br/>
+                    → Impact: Save $1,410/month
+                  </p>
                 </div>
                 <div className="bg-slate-800/50 rounded-xl p-6">
-                  <h4 className="text-white font-semibold mb-3">Channel Performance</h4>
-                  <ul className="space-y-2 text-white/60 text-sm">
-                    <li>• Email open/click rates</li>
-                    <li>• Best performing messages</li>
-                    <li>• Email sequence attribution</li>
-                    <li>• Time-to-recovery</li>
-                  </ul>
+                  <h4 className="text-white font-semibold mb-3">🚀 Opportunities</h4>
+                  <div className="text-sm text-white/70 italic mb-2">"Campaign 'Google Shopping' has 5.2x ROAS"</div>
+                  <p className="text-white/60 text-xs">
+                    → Action: Increase budget from $500 to $800<br/>
+                    → Impact: +$1,560/month profit
+                  </p>
                 </div>
                 <div className="bg-slate-800/50 rounded-xl p-6">
-                  <h4 className="text-white font-semibold mb-3">ROI Tracking</h4>
-                  <ul className="space-y-2 text-white/60 text-sm">
-                    <li>• Email costs ($0.001/email)</li>
-                    <li>• AI generation costs ($0.003/message)</li>
-                    <li>• Total subscription value</li>
-                    <li>• Net profit per recovery</li>
-                  </ul>
+                  <h4 className="text-white font-semibold mb-3">💡 Recommendations</h4>
+                  <div className="text-sm text-white/70 italic mb-2">"TikTok ads convert 40% better on weekends"</div>
+                  <p className="text-white/60 text-xs">
+                    → Action: Schedule ads Fri-Sun only<br/>
+                    → Impact: 1.4x better ROAS
+                  </p>
                 </div>
               </div>
             </div>
@@ -304,14 +303,34 @@ export default function HowItWorksPage() {
             <p className="text-xl text-white/70">Works with the platforms you already use</p>
           </div>
 
-          <div className="max-w-lg mx-auto">
-            <div className="bg-gradient-to-br from-purple-600/10 to-blue-600/10 backdrop-blur-sm border border-white/10 rounded-2xl p-8 text-center">
+          <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+            <div className="bg-gradient-to-br from-orange-600/10 to-red-600/10 backdrop-blur-sm border border-white/10 rounded-2xl p-8 text-center">
               <div className="w-20 h-20 bg-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <span className="text-3xl font-bold text-white">S</span>
               </div>
               <h3 className="text-2xl font-bold text-white mb-3">Shopify</h3>
               <p className="text-white/70">
-                One-click connection via Shopify App Store. Webhooks configured automatically.
+                One-click connection. Webhooks configured automatically.
+              </p>
+            </div>
+
+            <div className="bg-gradient-to-br from-orange-600/10 to-red-600/10 backdrop-blur-sm border border-white/10 rounded-2xl p-8 text-center">
+              <div className="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <span className="text-3xl font-bold text-white">f</span>
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-3">Facebook Ads</h3>
+              <p className="text-white/70">
+                OAuth integration pulls spend data automatically.
+              </p>
+            </div>
+
+            <div className="bg-gradient-to-br from-orange-600/10 to-red-600/10 backdrop-blur-sm border border-white/10 rounded-2xl p-8 text-center">
+              <div className="w-20 h-20 bg-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <span className="text-3xl font-bold text-white">G</span>
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-3">Google Ads</h3>
+              <p className="text-white/70">
+                OAuth integration syncs campaigns daily.
               </p>
             </div>
           </div>
@@ -322,19 +341,36 @@ export default function HowItWorksPage() {
       <section className="py-20 relative">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-4xl font-bold text-white mb-6">
-            Ready to Stop Losing Revenue?
+            Ready to Know Which Ads Make Money?
           </h2>
           <p className="text-xl text-white/70 mb-8">
-            Install the first AI-powered cart recovery app for Shopify. 14-day free trial, $19.99/month after.
+            Join Shopify merchants who track every dollar with AI-powered attribution. 7-day free trial, then $99/month.
           </p>
-          <div className="flex justify-center">
-            <ShopifyAppStoreBadge
-              variant="preferred"
-              appUrl="https://apps.shopify.com/argora-cart-recovery"
-              height={70}
-            />
-          </div>
-          <p className="text-white/60 text-sm mt-4">🎉 Now Available on Shopify App Store!</p>
+          <button
+            onClick={() => window.location.href = '/dashboard'}
+            style={{
+              background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
+              border: 'none',
+              padding: '18px 48px',
+              borderRadius: '12px',
+              fontSize: '20px',
+              fontWeight: 600,
+              color: 'white',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)'
+              e.currentTarget.style.boxShadow = '0 10px 40px rgba(245, 158, 11, 0.4)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)'
+              e.currentTarget.style.boxShadow = 'none'
+            }}
+          >
+            Start Free Trial
+          </button>
+          <p className="text-white/60 text-sm mt-4">🎉 7-day free trial • No credit card required</p>
         </div>
       </section>
 
@@ -343,8 +379,8 @@ export default function HowItWorksPage() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
-              <div className="text-2xl font-bold gradient-text mb-4">ARGORA</div>
-              <p className="text-white/60">AI-powered cart recovery for e-commerce</p>
+              <div className="text-2xl font-bold gradient-text mb-4">AdWyse</div>
+              <p className="text-white/60">AI-powered ad attribution for Shopify</p>
             </div>
             <div>
               <h4 className="text-white font-semibold mb-4">Product</h4>
@@ -363,11 +399,11 @@ export default function HowItWorksPage() {
             </div>
             <div>
               <h4 className="text-white font-semibold mb-4">Contact</h4>
-              <p className="text-white/60">adam@argora.ai</p>
+              <p className="text-white/60">adam@adwyse.ca</p>
             </div>
           </div>
           <div className="border-t border-white/10 pt-8 text-center text-white/60">
-            <p>&copy; 2025 ARGORA. All rights reserved.</p>
+            <p>&copy; 2025 AdWyse. All rights reserved.</p>
           </div>
         </div>
       </footer>
