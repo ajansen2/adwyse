@@ -117,101 +117,66 @@ export async function GET(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY! // Use service role for server-side operations
     );
 
-    let finalMerchantId = merchantId;
+    // AdWyse schema: Check if store already exists, create if not
+    console.log('🏪 Checking for existing store:', shop);
 
-    // If no merchant ID (new App Store install), create merchant automatically
-    if (!merchantId) {
-      console.log('🆕 New merchant install - creating account automatically');
+    const { data: existingStore } = await supabase
+      .from('stores')
+      .select('*')
+      .eq('shop_domain', shop)
+      .maybeSingle();
 
-      const merchantEmail = shopInfo.email || `${shop.replace('.myshopify.com', '')}@shopify-placeholder.com`;
+    let store;
 
-      // Check if user already exists by email
-      const { data: existingUsers } = await supabase.auth.admin.listUsers();
-      const existingUser = existingUsers.users.find(u => u.email === merchantEmail);
+    if (existingStore) {
+      console.log('✅ Store already exists, updating access token');
 
-      let userId: string;
-
-      if (existingUser) {
-        console.log('✅ User already exists, using existing account:', existingUser.id);
-        userId = existingUser.id;
-      } else {
-        // Create Supabase user account using shop owner email
-        const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-          email: merchantEmail,
-          email_confirm: true,
-          user_metadata: {
-            shop: shop,
-            store_name: shopInfo.name,
-          }
-        });
-
-        if (authError) {
-          console.error('Failed to create user:', authError);
-          return NextResponse.json({ error: 'Failed to create user account' }, { status: 500 });
-        }
-
-        userId = authData.user.id;
-        console.log('✅ Created new user:', userId);
-      }
-
-      // Check if merchant already exists for this user
-      const { data: existingMerchant } = await supabase
-        .from('merchants')
-        .select('*')
-        .eq('user_id', userId)
+      // Update existing store with new access token
+      const { data: updatedStore, error: updateError } = await supabase
+        .from('stores')
+        .update({
+          access_token: accessToken,
+          store_name: shopInfo.name || shop,
+          email: shopInfo.email,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existingStore.id)
+        .select()
         .single();
 
-      if (existingMerchant) {
-        console.log('✅ Merchant already exists, using existing merchant:', existingMerchant.id);
-        finalMerchantId = existingMerchant.id;
-      } else {
-        // Create merchant record
-        const { data: newMerchant, error: merchantError } = await supabase
-          .from('merchants')
-          .insert({
-            user_id: userId,
-            email: merchantEmail,
-            full_name: shopInfo.shop_owner || shopInfo.name,
-            company: shopInfo.name,
-            subscription_tier: 'trial', // Start with trial, upgrade to pro after billing approval
-            settings: {
-              emails_enabled: true,
-              first_email_delay: 1,    // 1 hour
-              second_email_delay: 24,  // 24 hours
-              third_email_delay: 48,   // 48 hours
-            }
-          })
-          .select()
-          .single();
-
-        if (merchantError) {
-          console.error('Failed to create merchant:', merchantError);
-          return NextResponse.json({ error: 'Failed to create merchant account' }, { status: 500 });
-        }
-
-        finalMerchantId = newMerchant.id;
-        console.log('✅ Created merchant:', finalMerchantId);
+      if (updateError) {
+        console.error('Store update error:', updateError);
+        return NextResponse.json({ error: 'Failed to update store' }, { status: 500 });
       }
+
+      store = updatedStore;
+    } else {
+      console.log('🆕 Creating new store');
+
+      // Create new store (AdWyse schema: each store is its own merchant)
+      const { data: newStore, error: storeError } = await supabase
+        .from('stores')
+        .insert({
+          shop_domain: shop,
+          shopify_store_id: shopInfo.id?.toString(),
+          store_name: shopInfo.name || shop,
+          email: shopInfo.email,
+          access_token: accessToken,
+          subscription_status: 'trial',
+          trial_ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
+        })
+        .select()
+        .single();
+
+      if (storeError) {
+        console.error('Store creation error:', storeError);
+        return NextResponse.json({ error: 'Failed to save store' }, { status: 500 });
+      }
+
+      store = newStore;
     }
 
-    const { data: store, error: storeError } = await supabase
-      .from('stores')
-      .insert({
-        merchant_id: finalMerchantId,
-        platform: 'shopify',
-        store_name: shopInfo.name || shop,
-        store_url: `https://${shop}`,
-        access_token: accessToken, // TODO: Encrypt this in production
-        status: 'active',
-        connected_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
-
-    if (storeError) {
-      console.error('Store creation error:', storeError);
-      return NextResponse.json({ error: 'Failed to save store' }, { status: 500 });
-    }
+    console.log('✅ Store ready:', store.id);
 
     // Register webhooks for abandoned carts
     // Now that we have protected customer data access, we can use checkouts/* webhooks
