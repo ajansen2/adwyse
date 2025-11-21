@@ -33,14 +33,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Extract shop domain from store URL
-    const shop = store.store_url.replace('https://', '');
-    const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/shopify`;
+    const shop = store.shopify_domain;
+    const ordersWebhookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/shopify/orders`;
 
     console.log('🔧 Registering webhooks for', shop);
-    console.log('📍 Webhook URL:', webhookUrl);
+    console.log('📍 Orders Webhook URL:', ordersWebhookUrl);
 
-    // Register checkouts/create webhook
-    const createWebhook = await fetch(`https://${shop}/admin/api/2024-01/webhooks.json`, {
+    // Register orders/create webhook (for attribution tracking)
+    const ordersCreateWebhook = await fetch(`https://${shop}/admin/api/2025-01/webhooks.json`, {
       method: 'POST',
       headers: {
         'X-Shopify-Access-Token': store.access_token,
@@ -48,18 +48,28 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         webhook: {
-          topic: 'checkouts/create',
-          address: webhookUrl,
+          topic: 'orders/create',
+          address: ordersWebhookUrl,
           format: 'json',
         },
       }),
     });
 
-    const createResult = await createWebhook.json();
-    console.log('✅ checkouts/create result:', createResult);
+    if (!ordersCreateWebhook.ok) {
+      const errorText = await ordersCreateWebhook.text();
+      console.error('❌ Failed to register orders/create webhook:', errorText);
+      return NextResponse.json({
+        error: 'Failed to register webhook',
+        details: errorText
+      }, { status: ordersCreateWebhook.status });
+    }
 
-    // Register checkouts/update webhook
-    const updateWebhook = await fetch(`https://${shop}/admin/api/2024-01/webhooks.json`, {
+    const ordersCreateResult = await ordersCreateWebhook.json();
+    console.log('✅ orders/create webhook registered:', ordersCreateResult);
+
+    // Register app/uninstalled webhook
+    const uninstallWebhookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/shopify/uninstall`;
+    const uninstallWebhook = await fetch(`https://${shop}/admin/api/2025-01/webhooks.json`, {
       method: 'POST',
       headers: {
         'X-Shopify-Access-Token': store.access_token,
@@ -67,21 +77,21 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         webhook: {
-          topic: 'checkouts/update',
-          address: webhookUrl,
+          topic: 'app/uninstalled',
+          address: uninstallWebhookUrl,
           format: 'json',
         },
       }),
     });
 
-    const updateResult = await updateWebhook.json();
-    console.log('✅ checkouts/update result:', updateResult);
+    const uninstallResult = uninstallWebhook.ok ? await uninstallWebhook.json() : null;
+    console.log('✅ app/uninstalled webhook registered:', uninstallResult);
 
     return NextResponse.json({
       success: true,
       webhooks: {
-        create: createResult,
-        update: updateResult,
+        orders_create: ordersCreateResult,
+        app_uninstalled: uninstallResult,
       },
     });
   } catch (error) {
