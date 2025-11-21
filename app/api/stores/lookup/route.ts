@@ -22,12 +22,11 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    // Look up merchant by store URL (use limit(1) to handle duplicate stores)
+    // Look up store by shop domain (AdWyse schema: each store is its own merchant)
     const { data: storeData, error: storeError } = await supabase
       .from('stores')
-      .select('merchant_id, id, store_name, store_url, platform, status')
-      .eq('store_url', `https://${shop}`)
-      .eq('status', 'active')
+      .select('*')
+      .eq('shop_domain', shop)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -37,21 +36,24 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Store not found' }, { status: 404 });
     }
 
-    // Get merchant profile
-    const { data: merchantData, error: merchantError } = await supabase
-      .from('merchants')
-      .select('*')
-      .eq('id', storeData.merchant_id)
-      .single();
-
-    if (merchantError || !merchantData) {
-      console.error('Merchant lookup error:', merchantError);
-      return NextResponse.json({ error: 'Merchant not found' }, { status: 404 });
-    }
+    // In AdWyse, the store IS the merchant - create a merchant object from store data
+    const merchantData = {
+      id: storeData.id,
+      email: storeData.email || '',
+      full_name: storeData.store_name || '',
+      company: storeData.store_name || '',
+      subscription_tier: storeData.subscription_status === 'active' ? 'pro' : storeData.subscription_status === 'trial' ? 'trial' : 'free'
+    };
 
     return NextResponse.json({
       merchant: merchantData,
-      store: storeData
+      store: {
+        id: storeData.id,
+        store_name: storeData.store_name || shop,
+        store_url: `https://${shop}`,
+        shopify_domain: shop,
+        status: 'active'
+      }
     });
   } catch (error) {
     console.error('API error:', error);

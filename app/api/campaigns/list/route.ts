@@ -22,25 +22,14 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    // Get all stores for this merchant
-    const { data: stores, error: storesError } = await supabase
-      .from('stores')
-      .select('id')
-      .eq('merchant_id', merchantId);
-
-    if (storesError || !stores || stores.length === 0) {
-      return NextResponse.json({ campaigns: [] }, { status: 200 });
-    }
-
-    const storeIds = stores.map(store => store.id);
-
-    // Get campaigns for these stores
+    // In AdWyse schema, merchant_id IS the store_id (each store is its own merchant)
+    // Get campaigns for this store
     const { data: campaigns, error: campaignsError } = await supabase
       .from('campaigns')
       .select('*')
-      .in('store_id', storeIds)
+      .eq('store_id', merchantId)
       .eq('status', 'active')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false});
 
     if (campaignsError) {
       console.error('❌ Error fetching campaigns:', campaignsError);

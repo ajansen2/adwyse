@@ -22,23 +22,12 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    // Get all stores for this merchant
-    const { data: stores, error: storesError } = await supabase
-      .from('stores')
-      .select('id')
-      .eq('merchant_id', merchantId);
-
-    if (storesError || !stores || stores.length === 0) {
-      return NextResponse.json({ orders: [] }, { status: 200 });
-    }
-
-    const storeIds = stores.map(store => store.id);
-
-    // Get orders for these stores
+    // In AdWyse schema, merchant_id IS the store_id (each store is its own merchant)
+    // Get orders for this store
     const { data: orders, error: ordersError } = await supabase
       .from('orders')
       .select('*')
-      .in('store_id', storeIds)
+      .eq('store_id', merchantId)
       .order('created_at', { ascending: false })
       .limit(100);
 
