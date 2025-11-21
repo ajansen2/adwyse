@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { navigateInApp } from '@/lib/shopify-app-bridge';
@@ -18,7 +18,7 @@ interface Campaign {
   roas?: number;
 }
 
-export default function CampaignsPage() {
+function CampaignsContent() {
   const [loading, setLoading] = useState(true);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [filteredCampaigns, setFilteredCampaigns] = useState<Campaign[]>([]);
@@ -325,5 +325,20 @@ export default function CampaignsPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function CampaignsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-solid border-orange-500 border-r-transparent mb-4"></div>
+          <div className="text-white text-xl">Loading campaigns...</div>
+        </div>
+      </div>
+    }>
+      <CampaignsContent />
+    </Suspense>
   );
 }
