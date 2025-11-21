@@ -154,16 +154,23 @@ export default function HomePage() {
           }}>
             <div
               style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
                 cursor: 'pointer',
+              }}
+              onClick={() => window.scrollTo(0, 0)}
+            >
+              <img src="/logo.png" alt="AdWyse Logo" style={{ width: '40px', height: '40px' }} />
+              <span style={{
                 fontSize: '28px',
                 fontWeight: 800,
                 background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
-              }}
-              onClick={() => window.scrollTo(0, 0)}
-            >
-              AdWyse
+              }}>
+                AdWyse
+              </span>
             </div>
             <div style={{ display: 'flex', gap: '30px', alignItems: 'center' }}>
               {[
@@ -791,14 +798,22 @@ export default function HomePage() {
         }}>
           <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
             <div style={{
-              fontSize: '28px',
-              fontWeight: 700,
-              background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              justifyContent: 'center',
               marginBottom: '30px'
             }}>
-              AdWyse
+              <img src="/logo.png" alt="AdWyse Logo" style={{ width: '40px', height: '40px' }} />
+              <span style={{
+                fontSize: '28px',
+                fontWeight: 700,
+                background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}>
+                AdWyse
+              </span>
             </div>
 
             <div style={{ display: 'flex', gap: '30px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '30px' }}>

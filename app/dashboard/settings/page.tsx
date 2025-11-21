@@ -67,8 +67,9 @@ function SettingsContent() {
       <aside className="fixed top-0 left-0 z-50 h-screen w-64 bg-slate-900/90 backdrop-blur border-r border-white/10 hidden lg:block">
         <div className="flex flex-col h-full">
           <div className="p-6 border-b border-white/10">
-            <Link href="/" className="text-2xl font-bold">
-              <span className="bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
+            <Link href="/" className="flex items-center gap-3">
+              <img src="/logo.png" alt="AdWyse" className="w-10 h-10" />
+              <span className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
                 AdWyse
               </span>
             </Link>
