@@ -656,19 +656,19 @@ function DashboardContent() {
                     <div className="flex-1">
                       <h3 className="text-white font-semibold mb-2">How Attribution Tracking Works</h3>
                       <p className="text-white/70 text-sm mb-3">
-                        AdWyse automatically tracks every order from your Shopify store and attributes it to your ad campaigns using UTM parameters, Facebook Click IDs (FBCLID), and Google Click IDs (GCLID).
+                        AdWyse automatically tracks every order and shows you exactly which ads are driving sales. 100% automatic, no setup required.
                       </p>
                       <div className="bg-white/5 rounded-lg p-4 text-sm text-white/60">
-                        <p className="mb-2"><strong className="text-white/80">To test attribution tracking:</strong></p>
+                        <p className="mb-2"><strong className="text-white/80">How it works:</strong></p>
                         <ol className="list-decimal list-inside space-y-1 ml-2">
-                          <li>Visit your store with UTM parameters (e.g., ?utm_source=facebook&utm_campaign=test)</li>
-                          <li>Add items to cart and complete checkout</li>
-                          <li>The order will appear here with attribution data</li>
-                          <li>Connect Facebook/Google Ads to auto-sync campaign spend</li>
+                          <li>Customers click on your Facebook, Google, or TikTok ads</li>
+                          <li>When they purchase, AdWyse automatically tracks which ad drove the sale</li>
+                          <li>Orders appear here with full attribution data (source, campaign, etc.)</li>
+                          <li>Connect ad accounts in Settings to see ROAS and get AI insights</li>
                         </ol>
                       </div>
                       <p className="text-white/50 text-xs mt-3">
-                        Webhooks are active and tracking all new orders automatically.
+                        ✅ Webhooks active - tracking all orders automatically. No technical setup required.
                       </p>
                     </div>
                   </div>
