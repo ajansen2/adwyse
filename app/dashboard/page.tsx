@@ -193,6 +193,9 @@ function DashboardContent() {
           }
         } else {
           console.log('❌ No shop parameter found in URL');
+          setLoadError('Missing shop parameter. Please access this page through Shopify.');
+          setLoading(false);
+          return;
         }
       } else {
         // Not embedded - use traditional Supabase session
@@ -296,7 +299,7 @@ function DashboardContent() {
     };
 
     checkAuth();
-  }, [router]);
+  }, [router, searchParams, supabase]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
