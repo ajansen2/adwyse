@@ -19,7 +19,27 @@ function SettingsContent() {
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [store, setStore] = useState<Store | null>(null);
+  const [adAccounts, setAdAccounts] = useState<any[]>([]);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [syncing, setSyncing] = useState(false);
   const supabase = getSupabaseClient();
+
+  // Check for OAuth callback messages
+  useEffect(() => {
+    const success = searchParams.get('success');
+    const error = searchParams.get('error');
+
+    if (success === 'facebook_connected') {
+      setSuccessMessage('Facebook Ads account connected successfully!');
+      setTimeout(() => setSuccessMessage(''), 5000);
+    }
+
+    if (error) {
+      setErrorMessage(`Failed to connect: ${error.replace(/_/g, ' ')}`);
+      setTimeout(() => setErrorMessage(''), 5000);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const loadStore = async () => {
@@ -38,6 +58,16 @@ function SettingsContent() {
           const data = JSON.parse(xhr.responseText);
           if (data.store) {
             setStore(data.store);
+
+            // Load ad accounts for this store
+            const { data: accounts } = await supabase
+              .from('ad_accounts')
+              .select('*')
+              .eq('store_id', data.store.id);
+
+            if (accounts) {
+              setAdAccounts(accounts);
+            }
           }
         }
       } catch (error) {
@@ -49,6 +79,40 @@ function SettingsContent() {
 
     loadStore();
   }, [searchParams, supabase]);
+
+  const handleConnectFacebook = () => {
+    if (!store) return;
+    window.location.href = `/api/auth/facebook?store_id=${store.id}`;
+  };
+
+  const handleSyncFacebook = async () => {
+    if (!store || syncing) return;
+
+    setSyncing(true);
+    try {
+      const response = await fetch('/api/sync/facebook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storeId: store.id }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSuccessMessage(data.message || 'Facebook campaigns synced successfully!');
+        setTimeout(() => setSuccessMessage(''), 5000);
+      } else {
+        setErrorMessage(data.error || 'Failed to sync Facebook campaigns');
+        setTimeout(() => setErrorMessage(''), 5000);
+      }
+    } catch (error) {
+      console.error('Sync error:', error);
+      setErrorMessage('Failed to sync Facebook campaigns');
+      setTimeout(() => setErrorMessage(''), 5000);
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -171,21 +235,71 @@ function SettingsContent() {
 
             <div className="space-y-4">
               {/* Facebook Ads */}
-              <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                    <svg className="w-6 h-6 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                    </svg>
+              <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                      <svg className="w-6 h-6 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <div className="text-white font-medium">Facebook Ads</div>
+                      <div className="text-white/40 text-sm">
+                        {adAccounts.filter(a => a.platform === 'facebook').length > 0
+                          ? `${adAccounts.filter(a => a.platform === 'facebook').length} account(s) connected`
+                          : 'Not connected'}
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-white font-medium">Facebook Ads</div>
-                    <div className="text-white/40 text-sm">Not connected</div>
+                  <div className="flex gap-2">
+                    {adAccounts.filter(a => a.platform === 'facebook').length > 0 && (
+                      <button
+                        onClick={handleSyncFacebook}
+                        disabled={syncing}
+                        className="px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-orange-800 disabled:cursor-not-allowed text-white rounded-lg font-medium transition flex items-center gap-2"
+                      >
+                        {syncing ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            Syncing...
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Sync Now
+                          </>
+                        )}
+                      </button>
+                    )}
+                    <button
+                      onClick={handleConnectFacebook}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition"
+                    >
+                      {adAccounts.filter(a => a.platform === 'facebook').length > 0 ? 'Reconnect' : 'Connect'}
+                    </button>
                   </div>
                 </div>
-                <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition">
-                  Connect
-                </button>
+
+                {/* Connected Facebook Accounts */}
+                {adAccounts.filter(a => a.platform === 'facebook').length > 0 && (
+                  <div className="space-y-2 mt-4 pt-4 border-t border-white/10">
+                    {adAccounts.filter(a => a.platform === 'facebook').map((account) => (
+                      <div key={account.id} className="flex items-center justify-between text-sm">
+                        <div className="text-white/70">{account.account_name}</div>
+                        <span className={`px-2 py-1 rounded text-xs ${
+                          account.status === 'active'
+                            ? 'bg-green-500/20 text-green-300'
+                            : 'bg-gray-500/20 text-gray-300'
+                        }`}>
+                          {account.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Google Ads */}

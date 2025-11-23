@@ -57,6 +57,8 @@ function DashboardContent() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
+  const [latestInsight, setLatestInsight] = useState<any>(null);
+  const [generatingInsight, setGeneratingInsight] = useState(false);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -289,6 +291,23 @@ function DashboardContent() {
               setCampaigns(campaignsJson.campaigns);
             }
           }
+
+          // Get latest AI insight (if store exists)
+          if (stores.length > 0 || embedded) {
+            const storeId = stores[0]?.id || searchParams.get('store_id');
+            if (storeId) {
+              const insightsXhr = new XMLHttpRequest();
+              insightsXhr.open('GET', `/api/insights/list?store_id=${storeId}`, false);
+              insightsXhr.send();
+
+              if (insightsXhr.status === 200) {
+                const insightsJson = JSON.parse(insightsXhr.responseText);
+                if (insightsJson.insights && insightsJson.insights.length > 0) {
+                  setLatestInsight(insightsJson.insights[0]);
+                }
+              }
+            }
+          }
         } catch (error) {
           console.error('❌ Error fetching data:', error);
         }
@@ -300,6 +319,32 @@ function DashboardContent() {
 
     checkAuth();
   }, [router, searchParams, supabase]);
+
+  const handleGenerateInsight = async () => {
+    if (!stores[0] || generatingInsight) return;
+
+    setGeneratingInsight(true);
+    try {
+      const response = await fetch('/api/insights/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storeId: stores[0].id }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.insight) {
+        setLatestInsight(data.insight);
+      } else {
+        alert(data.error || 'Failed to generate insights');
+      }
+    } catch (error) {
+      console.error('Error generating insights:', error);
+      alert('Failed to generate insights');
+    } finally {
+      setGeneratingInsight(false);
+    }
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -614,6 +659,86 @@ function DashboardContent() {
                   </div>
                 </div>
               </div>
+
+              {/* AI Insights */}
+              {latestInsight && (
+                <div className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 backdrop-blur border border-purple-500/30 rounded-xl p-6 mb-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-purple-600/20 rounded-lg flex items-center justify-center">
+                        <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-bold text-white">AI Insights</h2>
+                        <p className="text-white/60 text-sm">Powered by Claude</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleGenerateInsight}
+                      disabled={generatingInsight}
+                      className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800 disabled:cursor-not-allowed text-white rounded-lg font-medium transition flex items-center gap-2"
+                    >
+                      {generatingInsight ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          Refresh
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <div className="bg-white/5 rounded-lg p-4 text-white/80 whitespace-pre-wrap text-sm leading-relaxed">
+                    {latestInsight.content}
+                  </div>
+                  {latestInsight.created_at && (
+                    <div className="text-white/40 text-xs mt-3">
+                      Generated {new Date(latestInsight.created_at).toLocaleDateString()}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Generate Insights Button (if no insights yet) */}
+              {!latestInsight && campaigns.length > 0 && (
+                <div className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 backdrop-blur border border-purple-500/30 rounded-xl p-8 mb-8 text-center">
+                  <div className="w-16 h-16 bg-purple-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">Get AI-Powered Insights</h3>
+                  <p className="text-white/60 mb-6 max-w-md mx-auto">
+                    Let Claude analyze your campaign performance and get personalized recommendations to improve your ROAS.
+                  </p>
+                  <button
+                    onClick={handleGenerateInsight}
+                    disabled={generatingInsight}
+                    className="px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800 disabled:cursor-not-allowed text-white rounded-lg font-medium transition inline-flex items-center gap-2"
+                  >
+                    {generatingInsight ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Generating Insights...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        Generate Insights
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
 
               {/* Connected Stores */}
               <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6 mb-8">
