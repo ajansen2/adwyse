@@ -82,7 +82,17 @@ function SettingsContent() {
 
   const handleConnectFacebook = () => {
     if (!store) return;
-    window.location.href = `/api/auth/facebook?store_id=${store.id}`;
+    // Open in new window because Facebook blocks OAuth in iframes
+    const width = 600;
+    const height = 700;
+    const left = (window.screen.width - width) / 2;
+    const top = (window.screen.height - height) / 2;
+
+    window.open(
+      `/api/auth/facebook?store_id=${store.id}`,
+      'Facebook OAuth',
+      `width=${width},height=${height},left=${left},top=${top}`
+    );
   };
 
   const handleSyncFacebook = async () => {
