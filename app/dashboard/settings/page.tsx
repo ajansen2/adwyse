@@ -118,17 +118,36 @@ function SettingsContent() {
   }, []);
 
   const handleSyncFacebook = async () => {
-    if (!store || syncing) return;
+    console.log('🔄 Sync button clicked');
+    console.log('🔄 Store:', store);
+    console.log('🔄 Syncing state:', syncing);
+
+    if (!store) {
+      console.error('❌ No store found, cannot sync');
+      setErrorMessage('Store not loaded. Please refresh the page.');
+      setTimeout(() => setErrorMessage(''), 5000);
+      return;
+    }
+
+    if (syncing) {
+      console.log('⏳ Already syncing, ignoring click');
+      return;
+    }
 
     setSyncing(true);
+    console.log('🔄 Starting sync for store:', store.id);
+
     try {
+      console.log('🔄 Sending POST to /api/sync/facebook...');
       const response = await fetch('/api/sync/facebook', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ storeId: store.id }),
       });
 
+      console.log('🔄 Response status:', response.status);
       const data = await response.json();
+      console.log('🔄 Response data:', data);
 
       if (response.ok) {
         setSuccessMessage(data.message || 'Facebook campaigns synced successfully!');
@@ -138,10 +157,11 @@ function SettingsContent() {
         setTimeout(() => setErrorMessage(''), 5000);
       }
     } catch (error) {
-      console.error('Sync error:', error);
+      console.error('❌ Sync error:', error);
       setErrorMessage('Failed to sync Facebook campaigns');
       setTimeout(() => setErrorMessage(''), 5000);
     } finally {
+      console.log('🔄 Sync complete, resetting state');
       setSyncing(false);
     }
   };
