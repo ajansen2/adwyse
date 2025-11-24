@@ -47,10 +47,21 @@ export async function fetchFacebookCampaigns(
 
     const url = `https://graph.facebook.com/v18.0/act_${adAccountId}/campaigns?fields=${fields}&access_token=${accessToken}`;
 
-    const response = await fetch(url);
+    // Add timeout to prevent hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const error = await response.json();
+      console.error('❌ Facebook API error response:', error);
+      // Return empty array instead of throwing if it's just "no campaigns"
+      if (error?.error?.code === 100 || error?.error?.code === 190) {
+        console.log('ℹ️ No ad account or invalid token, returning empty array');
+        return [];
+      }
       throw new Error(`Facebook API error: ${JSON.stringify(error)}`);
     }
 
