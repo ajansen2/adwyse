@@ -123,37 +123,34 @@ function SettingsContent() {
   }, [syncing]);
 
   const handleSyncFacebook = async () => {
-    alert('Sync button clicked! Store: ' + (store?.id || 'none'));
-    console.log('🔄 Sync button clicked');
-    console.log('🔄 Store:', store);
-    console.log('🔄 Syncing state:', syncing);
+    alert('1. Handler started. Store: ' + (store?.id || 'none') + ', syncing: ' + syncing);
 
     if (!store) {
-      console.error('❌ No store found, cannot sync');
+      alert('2. No store - returning');
       setErrorMessage('Store not loaded. Please refresh the page.');
       setTimeout(() => setErrorMessage(''), 5000);
       return;
     }
 
     if (syncing) {
-      console.log('⏳ Already syncing, ignoring click');
+      alert('2. Already syncing - returning');
       return;
     }
 
+    alert('2. Setting syncing to true');
     setSyncing(true);
-    console.log('🔄 Starting sync for store:', store.id);
 
     try {
-      console.log('🔄 Sending POST to /api/sync/facebook...');
+      alert('3. About to fetch /api/sync/facebook');
       const response = await fetch('/api/sync/facebook', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ storeId: store.id }),
       });
 
-      console.log('🔄 Response status:', response.status);
+      alert('4. Fetch complete. Status: ' + response.status);
       const data = await response.json();
-      console.log('🔄 Response data:', data);
+      alert('5. Data: ' + JSON.stringify(data).substring(0, 100));
 
       if (response.ok) {
         setSuccessMessage(data.message || 'Facebook campaigns synced successfully!');
@@ -162,12 +159,12 @@ function SettingsContent() {
         setErrorMessage(data.error || 'Failed to sync Facebook campaigns');
         setTimeout(() => setErrorMessage(''), 5000);
       }
-    } catch (error) {
-      console.error('❌ Sync error:', error);
+    } catch (error: any) {
+      alert('ERROR: ' + (error?.message || error));
       setErrorMessage('Failed to sync Facebook campaigns');
       setTimeout(() => setErrorMessage(''), 5000);
     } finally {
-      console.log('🔄 Sync complete, resetting state');
+      alert('6. Finally block - setting syncing to false');
       setSyncing(false);
     }
   };
