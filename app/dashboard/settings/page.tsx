@@ -117,42 +117,26 @@ function SettingsContent() {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  // Debug: Log syncing state changes
-  useEffect(() => {
-    console.log('🔄 Syncing state changed to:', syncing);
-  }, [syncing]);
-
   const handleSyncFacebook = async () => {
-    alert('1. Handler started. Store: ' + (store?.id || 'none') + ', syncing: ' + syncing);
-
     if (!store) {
-      alert('2. No store - returning');
       setErrorMessage('Store not loaded. Please refresh the page.');
       setTimeout(() => setErrorMessage(''), 5000);
       return;
     }
 
-    if (syncing) {
-      alert('2. Already syncing - returning');
-      return;
-    }
+    if (syncing) return;
 
-    alert('2. Setting syncing to true');
     setSyncing(true);
 
     try {
-      alert('3. About to sync');
-
       const apiUrl = window.location.origin + '/api/sync/facebook';
-      alert('3b. Using XMLHttpRequest to: ' + apiUrl);
 
-      // Use XMLHttpRequest instead of fetch to bypass potential CSP issues
+      // Use XMLHttpRequest for better compatibility with Shopify iframe
       const result = await new Promise<{ok: boolean, status: number, data: any}>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open('POST', apiUrl, true);
         xhr.setRequestHeader('Content-Type', 'application/json');
-
-        xhr.timeout = 20000; // 20 second timeout
+        xhr.timeout = 30000; // 30 second timeout
 
         xhr.onload = function() {
           try {
@@ -168,14 +152,11 @@ function SettingsContent() {
         };
 
         xhr.ontimeout = function() {
-          reject(new Error('Request timed out after 20 seconds'));
+          reject(new Error('Request timed out. Please try again.'));
         };
 
         xhr.send(JSON.stringify({ storeId: store.id }));
       });
-
-      alert('4. Request complete. Status: ' + result.status);
-      alert('5. Data: ' + JSON.stringify(result.data).substring(0, 100));
 
       if (result.ok) {
         setSuccessMessage(result.data.message || 'Facebook campaigns synced successfully!');
@@ -185,11 +166,9 @@ function SettingsContent() {
         setTimeout(() => setErrorMessage(''), 5000);
       }
     } catch (error: any) {
-      alert('ERROR: ' + (error?.message || String(error)));
-      setErrorMessage('Failed to sync: ' + (error?.message || 'Unknown error'));
+      setErrorMessage(error?.message || 'Failed to sync Facebook campaigns');
       setTimeout(() => setErrorMessage(''), 5000);
     } finally {
-      alert('6. Finally block - setting syncing to false');
       setSyncing(false);
     }
   };
@@ -273,6 +252,18 @@ function SettingsContent() {
         </header>
 
         <div className="p-6 max-w-4xl">
+          {/* Success/Error Messages */}
+          {successMessage && (
+            <div className="mb-6 p-4 bg-green-500/20 border border-green-500/50 rounded-lg text-green-300">
+              {successMessage}
+            </div>
+          )}
+          {errorMessage && (
+            <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300">
+              {errorMessage}
+            </div>
+          )}
+
           {/* Account Info */}
           <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6 mb-6">
             <h2 className="text-xl font-bold text-white mb-4">Account Information</h2>
@@ -335,11 +326,7 @@ function SettingsContent() {
                   <div className="flex gap-2">
                     {adAccounts.filter(a => a.platform === 'facebook').length > 0 && (
                       <button
-                        onClick={() => {
-                          console.log('🔘 Button onClick fired!');
-                          handleSyncFacebook();
-                        }}
-                        onMouseDown={() => console.log('🖱️ Button mousedown!')}
+                        onClick={handleSyncFacebook}
                         disabled={syncing}
                         className="px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-orange-800 disabled:cursor-not-allowed text-white rounded-lg font-medium transition flex items-center gap-2"
                       >
