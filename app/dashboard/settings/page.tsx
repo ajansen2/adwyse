@@ -143,24 +143,25 @@ function SettingsContent() {
     try {
       alert('3. About to fetch /api/sync/facebook');
 
-      // Add 30-second timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
-        controller.abort();
-      }, 30000);
-
-      // Use absolute URL to ensure it works in iframe context
       const apiUrl = window.location.origin + '/api/sync/facebook';
       alert('3b. Fetching: ' + apiUrl);
 
-      const response = await fetch(apiUrl, {
+      // Use Promise.race with a timeout promise
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Request timed out after 20 seconds'));
+        }, 20000);
+      });
+
+      const fetchPromise = fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ storeId: store.id }),
-        signal: controller.signal,
       });
 
-      clearTimeout(timeoutId);
+      alert('3c. Promises created, racing...');
+
+      const response = await Promise.race([fetchPromise, timeoutPromise]) as Response;
 
       alert('4. Fetch complete. Status: ' + response.status);
       const data = await response.json();
@@ -174,8 +175,8 @@ function SettingsContent() {
         setTimeout(() => setErrorMessage(''), 5000);
       }
     } catch (error: any) {
-      alert('ERROR: ' + (error?.message || error));
-      setErrorMessage('Failed to sync Facebook campaigns');
+      alert('ERROR: ' + (error?.message || String(error)));
+      setErrorMessage('Failed to sync: ' + (error?.message || 'Unknown error'));
       setTimeout(() => setErrorMessage(''), 5000);
     } finally {
       alert('6. Finally block - setting syncing to false');
