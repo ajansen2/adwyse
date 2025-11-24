@@ -320,13 +320,13 @@ function SettingsContent() {
                   <div className="space-y-2 mt-4 pt-4 border-t border-white/10">
                     {adAccounts.filter(a => a.platform === 'facebook').map((account) => (
                       <div key={account.id} className="flex items-center justify-between text-sm">
-                        <div className="text-white/70">{account.account_name}</div>
+                        <div className="text-white/70">{account.account_name || `Account ${account.account_id}`}</div>
                         <span className={`px-2 py-1 rounded text-xs ${
-                          account.status === 'active'
+                          account.is_connected
                             ? 'bg-green-500/20 text-green-300'
                             : 'bg-gray-500/20 text-gray-300'
                         }`}>
-                          {account.status}
+                          {account.is_connected ? 'Connected' : 'Disconnected'}
                         </span>
                       </div>
                     ))}

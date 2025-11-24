@@ -79,19 +79,25 @@ export async function GET(request: NextRequest) {
     // Save each ad account
     if (adAccountsData.data && adAccountsData.data.length > 0) {
       for (const adAccount of adAccountsData.data) {
-        await supabase.from('ad_accounts').upsert({
+        const { error: upsertError } = await supabase.from('ad_accounts').upsert({
           store_id: storeId,
           platform: 'facebook',
           account_id: adAccount.account_id,
           account_name: adAccount.name,
-          access_token: accessToken, // TODO: Encrypt this
-          status: adAccount.account_status === 1 ? 'active' : 'inactive',
+          access_token: accessToken,
+          is_connected: true,
         }, {
           onConflict: 'store_id,platform,account_id',
         });
+
+        if (upsertError) {
+          console.error('❌ Error saving ad account:', upsertError);
+        }
       }
 
-      console.log(`✅ Connected ${adAccountsData.data.length} Facebook ad accounts`);
+      console.log(`✅ Connected ${adAccountsData.data.length} Facebook ad accounts for store ${storeId}`);
+    } else {
+      console.log('⚠️ No ad accounts found for this Facebook user');
     }
 
     // Clear cookies
