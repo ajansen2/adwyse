@@ -49,7 +49,11 @@ export async function GET(request: NextRequest) {
       merchant: merchantData,
       store: {
         id: storeData.id,
-        store_name: storeData.store_name || shop,
+        store_name: storeData.store_name || shop.replace('.myshopify.com', ''),
+        shop_domain: shop,
+        email: storeData.email || '',
+        subscription_status: storeData.subscription_status || 'inactive',
+        trial_ends_at: storeData.trial_ends_at || null,
         store_url: `https://${shop}`,
         shopify_domain: shop,
         status: 'active'
