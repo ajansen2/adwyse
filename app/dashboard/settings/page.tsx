@@ -117,6 +117,11 @@ function SettingsContent() {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
+  // Debug: Log syncing state changes
+  useEffect(() => {
+    console.log('🔄 Syncing state changed to:', syncing);
+  }, [syncing]);
+
   const handleSyncFacebook = async () => {
     console.log('🔄 Sync button clicked');
     console.log('🔄 Store:', store);
@@ -307,7 +312,11 @@ function SettingsContent() {
                   <div className="flex gap-2">
                     {adAccounts.filter(a => a.platform === 'facebook').length > 0 && (
                       <button
-                        onClick={handleSyncFacebook}
+                        onClick={() => {
+                          console.log('🔘 Button onClick fired!');
+                          handleSyncFacebook();
+                        }}
+                        onMouseDown={() => console.log('🖱️ Button mousedown!')}
                         disabled={syncing}
                         className="px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-orange-800 disabled:cursor-not-allowed text-white rounded-lg font-medium transition flex items-center gap-2"
                       >
