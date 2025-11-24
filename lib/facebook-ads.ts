@@ -35,6 +35,8 @@ export async function fetchFacebookCampaigns(
   adAccountId: string,
   datePreset: 'today' | 'yesterday' | 'last_7d' | 'last_30d' = 'last_30d'
 ): Promise<FacebookCampaign[]> {
+  console.log(`🔵 [FB API] fetchFacebookCampaigns called for account: ${adAccountId}`);
+
   try {
     const fields = [
       'id',
@@ -45,29 +47,39 @@ export async function fetchFacebookCampaigns(
       'insights.date_preset(' + datePreset + '){spend,impressions,clicks,actions}'
     ].join(',');
 
-    const url = `https://graph.facebook.com/v18.0/act_${adAccountId}/campaigns?fields=${fields}&access_token=${accessToken}`;
+    const url = `https://graph.facebook.com/v18.0/act_${adAccountId}/campaigns?fields=${fields}&access_token=${accessToken.substring(0, 20)}...`;
+    console.log(`🔵 [FB API] Request URL (truncated): ${url.split('access_token')[0]}...`);
 
     // Add timeout to prevent hanging
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    const timeoutId = setTimeout(() => {
+      console.log('🔵 [FB API] Timeout reached (15s), aborting request...');
+      controller.abort();
+    }, 15000); // 15 second timeout
 
-    const response = await fetch(url, { signal: controller.signal });
+    console.log('🔵 [FB API] Sending request to Facebook...');
+    const fullUrl = `https://graph.facebook.com/v18.0/act_${adAccountId}/campaigns?fields=${fields}&access_token=${accessToken}`;
+    const response = await fetch(fullUrl, { signal: controller.signal });
     clearTimeout(timeoutId);
+
+    console.log(`🔵 [FB API] Response received. Status: ${response.status}`);
 
     if (!response.ok) {
       const error = await response.json();
-      console.error('❌ Facebook API error response:', error);
+      console.error('❌ [FB API] Error response:', JSON.stringify(error));
       // Return empty array instead of throwing if it's just "no campaigns"
       if (error?.error?.code === 100 || error?.error?.code === 190) {
-        console.log('ℹ️ No ad account or invalid token, returning empty array');
+        console.log('ℹ️ [FB API] No ad account or invalid token, returning empty array');
         return [];
       }
       throw new Error(`Facebook API error: ${JSON.stringify(error)}`);
     }
 
     const data = await response.json();
+    console.log(`🔵 [FB API] Data received. Has campaigns: ${!!data.data}, Count: ${data.data?.length || 0}`);
 
     if (!data.data) {
+      console.log('🔵 [FB API] No data.data in response, returning empty array');
       return [];
     }
 

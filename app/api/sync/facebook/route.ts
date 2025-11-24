@@ -7,14 +7,20 @@ import { fetchFacebookCampaigns } from '@/lib/facebook-ads';
  * This endpoint fetches campaign spend from Facebook and updates our campaigns table
  */
 export async function POST(request: NextRequest) {
+  console.log('🚀 [SYNC] Facebook sync started');
+
   try {
+    console.log('🔍 [SYNC] Parsing request body...');
     const body = await request.json();
     const { storeId } = body;
+    console.log('🔍 [SYNC] Store ID:', storeId);
 
     if (!storeId) {
+      console.log('❌ [SYNC] No store ID provided');
       return NextResponse.json({ error: 'Store ID required' }, { status: 400 });
     }
 
+    console.log('🔍 [SYNC] Creating Supabase client...');
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -27,6 +33,7 @@ export async function POST(request: NextRequest) {
     );
 
     // Get all active Facebook ad accounts for this store
+    console.log('🔍 [SYNC] Fetching ad accounts from database...');
     const { data: adAccounts, error: accountsError } = await supabase
       .from('ad_accounts')
       .select('*')
@@ -34,12 +41,15 @@ export async function POST(request: NextRequest) {
       .eq('platform', 'facebook')
       .eq('is_connected', true);
 
+    console.log('🔍 [SYNC] Ad accounts query complete. Found:', adAccounts?.length || 0);
+
     if (accountsError) {
-      console.error('❌ Error fetching ad accounts:', accountsError);
+      console.error('❌ [SYNC] Error fetching ad accounts:', accountsError);
       throw accountsError;
     }
 
     if (!adAccounts || adAccounts.length === 0) {
+      console.log('ℹ️ [SYNC] No Facebook ad accounts found, returning early');
       return NextResponse.json({
         success: true,
         message: 'No Facebook ad accounts connected',
@@ -48,33 +58,40 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    console.log('✅ [SYNC] Found ad accounts:', adAccounts.map(a => ({ id: a.id, name: a.account_name, account_id: a.account_id })));
+
     let totalCampaignsSynced = 0;
     let totalSpendSynced = 0;
 
     // Sync campaigns from each ad account
+    console.log('🔄 [SYNC] Starting to sync each ad account...');
+
     for (const account of adAccounts) {
       try {
-        console.log(`🔄 Syncing Facebook account: ${account.account_name || account.account_id}`);
+        console.log(`🔄 [SYNC] Processing account: ${account.account_name || account.account_id}`);
+        console.log(`🔄 [SYNC] Account ID: ${account.account_id}`);
 
         // Fetch campaigns from Facebook (last 30 days)
-        let fbCampaigns = [];
+        let fbCampaigns: any[] = [];
         try {
+          console.log(`🔄 [SYNC] Calling Facebook API for campaigns...`);
           fbCampaigns = await fetchFacebookCampaigns(
             account.access_token,
             account.account_id,
             'last_30d'
           );
+          console.log(`🔄 [SYNC] Facebook API call complete`);
         } catch (fbError) {
-          console.error(`❌ Error fetching campaigns from Facebook:`, fbError);
+          console.error(`❌ [SYNC] Error fetching campaigns from Facebook:`, fbError);
           // Continue with other accounts
           continue;
         }
 
-        console.log(`📊 Found ${fbCampaigns.length} campaigns on Facebook`);
+        console.log(`📊 [SYNC] Found ${fbCampaigns.length} campaigns on Facebook`);
 
         // If no campaigns, continue to next account
         if (fbCampaigns.length === 0) {
-          console.log(`ℹ️ No campaigns found for account ${account.account_name || account.account_id}`);
+          console.log(`ℹ️ [SYNC] No campaigns found for account ${account.account_name || account.account_id}`);
           continue;
         }
 
