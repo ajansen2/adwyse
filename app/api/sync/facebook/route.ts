@@ -32,14 +32,20 @@ export async function POST(request: NextRequest) {
       .select('*')
       .eq('store_id', storeId)
       .eq('platform', 'facebook')
-      .eq('status', 'active');
+      .eq('is_connected', true);
 
     if (accountsError) {
+      console.error('❌ Error fetching ad accounts:', accountsError);
       throw accountsError;
     }
 
     if (!adAccounts || adAccounts.length === 0) {
-      return NextResponse.json({ message: 'No Facebook ad accounts connected' }, { status: 200 });
+      return NextResponse.json({
+        success: true,
+        message: 'No Facebook ad accounts connected',
+        campaignsSynced: 0,
+        totalSpend: 0
+      });
     }
 
     let totalCampaignsSynced = 0;
@@ -48,16 +54,29 @@ export async function POST(request: NextRequest) {
     // Sync campaigns from each ad account
     for (const account of adAccounts) {
       try {
-        console.log(`🔄 Syncing Facebook account: ${account.account_name}`);
+        console.log(`🔄 Syncing Facebook account: ${account.account_name || account.account_id}`);
 
         // Fetch campaigns from Facebook (last 30 days)
-        const fbCampaigns = await fetchFacebookCampaigns(
-          account.access_token,
-          account.account_id,
-          'last_30d'
-        );
+        let fbCampaigns = [];
+        try {
+          fbCampaigns = await fetchFacebookCampaigns(
+            account.access_token,
+            account.account_id,
+            'last_30d'
+          );
+        } catch (fbError) {
+          console.error(`❌ Error fetching campaigns from Facebook:`, fbError);
+          // Continue with other accounts
+          continue;
+        }
 
         console.log(`📊 Found ${fbCampaigns.length} campaigns on Facebook`);
+
+        // If no campaigns, continue to next account
+        if (fbCampaigns.length === 0) {
+          console.log(`ℹ️ No campaigns found for account ${account.account_name || account.account_id}`);
+          continue;
+        }
 
         // Match campaigns by name and update spend
         for (const fbCampaign of fbCampaigns) {
