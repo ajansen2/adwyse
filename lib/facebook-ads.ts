@@ -50,16 +50,27 @@ export async function fetchFacebookCampaigns(
     const url = `https://graph.facebook.com/v18.0/act_${adAccountId}/campaigns?fields=${fields}&access_token=${accessToken.substring(0, 20)}...`;
     console.log(`🔵 [FB API] Request URL (truncated): ${url.split('access_token')[0]}...`);
 
-    // Add timeout to prevent hanging
+    // Add timeout to prevent hanging - 10 second timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
-      console.log('🔵 [FB API] Timeout reached (15s), aborting request...');
+      console.log('🔵 [FB API] Timeout reached (10s), aborting request...');
       controller.abort();
-    }, 15000); // 15 second timeout
+    }, 10000); // 10 second timeout
 
     console.log('🔵 [FB API] Sending request to Facebook...');
     const fullUrl = `https://graph.facebook.com/v18.0/act_${adAccountId}/campaigns?fields=${fields}&access_token=${accessToken}`;
-    const response = await fetch(fullUrl, { signal: controller.signal });
+
+    let response: Response;
+    try {
+      response = await fetch(fullUrl, { signal: controller.signal });
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId);
+      if (fetchError.name === 'AbortError') {
+        console.log('🔵 [FB API] Request was aborted due to timeout');
+        return []; // Return empty array on timeout
+      }
+      throw fetchError;
+    }
     clearTimeout(timeoutId);
 
     console.log(`🔵 [FB API] Response received. Status: ${response.status}`);
