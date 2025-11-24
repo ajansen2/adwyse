@@ -141,37 +141,47 @@ function SettingsContent() {
     setSyncing(true);
 
     try {
-      alert('3. About to fetch /api/sync/facebook');
+      alert('3. About to sync');
 
       const apiUrl = window.location.origin + '/api/sync/facebook';
-      alert('3b. Fetching: ' + apiUrl);
+      alert('3b. Using XMLHttpRequest to: ' + apiUrl);
 
-      // Use Promise.race with a timeout promise
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => {
+      // Use XMLHttpRequest instead of fetch to bypass potential CSP issues
+      const result = await new Promise<{ok: boolean, status: number, data: any}>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', apiUrl, true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+
+        xhr.timeout = 20000; // 20 second timeout
+
+        xhr.onload = function() {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            resolve({ ok: xhr.status >= 200 && xhr.status < 300, status: xhr.status, data });
+          } catch (e) {
+            resolve({ ok: false, status: xhr.status, data: { error: 'Failed to parse response' } });
+          }
+        };
+
+        xhr.onerror = function() {
+          reject(new Error('Network error - request failed'));
+        };
+
+        xhr.ontimeout = function() {
           reject(new Error('Request timed out after 20 seconds'));
-        }, 20000);
+        };
+
+        xhr.send(JSON.stringify({ storeId: store.id }));
       });
 
-      const fetchPromise = fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ storeId: store.id }),
-      });
+      alert('4. Request complete. Status: ' + result.status);
+      alert('5. Data: ' + JSON.stringify(result.data).substring(0, 100));
 
-      alert('3c. Promises created, racing...');
-
-      const response = await Promise.race([fetchPromise, timeoutPromise]) as Response;
-
-      alert('4. Fetch complete. Status: ' + response.status);
-      const data = await response.json();
-      alert('5. Data: ' + JSON.stringify(data).substring(0, 100));
-
-      if (response.ok) {
-        setSuccessMessage(data.message || 'Facebook campaigns synced successfully!');
+      if (result.ok) {
+        setSuccessMessage(result.data.message || 'Facebook campaigns synced successfully!');
         setTimeout(() => setSuccessMessage(''), 5000);
       } else {
-        setErrorMessage(data.error || 'Failed to sync Facebook campaigns');
+        setErrorMessage(result.data.error || 'Failed to sync Facebook campaigns');
         setTimeout(() => setErrorMessage(''), 5000);
       }
     } catch (error: any) {
