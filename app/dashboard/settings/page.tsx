@@ -123,6 +123,7 @@ function SettingsContent() {
   }, [syncing]);
 
   const handleSyncFacebook = async () => {
+    alert('Sync button clicked! Store: ' + (store?.id || 'none'));
     console.log('🔄 Sync button clicked');
     console.log('🔄 Store:', store);
     console.log('🔄 Syncing state:', syncing);
