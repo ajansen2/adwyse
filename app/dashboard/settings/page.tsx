@@ -95,6 +95,28 @@ function SettingsContent() {
     );
   };
 
+  // Listen for message from OAuth popup
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'facebook_connected') {
+        if (event.data.success) {
+          setSuccessMessage('Facebook Ads account connected successfully!');
+          // Reload ad accounts
+          window.location.reload();
+        } else {
+          setErrorMessage('Failed to connect Facebook account');
+        }
+        setTimeout(() => {
+          setSuccessMessage('');
+          setErrorMessage('');
+        }, 5000);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
   const handleSyncFacebook = async () => {
     if (!store || syncing) return;
 
@@ -347,13 +369,6 @@ function SettingsContent() {
                   Coming Soon
                 </button>
               </div>
-            </div>
-
-            <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-              <p className="text-white/70 text-sm">
-                <strong className="text-white">Note:</strong> Ad account connections will be available in Sprint 2.
-                For now, you can manually enter campaign spend data or track attribution with UTM parameters.
-              </p>
             </div>
           </div>
 

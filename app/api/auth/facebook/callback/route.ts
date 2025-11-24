@@ -98,9 +98,50 @@ export async function GET(request: NextRequest) {
     cookieStore.delete('facebook_oauth_state');
     cookieStore.delete('facebook_oauth_store_id');
 
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings?success=facebook_connected`);
+    // Return HTML that closes the popup and notifies parent
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head><title>Connected!</title></head>
+        <body>
+          <h2>Facebook Connected Successfully!</h2>
+          <p>This window will close automatically...</p>
+          <script>
+            if (window.opener) {
+              window.opener.postMessage({ type: 'facebook_connected', success: true }, '*');
+              window.close();
+            } else {
+              window.location.href = '${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings?success=facebook_connected';
+            }
+          </script>
+        </body>
+      </html>
+    `;
+    return new NextResponse(html, {
+      headers: { 'Content-Type': 'text/html' },
+    });
   } catch (error) {
     console.error('❌ Facebook OAuth callback error:', error);
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings?error=callback_failed`);
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head><title>Error</title></head>
+        <body>
+          <h2>Connection Failed</h2>
+          <p>This window will close automatically...</p>
+          <script>
+            if (window.opener) {
+              window.opener.postMessage({ type: 'facebook_connected', success: false, error: 'callback_failed' }, '*');
+              window.close();
+            } else {
+              window.location.href = '${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings?error=callback_failed';
+            }
+          </script>
+        </body>
+      </html>
+    `;
+    return new NextResponse(html, {
+      headers: { 'Content-Type': 'text/html' },
+    });
   }
 }
