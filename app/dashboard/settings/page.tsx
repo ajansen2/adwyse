@@ -23,6 +23,7 @@ function SettingsContent() {
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [syncing, setSyncing] = useState(false);
+  const [syncingGoogle, setSyncingGoogle] = useState(false);
   const supabase = getSupabaseClient();
 
   // Check for OAuth callback messages
@@ -32,6 +33,11 @@ function SettingsContent() {
 
     if (success === 'facebook_connected') {
       setSuccessMessage('Facebook Ads account connected successfully!');
+      setTimeout(() => setSuccessMessage(''), 5000);
+    }
+
+    if (success === 'google_connected') {
+      setSuccessMessage('Google Ads account connected successfully!');
       setTimeout(() => setSuccessMessage(''), 5000);
     }
 
@@ -101,10 +107,22 @@ function SettingsContent() {
       if (event.data?.type === 'facebook_connected') {
         if (event.data.success) {
           setSuccessMessage('Facebook Ads account connected successfully!');
-          // Reload ad accounts
           window.location.reload();
         } else {
           setErrorMessage('Failed to connect Facebook account');
+        }
+        setTimeout(() => {
+          setSuccessMessage('');
+          setErrorMessage('');
+        }, 5000);
+      }
+
+      if (event.data?.type === 'google_connected') {
+        if (event.data.success) {
+          setSuccessMessage('Google Ads account connected successfully!');
+          window.location.reload();
+        } else {
+          setErrorMessage('Failed to connect Google Ads account');
         }
         setTimeout(() => {
           setSuccessMessage('');
@@ -116,6 +134,69 @@ function SettingsContent() {
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, []);
+
+  const handleConnectGoogle = () => {
+    if (!store) return;
+    const width = 600;
+    const height = 700;
+    const left = (window.screen.width - width) / 2;
+    const top = (window.screen.height - height) / 2;
+
+    window.open(
+      `/api/auth/google?store_id=${store.id}`,
+      'Google OAuth',
+      `width=${width},height=${height},left=${left},top=${top}`
+    );
+  };
+
+  const handleSyncGoogle = async () => {
+    if (!store || syncingGoogle) return;
+
+    setSyncingGoogle(true);
+
+    try {
+      const apiUrl = window.location.origin + '/api/sync/google';
+
+      const result = await new Promise<{ok: boolean, status: number, data: any}>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', apiUrl, true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.timeout = 30000;
+
+        xhr.onload = function() {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            resolve({ ok: xhr.status >= 200 && xhr.status < 300, status: xhr.status, data });
+          } catch (e) {
+            resolve({ ok: false, status: xhr.status, data: { error: 'Failed to parse response' } });
+          }
+        };
+
+        xhr.onerror = function() {
+          reject(new Error('Network error - request failed'));
+        };
+
+        xhr.ontimeout = function() {
+          reject(new Error('Request timed out. Please try again.'));
+        };
+
+        xhr.send(JSON.stringify({ storeId: store.id }));
+      });
+
+      if (result.ok) {
+        setSuccessMessage(result.data.message || 'Google Ads campaigns synced successfully!');
+        setTimeout(() => setSuccessMessage(''), 5000);
+      } else {
+        setErrorMessage(result.data.error || 'Failed to sync Google Ads campaigns');
+        setTimeout(() => setErrorMessage(''), 5000);
+      }
+    } catch (error: any) {
+      setErrorMessage(error?.message || 'Failed to sync Google Ads campaigns');
+      setTimeout(() => setErrorMessage(''), 5000);
+    } finally {
+      setSyncingGoogle(false);
+    }
+  };
 
   const handleSyncFacebook = async () => {
     if (!store) {
@@ -374,21 +455,71 @@ function SettingsContent() {
               </div>
 
               {/* Google Ads */}
-              <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center">
-                    <svg className="w-6 h-6 text-red-400" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/>
-                    </svg>
+              <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center">
+                      <svg className="w-6 h-6 text-red-400" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <div className="text-white font-medium">Google Ads</div>
+                      <div className="text-white/40 text-sm">
+                        {adAccounts.filter(a => a.platform === 'google').length > 0
+                          ? `${adAccounts.filter(a => a.platform === 'google').length} account(s) connected`
+                          : 'Not connected'}
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-white font-medium">Google Ads</div>
-                    <div className="text-white/40 text-sm">Not connected</div>
+                  <div className="flex gap-2">
+                    {adAccounts.filter(a => a.platform === 'google').length > 0 && (
+                      <button
+                        onClick={handleSyncGoogle}
+                        disabled={syncingGoogle}
+                        className="px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-orange-800 disabled:cursor-not-allowed text-white rounded-lg font-medium transition flex items-center gap-2"
+                      >
+                        {syncingGoogle ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            Syncing...
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Sync Now
+                          </>
+                        )}
+                      </button>
+                    )}
+                    <button
+                      onClick={handleConnectGoogle}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition"
+                    >
+                      {adAccounts.filter(a => a.platform === 'google').length > 0 ? 'Reconnect' : 'Connect'}
+                    </button>
                   </div>
                 </div>
-                <button className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition">
-                  Connect
-                </button>
+
+                {/* Connected Google Accounts */}
+                {adAccounts.filter(a => a.platform === 'google').length > 0 && (
+                  <div className="space-y-2 mt-4 pt-4 border-t border-white/10">
+                    {adAccounts.filter(a => a.platform === 'google').map((account) => (
+                      <div key={account.id} className="flex items-center justify-between text-sm">
+                        <div className="text-white/70">{account.account_name || `Account ${account.account_id}`}</div>
+                        <span className={`px-2 py-1 rounded text-xs ${
+                          account.is_connected
+                            ? 'bg-green-500/20 text-green-300'
+                            : 'bg-gray-500/20 text-gray-300'
+                        }`}>
+                          {account.is_connected ? 'Connected' : 'Disconnected'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* TikTok Ads */}
