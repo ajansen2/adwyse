@@ -117,6 +117,9 @@ export async function refreshGoogleToken(refreshToken: string): Promise<{
 export async function getGoogleAdsCustomers(accessToken: string): Promise<GoogleAdsCustomer[]> {
   const developerToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN;
 
+  console.log('🔵 [Google Ads] Fetching accessible customers...');
+  console.log('🔵 [Google Ads] Developer token present:', !!developerToken);
+
   const response = await fetch('https://googleads.googleapis.com/v15/customers:listAccessibleCustomers', {
     method: 'GET',
     headers: {
@@ -127,8 +130,13 @@ export async function getGoogleAdsCustomers(accessToken: string): Promise<Google
 
   if (!response.ok) {
     const error = await response.json();
-    console.error('Failed to get customers:', error);
-    return [];
+    console.error('Failed to get customers:', JSON.stringify(error, null, 2));
+
+    // Extract meaningful error message
+    const errorMessage = error?.error?.message ||
+                        error?.error?.details?.[0]?.errors?.[0]?.message ||
+                        JSON.stringify(error);
+    throw new Error(`Google Ads API error: ${errorMessage}`);
   }
 
   const data = await response.json();

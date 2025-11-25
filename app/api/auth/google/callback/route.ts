@@ -24,11 +24,14 @@ export async function GET(request: NextRequest) {
 
     // Exchange code for tokens
     console.log('🔑 Exchanging Google authorization code...');
+    console.log('🔑 Code length:', code.length);
     const tokens = await exchangeGoogleCode(code);
+    console.log('✅ Token exchange successful, access token length:', tokens.accessToken.length);
 
     // Get accessible customer accounts
     console.log('📊 Fetching Google Ads customer accounts...');
     const customers = await getGoogleAdsCustomers(tokens.accessToken);
+    console.log('📊 Found customers:', customers.length);
 
     if (customers.length === 0) {
       return returnHtmlResponse(false, 'No Google Ads accounts found. Make sure you have access to at least one Google Ads account.');
@@ -93,9 +96,10 @@ export async function GET(request: NextRequest) {
 
     return returnHtmlResponse(true, `Connected ${customers.length} Google Ads account(s)`);
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Google OAuth callback error:', error);
-    return returnHtmlResponse(false, 'Failed to connect Google Ads account');
+    const errorMessage = error?.message || 'Failed to connect Google Ads account';
+    return returnHtmlResponse(false, errorMessage);
   }
 }
 
