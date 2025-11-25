@@ -128,18 +128,36 @@ export async function getGoogleAdsCustomers(accessToken: string): Promise<Google
     },
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    console.error('Failed to get customers:', JSON.stringify(error, null, 2));
+  const responseText = await response.text();
+  console.log('🔵 [Google Ads] Response status:', response.status);
+  console.log('🔵 [Google Ads] Response content-type:', response.headers.get('content-type'));
 
-    // Extract meaningful error message
-    const errorMessage = error?.error?.message ||
-                        error?.error?.details?.[0]?.errors?.[0]?.message ||
-                        JSON.stringify(error);
+  if (!response.ok) {
+    console.error('Failed to get customers. Raw response:', responseText.substring(0, 500));
+
+    // Try to parse as JSON, otherwise use raw text
+    let errorMessage: string;
+    try {
+      const error = JSON.parse(responseText);
+      errorMessage = error?.error?.message ||
+                    error?.error?.details?.[0]?.errors?.[0]?.message ||
+                    JSON.stringify(error);
+    } catch {
+      // HTML response - extract title or first meaningful text
+      const titleMatch = responseText.match(/<title>([^<]+)<\/title>/i);
+      errorMessage = titleMatch ? titleMatch[1] : `HTTP ${response.status}: Non-JSON response from Google API`;
+    }
     throw new Error(`Google Ads API error: ${errorMessage}`);
   }
 
-  const data = await response.json();
+  // Parse the successful response
+  let data;
+  try {
+    data = JSON.parse(responseText);
+  } catch {
+    console.error('Failed to parse successful response:', responseText.substring(0, 500));
+    throw new Error('Invalid response from Google Ads API');
+  }
   const customerResourceNames = data.resourceNames || [];
 
   // Fetch details for each customer
