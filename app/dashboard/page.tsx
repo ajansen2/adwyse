@@ -1,10 +1,18 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { initializeAppBridge, isEmbeddedInShopify, navigateInApp, getShopifySessionToken } from '@/lib/shopify-app-bridge';
 import Link from 'next/link';
+
+type DateRangeOption = '7d' | '14d' | '30d' | '90d' | 'all' | 'custom';
+
+interface DateRange {
+  start: Date | null;
+  end: Date | null;
+  label: string;
+}
 
 interface Merchant {
   id: string;
@@ -59,8 +67,69 @@ function DashboardContent() {
   const itemsPerPage = 20;
   const [latestInsight, setLatestInsight] = useState<any>(null);
   const [generatingInsight, setGeneratingInsight] = useState(false);
+  const [dateRangeOption, setDateRangeOption] = useState<DateRangeOption>('30d');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
 
   const router = useRouter();
+
+  // Calculate date range based on selection
+  const dateRange = useMemo((): DateRange => {
+    const now = new Date();
+    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+
+    switch (dateRangeOption) {
+      case '7d':
+        return {
+          start: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+          end,
+          label: 'Last 7 days'
+        };
+      case '14d':
+        return {
+          start: new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000),
+          end,
+          label: 'Last 14 days'
+        };
+      case '30d':
+        return {
+          start: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
+          end,
+          label: 'Last 30 days'
+        };
+      case '90d':
+        return {
+          start: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000),
+          end,
+          label: 'Last 90 days'
+        };
+      case 'custom':
+        return {
+          start: customStartDate ? new Date(customStartDate) : null,
+          end: customEndDate ? new Date(customEndDate + 'T23:59:59') : end,
+          label: customStartDate && customEndDate
+            ? `${new Date(customStartDate).toLocaleDateString()} - ${new Date(customEndDate).toLocaleDateString()}`
+            : 'Custom range'
+        };
+      case 'all':
+      default:
+        return {
+          start: null,
+          end: null,
+          label: 'All time'
+        };
+    }
+  }, [dateRangeOption, customStartDate, customEndDate]);
+
+  // Filter orders by date range
+  const filteredOrders = useMemo(() => {
+    if (!dateRange.start) return orders;
+    return orders.filter(order => {
+      const orderDate = new Date(order.created_at);
+      return orderDate >= dateRange.start! && (!dateRange.end || orderDate <= dateRange.end);
+    });
+  }, [orders, dateRange]);
   const searchParams = useSearchParams();
 
   const supabase = getSupabaseClient();
@@ -388,17 +457,85 @@ function DashboardContent() {
 
   const hasStores = stores.length > 0;
 
-  // Calculate metrics from orders
-  const totalOrders = orders.length;
-  const attributedOrders = orders.filter(order => order.ad_source && order.ad_source !== 'direct').length;
-  const totalRevenue = orders.reduce((sum, order) => sum + order.order_total, 0);
-  const attributedRevenue = orders
+  // Calculate metrics from filtered orders
+  const totalOrders = filteredOrders.length;
+  const attributedOrders = filteredOrders.filter(order => order.ad_source && order.ad_source !== 'direct').length;
+  const totalRevenue = filteredOrders.reduce((sum, order) => sum + order.order_total, 0);
+  const attributedRevenue = filteredOrders
     .filter(order => order.ad_source && order.ad_source !== 'direct')
     .reduce((sum, order) => sum + order.order_total, 0);
 
   // Calculate total ad spend and average ROAS
   const totalSpend = campaigns.reduce((sum, campaign) => sum + campaign.total_spend, 0);
   const avgROAS = totalSpend > 0 ? (attributedRevenue / totalSpend) : 0;
+
+  // Prepare chart data - daily revenue for the selected period
+  const chartData = useMemo(() => {
+    const days: { [key: string]: { revenue: number; orders: number; adRevenue: number } } = {};
+
+    // Initialize days based on date range
+    const startDate = dateRange.start || new Date(Math.min(...filteredOrders.map(o => new Date(o.created_at).getTime())));
+    const endDate = dateRange.end || new Date();
+
+    if (filteredOrders.length === 0) return [];
+
+    // Create day entries
+    const currentDate = new Date(startDate);
+    while (currentDate <= endDate) {
+      const key = currentDate.toISOString().split('T')[0];
+      days[key] = { revenue: 0, orders: 0, adRevenue: 0 };
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    // Populate with order data
+    filteredOrders.forEach(order => {
+      const key = order.created_at.split('T')[0];
+      if (days[key]) {
+        days[key].revenue += order.order_total;
+        days[key].orders += 1;
+        if (order.ad_source && order.ad_source !== 'direct') {
+          days[key].adRevenue += order.order_total;
+        }
+      }
+    });
+
+    return Object.entries(days).map(([date, data]) => ({
+      date,
+      ...data
+    })).sort((a, b) => a.date.localeCompare(b.date));
+  }, [filteredOrders, dateRange]);
+
+  // Get max value for chart scaling
+  const maxRevenue = Math.max(...chartData.map(d => d.revenue), 1);
+
+  // Export to CSV function
+  const handleExportCSV = () => {
+    const headers = ['Order ID', 'Order Number', 'Customer Email', 'Total', 'Currency', 'Ad Source', 'Campaign', 'UTM Source', 'UTM Medium', 'UTM Campaign', 'Date'];
+    const rows = filteredOrders.map(order => [
+      order.shopify_order_id,
+      order.shopify_order_number,
+      order.customer_email || '',
+      order.order_total.toFixed(2),
+      order.currency,
+      order.ad_source || 'direct',
+      order.campaign_name || '',
+      order.utm_source || '',
+      order.utm_medium || '',
+      order.utm_campaign || '',
+      new Date(order.created_at).toISOString()
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `adwyse-orders-${dateRange.label.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900">
@@ -505,6 +642,94 @@ function DashboardContent() {
               <h1 className="text-2xl font-bold text-white">Dashboard</h1>
             </div>
             <div className="flex items-center gap-3">
+              {/* Date Range Picker */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowDatePicker(!showDatePicker)}
+                  className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-white text-sm font-medium transition"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  {dateRange.label}
+                  <svg className={`w-4 h-4 transition-transform ${showDatePicker ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {showDatePicker && (
+                  <div className="absolute right-0 mt-2 w-64 bg-slate-800 border border-white/20 rounded-xl shadow-xl z-50 overflow-hidden">
+                    <div className="p-2">
+                      {[
+                        { value: '7d', label: 'Last 7 days' },
+                        { value: '14d', label: 'Last 14 days' },
+                        { value: '30d', label: 'Last 30 days' },
+                        { value: '90d', label: 'Last 90 days' },
+                        { value: 'all', label: 'All time' },
+                      ].map((option) => (
+                        <button
+                          key={option.value}
+                          onClick={() => {
+                            setDateRangeOption(option.value as DateRangeOption);
+                            setShowDatePicker(false);
+                          }}
+                          className={`w-full text-left px-4 py-2 rounded-lg text-sm transition ${
+                            dateRangeOption === option.value
+                              ? 'bg-orange-600 text-white'
+                              : 'text-white/80 hover:bg-white/10'
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="border-t border-white/10 p-3">
+                      <div className="text-white/60 text-xs mb-2">Custom range</div>
+                      <div className="flex gap-2 mb-2">
+                        <input
+                          type="date"
+                          value={customStartDate}
+                          onChange={(e) => setCustomStartDate(e.target.value)}
+                          className="flex-1 px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
+                        />
+                        <input
+                          type="date"
+                          value={customEndDate}
+                          onChange={(e) => setCustomEndDate(e.target.value)}
+                          className="flex-1 px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
+                        />
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (customStartDate && customEndDate) {
+                            setDateRangeOption('custom');
+                            setShowDatePicker(false);
+                          }
+                        }}
+                        disabled={!customStartDate || !customEndDate}
+                        className="w-full px-3 py-1.5 bg-orange-600 hover:bg-orange-700 disabled:bg-white/10 disabled:text-white/40 rounded text-white text-sm font-medium transition"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Export Button */}
+              {filteredOrders.length > 0 && (
+                <button
+                  onClick={handleExportCSV}
+                  className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-white text-sm font-medium transition"
+                  title="Export to CSV"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span className="hidden sm:inline">Export</span>
+                </button>
+              )}
+
               {merchant.subscription_tier === 'pro' ? (
                 <span className="px-3 py-1 bg-green-600/20 border border-green-500/30 rounded-full text-green-300 text-sm font-medium">
                   ✓ Pro Plan
@@ -521,6 +746,11 @@ function DashboardContent() {
             </div>
           </div>
         </header>
+
+        {/* Click outside to close date picker */}
+        {showDatePicker && (
+          <div className="fixed inset-0 z-40" onClick={() => setShowDatePicker(false)} />
+        )}
 
         {/* Billing Success Notification */}
         {showBillingSuccess && (
@@ -659,6 +889,90 @@ function DashboardContent() {
                   </div>
                 </div>
               </div>
+
+              {/* Revenue Chart */}
+              {chartData.length > 0 && (
+                <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6 mb-8">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h2 className="text-xl font-bold text-white">Revenue Over Time</h2>
+                      <p className="text-white/60 text-sm">{dateRange.label}</p>
+                    </div>
+                    <div className="flex items-center gap-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                        <span className="text-white/60">Total Revenue</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                        <span className="text-white/60">Ad Revenue</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Simple Bar Chart */}
+                  <div className="relative h-64">
+                    {/* Y-axis labels */}
+                    <div className="absolute left-0 top-0 bottom-8 w-16 flex flex-col justify-between text-white/40 text-xs">
+                      <span>${maxRevenue.toFixed(0)}</span>
+                      <span>${(maxRevenue * 0.75).toFixed(0)}</span>
+                      <span>${(maxRevenue * 0.5).toFixed(0)}</span>
+                      <span>${(maxRevenue * 0.25).toFixed(0)}</span>
+                      <span>$0</span>
+                    </div>
+
+                    {/* Chart area */}
+                    <div className="ml-16 h-full flex items-end gap-1 pb-8">
+                      {chartData.slice(-30).map((day, index) => {
+                        const heightPercent = (day.revenue / maxRevenue) * 100;
+                        const adHeightPercent = (day.adRevenue / maxRevenue) * 100;
+                        const displayDate = new Date(day.date);
+
+                        return (
+                          <div
+                            key={day.date}
+                            className="flex-1 min-w-0 flex flex-col items-center group relative"
+                          >
+                            {/* Tooltip */}
+                            <div className="absolute bottom-full mb-2 hidden group-hover:block z-10">
+                              <div className="bg-slate-800 border border-white/20 rounded-lg px-3 py-2 text-xs whitespace-nowrap shadow-xl">
+                                <div className="text-white font-medium mb-1">
+                                  {displayDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                </div>
+                                <div className="text-green-400">${day.revenue.toFixed(2)} revenue</div>
+                                <div className="text-orange-400">${day.adRevenue.toFixed(2)} from ads</div>
+                                <div className="text-white/60">{day.orders} orders</div>
+                              </div>
+                            </div>
+
+                            {/* Bar */}
+                            <div className="w-full relative" style={{ height: `${Math.max(heightPercent, 2)}%` }}>
+                              <div
+                                className="absolute inset-x-0 bottom-0 bg-green-500/60 rounded-t transition-all group-hover:bg-green-500"
+                                style={{ height: '100%' }}
+                              />
+                              <div
+                                className="absolute inset-x-0 bottom-0 bg-orange-500 rounded-t transition-all group-hover:bg-orange-400"
+                                style={{ height: `${adHeightPercent > 0 ? (day.adRevenue / day.revenue) * 100 : 0}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* X-axis labels */}
+                    <div className="ml-16 flex justify-between text-white/40 text-xs mt-2">
+                      {chartData.length > 0 && (
+                        <>
+                          <span>{new Date(chartData[Math.max(0, chartData.length - 30)].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                          <span>{new Date(chartData[chartData.length - 1].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* AI Insights */}
               {latestInsight && (
@@ -801,16 +1115,16 @@ function DashboardContent() {
               )}
 
               {/* Recent Orders */}
-              {orders.length > 0 && (
+              {filteredOrders.length > 0 && (
                 <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xl font-bold text-white">Recent Orders</h2>
                     <div className="text-white/60 text-sm">
-                      Showing {Math.min((currentPage - 1) * itemsPerPage + 1, orders.length)}-{Math.min(currentPage * itemsPerPage, orders.length)} of {orders.length}
+                      Showing {Math.min((currentPage - 1) * itemsPerPage + 1, filteredOrders.length)}-{Math.min(currentPage * itemsPerPage, filteredOrders.length)} of {filteredOrders.length}
                     </div>
                   </div>
                   <div className="space-y-3">
-                    {orders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((order) => {
+                    {filteredOrders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((order) => {
                       const timeAgo = new Date(order.created_at).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
@@ -856,7 +1170,7 @@ function DashboardContent() {
                   </div>
 
                   {/* Pagination */}
-                  {Math.ceil(orders.length / itemsPerPage) > 1 && (
+                  {Math.ceil(filteredOrders.length / itemsPerPage) > 1 && (
                     <div className="flex items-center justify-center gap-2 mt-6">
                       <button
                         onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
@@ -870,13 +1184,13 @@ function DashboardContent() {
                         ← Previous
                       </button>
                       <div className="text-white/60 text-sm px-4">
-                        Page {currentPage} of {Math.ceil(orders.length / itemsPerPage)}
+                        Page {currentPage} of {Math.ceil(filteredOrders.length / itemsPerPage)}
                       </div>
                       <button
-                        onClick={() => setCurrentPage(p => Math.min(Math.ceil(orders.length / itemsPerPage), p + 1))}
-                        disabled={currentPage === Math.ceil(orders.length / itemsPerPage)}
+                        onClick={() => setCurrentPage(p => Math.min(Math.ceil(filteredOrders.length / itemsPerPage), p + 1))}
+                        disabled={currentPage === Math.ceil(filteredOrders.length / itemsPerPage)}
                         className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                          currentPage === Math.ceil(orders.length / itemsPerPage)
+                          currentPage === Math.ceil(filteredOrders.length / itemsPerPage)
                             ? 'bg-white/5 text-white/30 cursor-not-allowed'
                             : 'bg-white/10 text-white hover:bg-white/20'
                         }`}

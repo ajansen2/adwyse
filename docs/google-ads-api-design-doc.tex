@@ -1,0 +1,190 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{fancybox}
+
+\title{AdWyse Google Ads API Integration\\Design Document}
+\author{Argora AI Inc.}
+\date{November 2025}
+
+\begin{document}
+
+\maketitle
+
+\section{Executive Summary}
+
+AdWyse is a Shopify application that provides e-commerce merchants with comprehensive advertising attribution and ROI analytics. The application integrates with multiple advertising platforms, including Google Ads, to aggregate campaign performance data and correlate it with actual sales data from Shopify stores.
+
+\textbf{API Usage Type:} Read-only reporting and analytics\\
+\textbf{Target Users:} Shopify merchants running Google Ads campaigns\\
+\textbf{Website:} \url{https://adwyse.ca}
+
+\section{Business Model}
+
+AdWyse operates as a Software-as-a-Service (SaaS) application distributed through the Shopify App Store. Merchants install the app to:
+
+\begin{itemize}
+    \item Connect their advertising accounts (Google Ads, Facebook Ads, TikTok Ads)
+    \item View unified campaign performance metrics
+    \item Track which ads drive actual e-commerce conversions
+    \item Analyze return on ad spend (ROAS) across all platforms
+\end{itemize}
+
+\section{Google Ads API Usage}
+
+\subsection{Purpose}
+AdWyse uses the Google Ads API exclusively to \textbf{read campaign performance data}. We do not create, modify, or delete any campaigns, ad groups, ads, or other Google Ads resources.
+
+\subsection{Data Retrieved}
+The following read-only data is retrieved via the Google Ads API:
+
+\begin{itemize}
+    \item Campaign names and IDs
+    \item Campaign status (active, paused, etc.)
+    \item Performance metrics:
+    \begin{itemize}
+        \item Cost (ad spend)
+        \item Impressions
+        \item Clicks
+        \item Conversions
+    \end{itemize}
+\end{itemize}
+
+\subsection{API Endpoints Used}
+\begin{itemize}
+    \item \texttt{customers:listAccessibleCustomers} - List accounts user has access to
+    \item \texttt{customers/\{id\}} - Get customer account details
+    \item \texttt{googleAds:searchStream} - Query campaign performance metrics
+\end{itemize}
+
+\subsection{Campaign Types Supported}
+\begin{itemize}
+    \item Search campaigns
+    \item Shopping campaigns
+    \item Performance Max campaigns
+    \item Display campaigns
+\end{itemize}
+
+\section{Technical Architecture}
+
+\subsection{Authentication Flow}
+
+\begin{small}
+\begin{verbatim}
++------------------+      +------------------+      +------------------+
+|                  |      |                  |      |                  |
+| Shopify Merchant |----->|   AdWyse App     |----->|  Google OAuth    |
+|                  |  1   |                  |  2   |                  |
++------------------+      +--------+---------+      +--------+---------+
+                                  |                         |
+                                  | 4                       | 3
+                                  v                         |
+                         +--------+---------+               |
+                         |                  |<--------------+
+                         | Secure Database  |     (tokens)
+                         |   (Supabase)     |
+                         +--------+---------+
+                                  |
+                                  | 5
+                                  v
+                         +------------------+
+                         |                  |
+                         | Google Ads API   |
+                         |  (Read Only)     |
+                         +------------------+
+\end{verbatim}
+\end{small}
+
+\begin{enumerate}
+    \item Merchant clicks ``Connect Google Ads'' in AdWyse dashboard
+    \item AdWyse redirects to Google OAuth consent screen
+    \item Merchant authorizes read-only access to their Google Ads data
+    \item OAuth tokens are securely stored in encrypted database
+    \item AdWyse periodically fetches campaign metrics via API
+\end{enumerate}
+
+\subsection{Data Flow}
+
+\begin{small}
+\begin{verbatim}
++------------------+                    +------------------+
+|  Google Ads API  |                    |  Shopify Store   |
++--------+---------+                    +--------+---------+
+         |                                       |
+         | Campaign Metrics                      | Order Data
+         v                                       v
++--------+---------+                    +--------+---------+
+|   Sync Service   |                    |   Webhook Sync   |
++--------+---------+                    +--------+---------+
+         |                                       |
+         +-------------------+-------------------+
+                             |
+                             v
+                  +----------+----------+
+                  |                     |
+                  |  PostgreSQL Database |
+                  |     (Supabase)      |
+                  +----------+----------+
+                             |
+                             v
+                  +----------+----------+
+                  |                     |
+                  | Analytics Dashboard |
+                  |                     |
+                  +---------------------+
+\end{verbatim}
+\end{small}
+
+\section{Security Measures}
+
+\subsection{Data Protection}
+\begin{itemize}
+    \item All OAuth tokens are encrypted at rest using AES-256
+    \item Tokens are stored in Supabase with Row Level Security (RLS)
+    \item HTTPS/TLS 1.3 for all data in transit
+    \item No Google Ads data is shared between merchants
+\end{itemize}
+
+\subsection{Access Control}
+\begin{itemize}
+    \item Each merchant can only access their own connected accounts
+    \item OAuth scope limited to \texttt{https://www.googleapis.com/auth/adwords} (read-only)
+    \item Automatic token refresh with secure refresh token storage
+\end{itemize}
+
+\subsection{Compliance}
+\begin{itemize}
+    \item Compliant with Google Ads API Terms of Service
+    \item GDPR-compliant data handling
+    \item Users can disconnect accounts and request data deletion at any time
+\end{itemize}
+
+\section{API Usage Patterns}
+
+\subsection{Request Frequency}
+\begin{itemize}
+    \item Initial sync: One-time fetch of last 30 days of campaign data
+    \item Ongoing sync: Daily batch updates (once per 24 hours per account)
+    \item On-demand: Manual sync triggered by merchant (rate-limited)
+\end{itemize}
+
+\subsection{Expected Volume}
+\begin{itemize}
+    \item Estimated 100-500 API calls per merchant per month
+    \item Primarily \texttt{searchStream} queries for campaign metrics
+    \item Low volume, read-only operations
+\end{itemize}
+
+\section{Support and Contact}
+
+\begin{tabular}{ll}
+\textbf{Company:} & Argora AI Inc. \\
+\textbf{Website:} & \url{https://adwyse.ca} \\
+\textbf{Support Email:} & adam@argora.ai \\
+\textbf{Technical Contact:} & adam@argora.ai \\
+\end{tabular}
+
+\end{document}
