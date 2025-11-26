@@ -471,13 +471,14 @@ function DashboardContent() {
 
   // Prepare chart data - daily revenue for the selected period
   const chartData = useMemo(() => {
+    if (filteredOrders.length === 0) return [];
+
     const days: { [key: string]: { revenue: number; orders: number; adRevenue: number } } = {};
 
     // Initialize days based on date range
-    const startDate = dateRange.start || new Date(Math.min(...filteredOrders.map(o => new Date(o.created_at).getTime())));
+    const orderTimes = filteredOrders.map(o => new Date(o.created_at).getTime());
+    const startDate = dateRange.start || new Date(Math.min(...orderTimes));
     const endDate = dateRange.end || new Date();
-
-    if (filteredOrders.length === 0) return [];
 
     // Create day entries
     const currentDate = new Date(startDate);
