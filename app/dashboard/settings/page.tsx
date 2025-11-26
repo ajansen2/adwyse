@@ -79,18 +79,20 @@ function SettingsContent() {
           return;
         }
 
-        // Use async fetch instead of synchronous XHR
-        console.log('🔧 Settings: Fetching store lookup...');
-        const lookupResponse = await fetch(`/api/stores/lookup?shop=${encodeURIComponent(shop)}`);
-        console.log('🔧 Settings: Store lookup response status:', lookupResponse.status);
+        // Use synchronous XHR (works better in Shopify iframe than fetch)
+        console.log('🔧 Settings: Fetching store lookup via XHR...');
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', `/api/stores/lookup?shop=${encodeURIComponent(shop)}`, false);
+        xhr.send();
+        console.log('🔧 Settings: XHR response status:', xhr.status);
 
-        if (!lookupResponse.ok) {
-          console.error('🔧 Settings: Store lookup failed:', lookupResponse.status);
+        if (xhr.status !== 200) {
+          console.error('🔧 Settings: Store lookup failed:', xhr.status);
           setLoading(false);
           return;
         }
 
-        const data = await lookupResponse.json();
+        const data = JSON.parse(xhr.responseText);
         console.log('🔧 Settings: Store data received:', data.store ? 'yes' : 'no');
 
         if (data.store) {
