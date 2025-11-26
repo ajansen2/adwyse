@@ -130,6 +130,45 @@ function DashboardContent() {
       return orderDate >= dateRange.start! && (!dateRange.end || orderDate <= dateRange.end);
     });
   }, [orders, dateRange]);
+
+  // Prepare chart data - daily revenue for the selected period
+  // IMPORTANT: This must be defined before any conditional returns to satisfy React's Rules of Hooks
+  const chartData = useMemo(() => {
+    if (filteredOrders.length === 0) return [];
+
+    const days: { [key: string]: { revenue: number; orders: number; adRevenue: number } } = {};
+
+    // Initialize days based on date range
+    const orderTimes = filteredOrders.map(o => new Date(o.created_at).getTime());
+    const startDate = dateRange.start || new Date(Math.min(...orderTimes));
+    const endDate = dateRange.end || new Date();
+
+    // Create day entries
+    const currentDate = new Date(startDate);
+    while (currentDate <= endDate) {
+      const key = currentDate.toISOString().split('T')[0];
+      days[key] = { revenue: 0, orders: 0, adRevenue: 0 };
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    // Populate with order data
+    filteredOrders.forEach(order => {
+      const key = order.created_at.split('T')[0];
+      if (days[key]) {
+        days[key].revenue += order.order_total;
+        days[key].orders += 1;
+        if (order.ad_source && order.ad_source !== 'direct') {
+          days[key].adRevenue += order.order_total;
+        }
+      }
+    });
+
+    return Object.entries(days).map(([date, data]) => ({
+      date,
+      ...data
+    })).sort((a, b) => a.date.localeCompare(b.date));
+  }, [filteredOrders, dateRange]);
+
   const searchParams = useSearchParams();
 
   const supabase = getSupabaseClient();
@@ -468,43 +507,6 @@ function DashboardContent() {
   // Calculate total ad spend and average ROAS
   const totalSpend = campaigns.reduce((sum, campaign) => sum + campaign.total_spend, 0);
   const avgROAS = totalSpend > 0 ? (attributedRevenue / totalSpend) : 0;
-
-  // Prepare chart data - daily revenue for the selected period
-  const chartData = useMemo(() => {
-    if (filteredOrders.length === 0) return [];
-
-    const days: { [key: string]: { revenue: number; orders: number; adRevenue: number } } = {};
-
-    // Initialize days based on date range
-    const orderTimes = filteredOrders.map(o => new Date(o.created_at).getTime());
-    const startDate = dateRange.start || new Date(Math.min(...orderTimes));
-    const endDate = dateRange.end || new Date();
-
-    // Create day entries
-    const currentDate = new Date(startDate);
-    while (currentDate <= endDate) {
-      const key = currentDate.toISOString().split('T')[0];
-      days[key] = { revenue: 0, orders: 0, adRevenue: 0 };
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-
-    // Populate with order data
-    filteredOrders.forEach(order => {
-      const key = order.created_at.split('T')[0];
-      if (days[key]) {
-        days[key].revenue += order.order_total;
-        days[key].orders += 1;
-        if (order.ad_source && order.ad_source !== 'direct') {
-          days[key].adRevenue += order.order_total;
-        }
-      }
-    });
-
-    return Object.entries(days).map(([date, data]) => ({
-      date,
-      ...data
-    })).sort((a, b) => a.date.localeCompare(b.date));
-  }, [filteredOrders, dateRange]);
 
   // Get max value for chart scaling
   const maxRevenue = Math.max(...chartData.map(d => d.revenue), 1);
