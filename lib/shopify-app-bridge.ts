@@ -58,7 +58,7 @@ export function initializeAppBridge() {
     try {
       // Use CDN global instead of npm import
       if (!window.shopify?.createApp) {
-        console.error('❌ Shopify App Bridge CDN not loaded');
+        console.warn('⚠️ Shopify App Bridge CDN not loaded - continuing without it');
         return null;
       }
 

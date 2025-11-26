@@ -16,6 +16,7 @@ interface Store {
 }
 
 function SettingsContent() {
+  console.log('🔧 SettingsContent component rendering...');
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [store, setStore] = useState<Store | null>(null);
