@@ -62,28 +62,37 @@ function SettingsContent() {
 
   useEffect(() => {
     const loadStore = async () => {
+      console.log('🔧 Settings: Starting loadStore...');
       try {
         const shop = searchParams.get('shop');
+        console.log('🔧 Settings: shop param =', shop);
+
         if (!shop) {
+          console.log('🔧 Settings: No shop param, setting loading to false');
           setLoading(false);
           return;
         }
 
         // Use async fetch instead of synchronous XHR
+        console.log('🔧 Settings: Fetching store lookup...');
         const lookupResponse = await fetch(`/api/stores/lookup?shop=${encodeURIComponent(shop)}`);
+        console.log('🔧 Settings: Store lookup response status:', lookupResponse.status);
 
         if (!lookupResponse.ok) {
-          console.error('Store lookup failed:', lookupResponse.status);
+          console.error('🔧 Settings: Store lookup failed:', lookupResponse.status);
           setLoading(false);
           return;
         }
 
         const data = await lookupResponse.json();
+        console.log('🔧 Settings: Store data received:', data.store ? 'yes' : 'no');
 
         if (data.store) {
+          console.log('🔧 Settings: Setting store, id =', data.store.id);
           setStore(data.store);
 
           // Load all data in parallel for faster loading
+          console.log('🔧 Settings: Loading settings in parallel...');
           const [accountsResult, reportResult, alertResult] = await Promise.allSettled([
             // Load ad accounts
             supabase
@@ -102,8 +111,14 @@ function SettingsContent() {
             ])
           ]);
 
+          console.log('🔧 Settings: Parallel requests completed');
+          console.log('🔧 Settings: accountsResult status:', accountsResult.status);
+          console.log('🔧 Settings: reportResult status:', reportResult.status);
+          console.log('🔧 Settings: alertResult status:', alertResult.status);
+
           // Handle ad accounts
           if (accountsResult.status === 'fulfilled' && accountsResult.value.data) {
+            console.log('🔧 Settings: Setting ad accounts, count:', accountsResult.value.data.length);
             setAdAccounts(accountsResult.value.data);
           }
 
@@ -135,10 +150,13 @@ function SettingsContent() {
               console.error('Error parsing alert settings:', err);
             }
           }
+        } else {
+          console.log('🔧 Settings: No store in response data');
         }
       } catch (error) {
-        console.error('Error loading store:', error);
+        console.error('🔧 Settings: Error loading store:', error);
       } finally {
+        console.log('🔧 Settings: Setting loading to false (finally block)');
         setLoading(false);
       }
     };
