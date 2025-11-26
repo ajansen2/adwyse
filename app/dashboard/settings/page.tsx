@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { navigateInApp } from '@/lib/shopify-app-bridge';
@@ -17,7 +16,6 @@ interface Store {
 
 function SettingsContent() {
   console.log('🔧 SettingsContent component rendering...');
-  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [store, setStore] = useState<Store | null>(null);
   const [adAccounts, setAdAccounts] = useState<any[]>([]);
@@ -35,10 +33,17 @@ function SettingsContent() {
   const [savingAlertSettings, setSavingAlertSettings] = useState(false);
   const supabase = getSupabaseClient();
 
+  // Get URL params directly from window.location (more reliable in iframes)
+  const getUrlParam = (name: string): string | null => {
+    if (typeof window === 'undefined') return null;
+    const params = new URLSearchParams(window.location.search);
+    return params.get(name);
+  };
+
   // Check for OAuth callback messages
   useEffect(() => {
-    const success = searchParams.get('success');
-    const error = searchParams.get('error');
+    const success = getUrlParam('success');
+    const error = getUrlParam('error');
 
     if (success === 'facebook_connected') {
       setSuccessMessage('Facebook Ads account connected successfully!');
@@ -59,13 +64,13 @@ function SettingsContent() {
       setErrorMessage(`Failed to connect: ${error.replace(/_/g, ' ')}`);
       setTimeout(() => setErrorMessage(''), 5000);
     }
-  }, [searchParams]);
+  }, []);
 
   useEffect(() => {
     const loadStore = async () => {
       console.log('🔧 Settings: Starting loadStore...');
       try {
-        const shop = searchParams.get('shop');
+        const shop = getUrlParam('shop');
         console.log('🔧 Settings: shop param =', shop);
 
         if (!shop) {
@@ -163,7 +168,7 @@ function SettingsContent() {
     };
 
     loadStore();
-  }, [searchParams, supabase]);
+  }, [supabase]);
 
   const handleSaveAlertSettings = async () => {
     if (!store) return;
@@ -988,16 +993,6 @@ function SettingsContent() {
 }
 
 export default function SettingsPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-solid border-orange-500 border-r-transparent mb-4"></div>
-          <div className="text-white text-xl">Loading settings...</div>
-        </div>
-      </div>
-    }>
-      <SettingsContent />
-    </Suspense>
-  );
+  console.log('🔧 SettingsPage rendering...');
+  return <SettingsContent />;
 }
