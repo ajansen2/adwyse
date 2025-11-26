@@ -18,18 +18,14 @@ export async function GET(request: NextRequest) {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    const { data: store, error } = await supabase
-      .from('stores')
+    const { data: settings } = await supabase
+      .from('store_settings')
       .select('email_report_frequency')
-      .eq('id', storeId)
-      .single();
-
-    if (error) {
-      return NextResponse.json({ error: 'Store not found' }, { status: 404 });
-    }
+      .eq('store_id', storeId)
+      .maybeSingle();
 
     return NextResponse.json({
-      frequency: store.email_report_frequency || 'none',
+      frequency: settings?.email_report_frequency || 'none',
     });
   } catch (error) {
     console.error('Error fetching report settings:', error);
@@ -65,10 +61,14 @@ export async function POST(request: NextRequest) {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
+    // Upsert into store_settings
     const { error } = await supabase
-      .from('stores')
-      .update({ email_report_frequency: frequency })
-      .eq('id', storeId);
+      .from('store_settings')
+      .upsert({
+        store_id: storeId,
+        email_report_frequency: frequency,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'store_id' });
 
     if (error) {
       console.error('Error updating report settings:', error);

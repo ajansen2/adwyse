@@ -18,21 +18,17 @@ export async function GET(request: NextRequest) {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    const { data: store, error } = await supabase
-      .from('stores')
+    const { data: settings } = await supabase
+      .from('store_settings')
       .select('roas_alert_enabled, roas_threshold, spend_alert_enabled, spend_threshold')
-      .eq('id', storeId)
-      .single();
-
-    if (error) {
-      return NextResponse.json({ error: 'Store not found' }, { status: 404 });
-    }
+      .eq('store_id', storeId)
+      .maybeSingle();
 
     return NextResponse.json({
-      roas_alert_enabled: store.roas_alert_enabled || false,
-      roas_threshold: store.roas_threshold || 1.5,
-      spend_alert_enabled: store.spend_alert_enabled || false,
-      spend_threshold: store.spend_threshold || 100,
+      roas_alert_enabled: settings?.roas_alert_enabled || false,
+      roas_threshold: settings?.roas_threshold || 1.5,
+      spend_alert_enabled: settings?.spend_alert_enabled || false,
+      spend_threshold: settings?.spend_threshold || 100,
     });
   } catch (error) {
     console.error('Error fetching alert settings:', error);
@@ -61,15 +57,17 @@ export async function POST(request: NextRequest) {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
+    // Upsert into store_settings
     const { error } = await supabase
-      .from('stores')
-      .update({
+      .from('store_settings')
+      .upsert({
+        store_id: storeId,
         roas_alert_enabled,
         roas_threshold,
         spend_alert_enabled,
         spend_threshold,
-      })
-      .eq('id', storeId);
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'store_id' });
 
     if (error) {
       console.error('Error updating alert settings:', error);

@@ -35,13 +35,15 @@ export async function checkAlerts(storeId: string): Promise<Alert[]> {
   );
 
   // Get store alert settings
-  const { data: store } = await supabase
-    .from('stores')
+  const { data: settings } = await supabase
+    .from('store_settings')
     .select('roas_alert_enabled, roas_threshold, spend_alert_enabled, spend_threshold')
-    .eq('id', storeId)
-    .single();
+    .eq('store_id', storeId)
+    .maybeSingle();
 
-  if (!store) return [];
+  if (!settings) return [];
+
+  const store = settings;
 
   const newAlerts: Alert[] = [];
   const now = new Date();
