@@ -27,6 +27,11 @@ function SettingsContent() {
   const [syncingTikTok, setSyncingTikTok] = useState(false);
   const [emailReportFrequency, setEmailReportFrequency] = useState<'none' | 'weekly' | 'monthly'>('none');
   const [savingEmailSettings, setSavingEmailSettings] = useState(false);
+  const [roasAlertEnabled, setRoasAlertEnabled] = useState(false);
+  const [roasThreshold, setRoasThreshold] = useState(1.5);
+  const [spendAlertEnabled, setSpendAlertEnabled] = useState(false);
+  const [spendThreshold, setSpendThreshold] = useState(100);
+  const [savingAlertSettings, setSavingAlertSettings] = useState(false);
   const supabase = getSupabaseClient();
 
   // Check for OAuth callback messages
@@ -93,6 +98,20 @@ function SettingsContent() {
             } catch (err) {
               console.error('Error loading email settings:', err);
             }
+
+            // Load alert settings
+            try {
+              const alertResponse = await fetch(`/api/alerts/settings?store_id=${data.store.id}`);
+              if (alertResponse.ok) {
+                const alertData = await alertResponse.json();
+                setRoasAlertEnabled(alertData.roas_alert_enabled || false);
+                setRoasThreshold(alertData.roas_threshold || 1.5);
+                setSpendAlertEnabled(alertData.spend_alert_enabled || false);
+                setSpendThreshold(alertData.spend_threshold || 100);
+              }
+            } catch (err) {
+              console.error('Error loading alert settings:', err);
+            }
           }
         }
       } catch (error) {
@@ -104,6 +123,39 @@ function SettingsContent() {
 
     loadStore();
   }, [searchParams, supabase]);
+
+  const handleSaveAlertSettings = async () => {
+    if (!store) return;
+
+    setSavingAlertSettings(true);
+    try {
+      const response = await fetch('/api/alerts/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          storeId: store.id,
+          roas_alert_enabled: roasAlertEnabled,
+          roas_threshold: roasThreshold,
+          spend_alert_enabled: spendAlertEnabled,
+          spend_threshold: spendThreshold,
+        }),
+      });
+
+      if (response.ok) {
+        setSuccessMessage('Alert settings saved');
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } else {
+        setErrorMessage('Failed to save alert settings');
+        setTimeout(() => setErrorMessage(''), 3000);
+      }
+    } catch (error) {
+      console.error('Error saving alert settings:', error);
+      setErrorMessage('Failed to save alert settings');
+      setTimeout(() => setErrorMessage(''), 3000);
+    } finally {
+      setSavingAlertSettings(false);
+    }
+  };
 
   const handleSaveEmailSettings = async (frequency: 'none' | 'weekly' | 'monthly') => {
     if (!store) return;
@@ -776,6 +828,106 @@ function SettingsContent() {
                 Saving...
               </div>
             )}
+          </div>
+
+          {/* Performance Alerts */}
+          <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6 mb-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-yellow-500/20 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">Performance Alerts</h2>
+                <p className="text-white/60 text-sm">Get notified when campaigns need attention</p>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              {/* ROAS Alert */}
+              <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <div className="text-white font-medium">Low ROAS Alert</div>
+                    <div className="text-white/40 text-sm">Alert when ROAS drops below threshold</div>
+                  </div>
+                  <button
+                    onClick={() => setRoasAlertEnabled(!roasAlertEnabled)}
+                    className={`w-12 h-6 rounded-full transition-colors ${
+                      roasAlertEnabled ? 'bg-orange-600' : 'bg-white/20'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 bg-white rounded-full transition-transform ${
+                      roasAlertEnabled ? 'translate-x-6' : 'translate-x-0.5'
+                    }`} />
+                  </button>
+                </div>
+                {roasAlertEnabled && (
+                  <div className="flex items-center gap-3">
+                    <span className="text-white/60 text-sm">Alert when ROAS below:</span>
+                    <input
+                      type="number"
+                      value={roasThreshold}
+                      onChange={(e) => setRoasThreshold(parseFloat(e.target.value) || 0)}
+                      step="0.1"
+                      min="0"
+                      className="w-20 px-3 py-1.5 bg-white/10 border border-white/20 rounded-lg text-white text-sm"
+                    />
+                    <span className="text-white/60 text-sm">x</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Spend Alert */}
+              <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <div className="text-white font-medium">High Spend Alert</div>
+                    <div className="text-white/40 text-sm">Alert when daily spend exceeds budget</div>
+                  </div>
+                  <button
+                    onClick={() => setSpendAlertEnabled(!spendAlertEnabled)}
+                    className={`w-12 h-6 rounded-full transition-colors ${
+                      spendAlertEnabled ? 'bg-orange-600' : 'bg-white/20'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 bg-white rounded-full transition-transform ${
+                      spendAlertEnabled ? 'translate-x-6' : 'translate-x-0.5'
+                    }`} />
+                  </button>
+                </div>
+                {spendAlertEnabled && (
+                  <div className="flex items-center gap-3">
+                    <span className="text-white/60 text-sm">Alert when daily spend exceeds:</span>
+                    <span className="text-white/60">$</span>
+                    <input
+                      type="number"
+                      value={spendThreshold}
+                      onChange={(e) => setSpendThreshold(parseFloat(e.target.value) || 0)}
+                      step="10"
+                      min="0"
+                      className="w-24 px-3 py-1.5 bg-white/10 border border-white/20 rounded-lg text-white text-sm"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={handleSaveAlertSettings}
+                disabled={savingAlertSettings}
+                className="px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-orange-800 disabled:cursor-not-allowed text-white rounded-lg font-medium transition flex items-center gap-2"
+              >
+                {savingAlertSettings ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Saving...
+                  </>
+                ) : (
+                  'Save Alert Settings'
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Danger Zone */}
