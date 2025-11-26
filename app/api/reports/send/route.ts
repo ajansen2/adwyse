@@ -1,0 +1,43 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { sendScheduledReports } from '@/lib/email-reports';
+
+/**
+ * Trigger scheduled email reports
+ * Called by cron job (Vercel Cron or external service)
+ */
+export async function POST(request: NextRequest) {
+  try {
+    // Verify cron secret for security
+    const authHeader = request.headers.get('authorization');
+    const cronSecret = process.env.CRON_SECRET;
+
+    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { frequency } = body;
+
+    if (!frequency || !['weekly', 'monthly'].includes(frequency)) {
+      return NextResponse.json(
+        { error: 'Invalid frequency. Use "weekly" or "monthly"' },
+        { status: 400 }
+      );
+    }
+
+    console.log(`📧 Triggering ${frequency} email reports`);
+
+    await sendScheduledReports(frequency);
+
+    return NextResponse.json({
+      success: true,
+      message: `${frequency} reports sent successfully`,
+    });
+  } catch (error) {
+    console.error('Error sending reports:', error);
+    return NextResponse.json(
+      { error: 'Failed to send reports' },
+      { status: 500 }
+    );
+  }
+}

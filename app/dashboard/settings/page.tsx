@@ -25,6 +25,8 @@ function SettingsContent() {
   const [syncing, setSyncing] = useState(false);
   const [syncingGoogle, setSyncingGoogle] = useState(false);
   const [syncingTikTok, setSyncingTikTok] = useState(false);
+  const [emailReportFrequency, setEmailReportFrequency] = useState<'none' | 'weekly' | 'monthly'>('none');
+  const [savingEmailSettings, setSavingEmailSettings] = useState(false);
   const supabase = getSupabaseClient();
 
   // Check for OAuth callback messages
@@ -80,6 +82,17 @@ function SettingsContent() {
             if (accounts) {
               setAdAccounts(accounts);
             }
+
+            // Load email report settings
+            try {
+              const reportResponse = await fetch(`/api/reports/settings?store_id=${data.store.id}`);
+              if (reportResponse.ok) {
+                const reportData = await reportResponse.json();
+                setEmailReportFrequency(reportData.frequency || 'none');
+              }
+            } catch (err) {
+              console.error('Error loading email settings:', err);
+            }
           }
         }
       } catch (error) {
@@ -91,6 +104,34 @@ function SettingsContent() {
 
     loadStore();
   }, [searchParams, supabase]);
+
+  const handleSaveEmailSettings = async (frequency: 'none' | 'weekly' | 'monthly') => {
+    if (!store) return;
+
+    setSavingEmailSettings(true);
+    try {
+      const response = await fetch('/api/reports/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storeId: store.id, frequency }),
+      });
+
+      if (response.ok) {
+        setEmailReportFrequency(frequency);
+        setSuccessMessage(`Email reports ${frequency === 'none' ? 'disabled' : `set to ${frequency}`}`);
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } else {
+        setErrorMessage('Failed to update email settings');
+        setTimeout(() => setErrorMessage(''), 3000);
+      }
+    } catch (error) {
+      console.error('Error saving email settings:', error);
+      setErrorMessage('Failed to update email settings');
+      setTimeout(() => setErrorMessage(''), 3000);
+    } finally {
+      setSavingEmailSettings(false);
+    }
+  };
 
   const handleConnectFacebook = () => {
     if (!store) return;
@@ -672,6 +713,69 @@ function SettingsContent() {
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Email Reports */}
+          <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6 mb-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">Email Reports</h2>
+                <p className="text-white/60 text-sm">Get performance summaries delivered to your inbox</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <button
+                onClick={() => handleSaveEmailSettings('none')}
+                disabled={savingEmailSettings}
+                className={`p-4 rounded-lg border-2 transition ${
+                  emailReportFrequency === 'none'
+                    ? 'bg-orange-600/20 border-orange-500 text-white'
+                    : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <div className="font-medium mb-1">Off</div>
+                <div className="text-xs opacity-60">No emails</div>
+              </button>
+
+              <button
+                onClick={() => handleSaveEmailSettings('weekly')}
+                disabled={savingEmailSettings}
+                className={`p-4 rounded-lg border-2 transition ${
+                  emailReportFrequency === 'weekly'
+                    ? 'bg-orange-600/20 border-orange-500 text-white'
+                    : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <div className="font-medium mb-1">Weekly</div>
+                <div className="text-xs opacity-60">Every Monday</div>
+              </button>
+
+              <button
+                onClick={() => handleSaveEmailSettings('monthly')}
+                disabled={savingEmailSettings}
+                className={`p-4 rounded-lg border-2 transition ${
+                  emailReportFrequency === 'monthly'
+                    ? 'bg-orange-600/20 border-orange-500 text-white'
+                    : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <div className="font-medium mb-1">Monthly</div>
+                <div className="text-xs opacity-60">1st of month</div>
+              </button>
+            </div>
+
+            {savingEmailSettings && (
+              <div className="mt-3 text-white/60 text-sm flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                Saving...
+              </div>
+            )}
           </div>
 
           {/* Danger Zone */}
