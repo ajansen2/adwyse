@@ -99,64 +99,49 @@ function SettingsContent() {
           console.log('🔧 Settings: Setting store, id =', data.store.id);
           setStore(data.store);
 
-          // Load all data in parallel for faster loading
-          console.log('🔧 Settings: Loading settings in parallel...');
-          const [accountsResult, reportResult, alertResult] = await Promise.allSettled([
-            // Load ad accounts
-            supabase
-              .from('ad_accounts')
-              .select('*')
-              .eq('store_id', data.store.id),
-            // Load email report settings (with timeout)
-            Promise.race([
-              fetch(`/api/reports/settings?store_id=${data.store.id}`),
-              new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
-            ]),
-            // Load alert settings (with timeout)
-            Promise.race([
-              fetch(`/api/alerts/settings?store_id=${data.store.id}`),
-              new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
-            ])
-          ]);
+          // Load ad accounts
+          console.log('🔧 Settings: Loading ad accounts...');
+          const { data: accounts } = await supabase
+            .from('ad_accounts')
+            .select('*')
+            .eq('store_id', data.store.id);
 
-          console.log('🔧 Settings: Parallel requests completed');
-          console.log('🔧 Settings: accountsResult status:', accountsResult.status);
-          console.log('🔧 Settings: reportResult status:', reportResult.status);
-          console.log('🔧 Settings: alertResult status:', alertResult.status);
-
-          // Handle ad accounts
-          if (accountsResult.status === 'fulfilled' && accountsResult.value.data) {
-            console.log('🔧 Settings: Setting ad accounts, count:', accountsResult.value.data.length);
-            setAdAccounts(accountsResult.value.data);
+          if (accounts) {
+            console.log('🔧 Settings: Setting ad accounts, count:', accounts.length);
+            setAdAccounts(accounts);
           }
 
-          // Handle email report settings
-          if (reportResult.status === 'fulfilled') {
-            try {
-              const reportResponse = reportResult.value as Response;
-              if (reportResponse.ok) {
-                const reportData = await reportResponse.json();
-                setEmailReportFrequency(reportData.frequency || 'none');
-              }
-            } catch (err) {
-              console.error('Error parsing email settings:', err);
+          // Load email report settings via XHR (works better in iframe)
+          try {
+            console.log('🔧 Settings: Loading report settings via XHR...');
+            const reportXhr = new XMLHttpRequest();
+            reportXhr.open('GET', `/api/reports/settings?store_id=${data.store.id}`, false);
+            reportXhr.send();
+            if (reportXhr.status === 200) {
+              const reportData = JSON.parse(reportXhr.responseText);
+              setEmailReportFrequency(reportData.frequency || 'none');
+              console.log('🔧 Settings: Report settings loaded:', reportData.frequency);
             }
+          } catch (err) {
+            console.error('Error loading email settings:', err);
           }
 
-          // Handle alert settings
-          if (alertResult.status === 'fulfilled') {
-            try {
-              const alertResponse = alertResult.value as Response;
-              if (alertResponse.ok) {
-                const alertData = await alertResponse.json();
-                setRoasAlertEnabled(alertData.roas_alert_enabled || false);
-                setRoasThreshold(alertData.roas_threshold || 1.5);
-                setSpendAlertEnabled(alertData.spend_alert_enabled || false);
-                setSpendThreshold(alertData.spend_threshold || 100);
-              }
-            } catch (err) {
-              console.error('Error parsing alert settings:', err);
+          // Load alert settings via XHR
+          try {
+            console.log('🔧 Settings: Loading alert settings via XHR...');
+            const alertXhr = new XMLHttpRequest();
+            alertXhr.open('GET', `/api/alerts/settings?store_id=${data.store.id}`, false);
+            alertXhr.send();
+            if (alertXhr.status === 200) {
+              const alertData = JSON.parse(alertXhr.responseText);
+              setRoasAlertEnabled(alertData.roas_alert_enabled || false);
+              setRoasThreshold(alertData.roas_threshold || 1.5);
+              setSpendAlertEnabled(alertData.spend_alert_enabled || false);
+              setSpendThreshold(alertData.spend_threshold || 100);
+              console.log('🔧 Settings: Alert settings loaded');
             }
+          } catch (err) {
+            console.error('Error loading alert settings:', err);
           }
         } else {
           console.log('🔧 Settings: No store in response data');
@@ -172,24 +157,23 @@ function SettingsContent() {
     loadStore();
   }, [supabase]);
 
-  const handleSaveAlertSettings = async () => {
+  const handleSaveAlertSettings = () => {
     if (!store) return;
 
     setSavingAlertSettings(true);
     try {
-      const response = await fetch('/api/alerts/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          storeId: store.id,
-          roas_alert_enabled: roasAlertEnabled,
-          roas_threshold: roasThreshold,
-          spend_alert_enabled: spendAlertEnabled,
-          spend_threshold: spendThreshold,
-        }),
-      });
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/alerts/settings', false);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.send(JSON.stringify({
+        storeId: store.id,
+        roas_alert_enabled: roasAlertEnabled,
+        roas_threshold: roasThreshold,
+        spend_alert_enabled: spendAlertEnabled,
+        spend_threshold: spendThreshold,
+      }));
 
-      if (response.ok) {
+      if (xhr.status === 200) {
         setSuccessMessage('Alert settings saved');
         setTimeout(() => setSuccessMessage(''), 3000);
       } else {
@@ -205,18 +189,17 @@ function SettingsContent() {
     }
   };
 
-  const handleSaveEmailSettings = async (frequency: 'none' | 'weekly' | 'monthly') => {
+  const handleSaveEmailSettings = (frequency: 'none' | 'weekly' | 'monthly') => {
     if (!store) return;
 
     setSavingEmailSettings(true);
     try {
-      const response = await fetch('/api/reports/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ storeId: store.id, frequency }),
-      });
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/reports/settings', false);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.send(JSON.stringify({ storeId: store.id, frequency }));
 
-      if (response.ok) {
+      if (xhr.status === 200) {
         setEmailReportFrequency(frequency);
         setSuccessMessage(`Email reports ${frequency === 'none' ? 'disabled' : `set to ${frequency}`}`);
         setTimeout(() => setSuccessMessage(''), 3000);
