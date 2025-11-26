@@ -661,61 +661,68 @@ function DashboardContent() {
                 </button>
 
                 {showDatePicker && (
-                  <div className="absolute right-0 mt-2 w-64 bg-slate-800 border border-white/20 rounded-xl shadow-xl z-50 overflow-hidden">
-                    <div className="p-2">
-                      {[
-                        { value: '7d', label: 'Last 7 days' },
-                        { value: '14d', label: 'Last 14 days' },
-                        { value: '30d', label: 'Last 30 days' },
-                        { value: '90d', label: 'Last 90 days' },
-                        { value: 'all', label: 'All time' },
-                      ].map((option) => (
-                        <button
-                          key={option.value}
-                          onClick={() => {
-                            setDateRangeOption(option.value as DateRangeOption);
-                            setShowDatePicker(false);
-                          }}
-                          className={`w-full text-left px-4 py-2 rounded-lg text-sm transition ${
-                            dateRangeOption === option.value
-                              ? 'bg-orange-600 text-white'
-                              : 'text-white/80 hover:bg-white/10'
-                          }`}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="border-t border-white/10 p-3">
-                      <div className="text-white/60 text-xs mb-2">Custom range</div>
-                      <div className="flex gap-2 mb-2">
-                        <input
-                          type="date"
-                          value={customStartDate}
-                          onChange={(e) => setCustomStartDate(e.target.value)}
-                          className="flex-1 px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
-                        />
-                        <input
-                          type="date"
-                          value={customEndDate}
-                          onChange={(e) => setCustomEndDate(e.target.value)}
-                          className="flex-1 px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
-                        />
+                  <>
+                    {/* Backdrop to close dropdown when clicking outside */}
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setShowDatePicker(false)}
+                    />
+                    <div className="absolute right-0 mt-2 w-64 bg-slate-800 border border-white/20 rounded-xl shadow-xl z-50 overflow-hidden">
+                      <div className="p-2">
+                        {[
+                          { value: '7d', label: 'Last 7 days' },
+                          { value: '14d', label: 'Last 14 days' },
+                          { value: '30d', label: 'Last 30 days' },
+                          { value: '90d', label: 'Last 90 days' },
+                          { value: 'all', label: 'All time' },
+                        ].map((option) => (
+                          <button
+                            key={option.value}
+                            onClick={() => {
+                              setDateRangeOption(option.value as DateRangeOption);
+                              setShowDatePicker(false);
+                            }}
+                            className={`w-full text-left px-4 py-2 rounded-lg text-sm transition ${
+                              dateRangeOption === option.value
+                                ? 'bg-orange-600 text-white'
+                                : 'text-white/80 hover:bg-white/10'
+                            }`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
                       </div>
-                      <button
-                        onClick={() => {
-                          if (customStartDate && customEndDate) {
-                            setDateRangeOption('custom');
-                            setShowDatePicker(false);
-                          }
-                        }}
-                        disabled={!customStartDate || !customEndDate}
-                        className="w-full px-3 py-1.5 bg-orange-600 hover:bg-orange-700 disabled:bg-white/10 disabled:text-white/40 rounded text-white text-sm font-medium transition"
-                      >
-                        Apply
-                      </button>
+                      <div className="border-t border-white/10 p-3">
+                        <div className="text-white/60 text-xs mb-2">Custom range</div>
+                        <div className="flex gap-2 mb-2">
+                          <input
+                            type="date"
+                            value={customStartDate}
+                            onChange={(e) => setCustomStartDate(e.target.value)}
+                            className="flex-1 px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
+                          />
+                          <input
+                            type="date"
+                            value={customEndDate}
+                            onChange={(e) => setCustomEndDate(e.target.value)}
+                            className="flex-1 px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
+                          />
+                        </div>
+                        <button
+                          onClick={() => {
+                            if (customStartDate && customEndDate) {
+                              setDateRangeOption('custom');
+                              setShowDatePicker(false);
+                            }
+                          }}
+                          disabled={!customStartDate || !customEndDate}
+                          className="w-full px-3 py-1.5 bg-orange-600 hover:bg-orange-700 disabled:bg-white/10 disabled:text-white/40 rounded text-white text-sm font-medium transition"
+                        >
+                          Apply
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  </>
                 )}
               </div>
 
@@ -749,11 +756,6 @@ function DashboardContent() {
             </div>
           </div>
         </header>
-
-        {/* Click outside to close date picker */}
-        {showDatePicker && (
-          <div className="fixed inset-0 z-40" onClick={() => setShowDatePicker(false)} />
-        )}
 
         {/* Billing Success Notification */}
         {showBillingSuccess && (

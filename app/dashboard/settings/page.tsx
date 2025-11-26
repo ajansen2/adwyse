@@ -69,39 +69,61 @@ function SettingsContent() {
           return;
         }
 
-        const xhr = new XMLHttpRequest();
-        xhr.open('GET', `/api/stores/lookup?shop=${encodeURIComponent(shop)}`, false);
-        xhr.send();
+        // Use async fetch instead of synchronous XHR
+        const lookupResponse = await fetch(`/api/stores/lookup?shop=${encodeURIComponent(shop)}`);
 
-        if (xhr.status === 200) {
-          const data = JSON.parse(xhr.responseText);
-          if (data.store) {
-            setStore(data.store);
+        if (!lookupResponse.ok) {
+          console.error('Store lookup failed:', lookupResponse.status);
+          setLoading(false);
+          return;
+        }
 
-            // Load ad accounts for this store
-            const { data: accounts } = await supabase
+        const data = await lookupResponse.json();
+
+        if (data.store) {
+          setStore(data.store);
+
+          // Load all data in parallel for faster loading
+          const [accountsResult, reportResult, alertResult] = await Promise.allSettled([
+            // Load ad accounts
+            supabase
               .from('ad_accounts')
               .select('*')
-              .eq('store_id', data.store.id);
+              .eq('store_id', data.store.id),
+            // Load email report settings (with timeout)
+            Promise.race([
+              fetch(`/api/reports/settings?store_id=${data.store.id}`),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
+            ]),
+            // Load alert settings (with timeout)
+            Promise.race([
+              fetch(`/api/alerts/settings?store_id=${data.store.id}`),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
+            ])
+          ]);
 
-            if (accounts) {
-              setAdAccounts(accounts);
-            }
+          // Handle ad accounts
+          if (accountsResult.status === 'fulfilled' && accountsResult.value.data) {
+            setAdAccounts(accountsResult.value.data);
+          }
 
-            // Load email report settings
+          // Handle email report settings
+          if (reportResult.status === 'fulfilled') {
             try {
-              const reportResponse = await fetch(`/api/reports/settings?store_id=${data.store.id}`);
+              const reportResponse = reportResult.value as Response;
               if (reportResponse.ok) {
                 const reportData = await reportResponse.json();
                 setEmailReportFrequency(reportData.frequency || 'none');
               }
             } catch (err) {
-              console.error('Error loading email settings:', err);
+              console.error('Error parsing email settings:', err);
             }
+          }
 
-            // Load alert settings
+          // Handle alert settings
+          if (alertResult.status === 'fulfilled') {
             try {
-              const alertResponse = await fetch(`/api/alerts/settings?store_id=${data.store.id}`);
+              const alertResponse = alertResult.value as Response;
               if (alertResponse.ok) {
                 const alertData = await alertResponse.json();
                 setRoasAlertEnabled(alertData.roas_alert_enabled || false);
@@ -110,7 +132,7 @@ function SettingsContent() {
                 setSpendThreshold(alertData.spend_threshold || 100);
               }
             } catch (err) {
-              console.error('Error loading alert settings:', err);
+              console.error('Error parsing alert settings:', err);
             }
           }
         }
