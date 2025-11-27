@@ -1,41 +1,36 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "e84f4a7fecd1e8c9c05791a35c0336d4"
-name = "Argora - Cart Recovery"
-application_url = "https://argora.ai"
+name = "AdWyse"
+application_url = "https://adwyse.ca"
 embedded = true
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "write_checkouts,read_checkouts,read_customers,read_orders"
+scopes = "read_orders,read_customers"
 optional_scopes = []
 use_legacy_install_flow = false
 
 [auth]
-redirect_urls = ["https://argora.ai/api/auth/shopify/callback"]
+redirect_urls = ["https://adwyse.ca/api/auth/shopify/callback"]
 
 [webhooks]
-api_version = "2025-10"
+api_version = "2024-10"
 
-# Mandatory compliance webhooks (REQUIRED for App Store) - use absolute URLs
+# Mandatory compliance webhooks (REQUIRED for App Store)
 [[webhooks.subscriptions]]
 compliance_topics = ["customers/data_request", "customers/redact", "shop/redact"]
-uri = "https://argora.ai/api/webhooks/shopify/compliance"
+uri = "https://adwyse.ca/api/webhooks/compliance"
 
-# Cart and checkout webhooks - use absolute URLs
-[[webhooks.subscriptions]]
-topics = ["carts/create", "carts/update", "checkouts/create", "checkouts/update"]
-uri = "https://argora.ai/api/webhooks/shopify"
-
-# Order tracking webhook - use absolute URL
+# Order tracking webhook for attribution
 [[webhooks.subscriptions]]
 topics = ["orders/create"]
-uri = "https://argora.ai/api/webhooks/shopify/orders"
+uri = "https://adwyse.ca/api/webhooks/orders"
 
-# App uninstall webhook - use absolute URL
+# App uninstall webhook
 [[webhooks.subscriptions]]
 topics = ["app/uninstalled"]
-uri = "https://argora.ai/api/webhooks/shopify/uninstall"
+uri = "https://adwyse.ca/api/webhooks/uninstall"
 
 [pos]
 embedded = false
