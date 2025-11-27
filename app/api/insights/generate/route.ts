@@ -6,13 +6,23 @@ import Anthropic from '@anthropic-ai/sdk';
  * Generate AI insights for a store's campaigns using Claude
  */
 export async function POST(request: NextRequest) {
+  console.log('🤖 [AI Insights] Starting generation...');
+
   try {
     const body = await request.json();
     const { storeId } = body;
+    console.log('🤖 [AI Insights] Store ID:', storeId);
 
     if (!storeId) {
       return NextResponse.json({ error: 'Store ID required' }, { status: 400 });
     }
+
+    // Check for Anthropic API key
+    if (!process.env.ANTHROPIC_API_KEY) {
+      console.error('❌ [AI Insights] ANTHROPIC_API_KEY not configured');
+      return NextResponse.json({ error: 'AI service not configured' }, { status: 500 });
+    }
+    console.log('🤖 [AI Insights] Anthropic API key present:', !!process.env.ANTHROPIC_API_KEY);
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,23 +36,29 @@ export async function POST(request: NextRequest) {
     );
 
     // Get store info
+    console.log('🤖 [AI Insights] Fetching store...');
     const { data: store } = await supabase
-      .from('stores')
+      .from('adwyse_stores')
       .select('*')
       .eq('id', storeId)
       .single();
 
     if (!store) {
+      console.error('❌ [AI Insights] Store not found');
       return NextResponse.json({ error: 'Store not found' }, { status: 404 });
     }
+    console.log('🤖 [AI Insights] Store found:', store.store_name);
 
-    // Get campaigns with performance data
+    // Get campaigns with performance data (use correct table)
+    console.log('🤖 [AI Insights] Fetching campaigns...');
     const { data: campaigns } = await supabase
-      .from('campaigns')
+      .from('adwyse_campaigns')
       .select('*')
       .eq('store_id', storeId)
-      .order('ad_spend', { ascending: false })
+      .order('spend', { ascending: false })
       .limit(20);
+
+    console.log('🤖 [AI Insights] Campaigns found:', campaigns?.length || 0);
 
     if (!campaigns || campaigns.length === 0) {
       return NextResponse.json({
@@ -51,40 +67,46 @@ export async function POST(request: NextRequest) {
     }
 
     // Get recent orders
+    console.log('🤖 [AI Insights] Fetching orders...');
     const { data: orders } = await supabase
-      .from('orders')
+      .from('adwyse_orders')
       .select('*')
       .eq('store_id', storeId)
       .order('created_at', { ascending: false })
       .limit(100);
+    console.log('🤖 [AI Insights] Orders found:', orders?.length || 0);
 
-    // Calculate aggregate metrics
-    const totalSpend = campaigns.reduce((sum, c) => sum + (parseFloat(c.ad_spend) || 0), 0);
-    const totalRevenue = campaigns.reduce((sum, c) => sum + (parseFloat(c.revenue) || 0), 0);
-    const totalOrders = campaigns.reduce((sum, c) => sum + (c.orders || 0), 0);
+    // Calculate aggregate metrics (use correct column names)
+    const totalSpend = campaigns.reduce((sum, c) => sum + (parseFloat(c.spend) || 0), 0);
+    const totalRevenue = campaigns.reduce((sum, c) => sum + (parseFloat(c.attributed_revenue) || 0), 0);
+    const totalOrders = campaigns.reduce((sum, c) => sum + (c.attributed_orders || 0), 0);
     const overallROAS = totalSpend > 0 ? totalRevenue / totalSpend : 0;
+
+    console.log('🤖 [AI Insights] Metrics - Spend:', totalSpend, 'Revenue:', totalRevenue, 'ROAS:', overallROAS);
 
     // Prepare data for Claude
     const campaignSummary = campaigns.map(c => ({
       name: c.campaign_name,
-      source: c.source,
-      spend: parseFloat(c.ad_spend) || 0,
-      revenue: parseFloat(c.revenue) || 0,
-      orders: c.orders || 0,
+      status: c.status,
+      spend: parseFloat(c.spend) || 0,
+      revenue: parseFloat(c.attributed_revenue) || 0,
+      orders: c.attributed_orders || 0,
       roas: c.roas || 0,
       impressions: c.impressions || 0,
       clicks: c.clicks || 0,
       ctr: c.impressions > 0 ? ((c.clicks / c.impressions) * 100).toFixed(2) : 0,
-      cpc: c.clicks > 0 ? (parseFloat(c.ad_spend) / c.clicks).toFixed(2) : 0,
-      conversionRate: c.clicks > 0 ? ((c.orders / c.clicks) * 100).toFixed(2) : 0,
+      cpc: c.clicks > 0 ? (parseFloat(c.spend) / c.clicks).toFixed(2) : 0,
+      conversionRate: c.clicks > 0 ? ((c.attributed_orders / c.clicks) * 100).toFixed(2) : 0,
     }));
 
     // Initialize Anthropic client
+    console.log('🤖 [AI Insights] Initializing Anthropic client...');
     const anthropic = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY!,
     });
 
     // Generate insights with Claude
+    console.log('🤖 [AI Insights] Building prompt for Claude...');
     const prompt = `You are an expert e-commerce marketing analyst. Analyze the following campaign performance data for ${store.store_name} and provide actionable insights.
 
 **Overall Performance:**
@@ -122,6 +144,7 @@ Please provide:
 
 Keep the analysis concise, actionable, and focused on ROI improvement. Use bullet points and be specific with numbers.`;
 
+    console.log('🤖 [AI Insights] Calling Claude API...');
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 2000,
@@ -132,12 +155,15 @@ Keep the analysis concise, actionable, and focused on ROI improvement. Use bulle
         },
       ],
     });
+    console.log('🤖 [AI Insights] Claude response received');
 
     const insightsText = message.content[0].type === 'text' ? message.content[0].text : '';
+    console.log('🤖 [AI Insights] Insights text length:', insightsText.length);
 
     // Save insights to database
-    const { data: insight } = await supabase
-      .from('insights')
+    console.log('🤖 [AI Insights] Saving to database...');
+    const { data: insight, error: insertError } = await supabase
+      .from('adwyse_insights')
       .insert({
         store_id: storeId,
         insight_type: 'campaign_performance',
@@ -153,6 +179,13 @@ Keep the analysis concise, actionable, and focused on ROI improvement. Use bulle
       })
       .select()
       .single();
+
+    if (insertError) {
+      console.error('❌ [AI Insights] Error saving insight:', insertError);
+      // Still return the insight even if save fails
+    } else {
+      console.log('🤖 [AI Insights] Saved to database, id:', insight?.id);
+    }
 
     return NextResponse.json({
       success: true,
