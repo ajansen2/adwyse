@@ -433,22 +433,41 @@ function DashboardContent() {
 
     setGeneratingInsight(true);
     try {
-      const response = await fetch('/api/insights/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ storeId: stores[0].id }),
+      // Use XHR for better compatibility with Shopify iframe
+      const result = await new Promise<{ok: boolean, data: any}>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/insights/generate', true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.timeout = 60000; // 60 second timeout for AI generation
+
+        xhr.onload = function() {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            resolve({ ok: xhr.status >= 200 && xhr.status < 300, data });
+          } catch (e) {
+            resolve({ ok: false, data: { error: 'Failed to parse response' } });
+          }
+        };
+
+        xhr.onerror = function() {
+          reject(new Error('Network error'));
+        };
+
+        xhr.ontimeout = function() {
+          reject(new Error('Request timed out. AI generation may take a moment.'));
+        };
+
+        xhr.send(JSON.stringify({ storeId: stores[0].id }));
       });
 
-      const data = await response.json();
-
-      if (response.ok && data.insight) {
-        setLatestInsight(data.insight);
+      if (result.ok && result.data.insight) {
+        setLatestInsight(result.data.insight);
       } else {
-        alert(data.error || 'Failed to generate insights');
+        alert(result.data.error || 'Failed to generate insights');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating insights:', error);
-      alert('Failed to generate insights');
+      alert(error?.message || 'Failed to generate insights');
     } finally {
       setGeneratingInsight(false);
     }
