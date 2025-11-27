@@ -1,0 +1,36 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "08fa8bc27e0e3ac857912c7e7ee289d0"
+name = "Adwyse"
+application_url = "https://adwyse.ca"
+embedded = true
+
+[webhooks]
+api_version = "2024-10"
+
+# Mandatory compliance webhooks (REQUIRED for App Store)
+[[webhooks.subscriptions]]
+compliance_topics = ["customers/data_request", "customers/redact", "shop/redact"]
+uri = "https://adwyse.ca/api/webhooks/compliance"
+
+# Order tracking webhook for attribution
+[[webhooks.subscriptions]]
+topics = ["orders/create"]
+uri = "https://adwyse.ca/api/webhooks/orders"
+
+# App uninstall webhook
+[[webhooks.subscriptions]]
+topics = ["app/uninstalled"]
+uri = "https://adwyse.ca/api/webhooks/uninstall"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_customers,read_orders"
+optional_scopes = [ ]
+use_legacy_install_flow = false
+
+[auth]
+redirect_urls = [
+  "https://adwyse.ca/api/auth/shopify/callback",
+  "https://adwyse.ca/api/billing/callback"
+]

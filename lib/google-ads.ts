@@ -119,6 +119,8 @@ export async function getGoogleAdsCustomers(accessToken: string): Promise<Google
 
   console.log('🔵 [Google Ads] Fetching accessible customers...');
   console.log('🔵 [Google Ads] Developer token present:', !!developerToken);
+  console.log('🔵 [Google Ads] Developer token (first 10 chars):', developerToken?.substring(0, 10) + '...');
+  console.log('🔵 [Google Ads] Access token (first 20 chars):', accessToken?.substring(0, 20) + '...');
 
   const response = await fetch('https://googleads.googleapis.com/v18/customers:listAccessibleCustomers', {
     method: 'GET',
@@ -131,23 +133,49 @@ export async function getGoogleAdsCustomers(accessToken: string): Promise<Google
   const responseText = await response.text();
   console.log('🔵 [Google Ads] Response status:', response.status);
   console.log('🔵 [Google Ads] Response content-type:', response.headers.get('content-type'));
+  console.log('🔵 [Google Ads] Full response:', responseText);
 
   if (!response.ok) {
-    console.error('Failed to get customers. Raw response:', responseText.substring(0, 500));
+    console.error('❌ [Google Ads] Failed to get customers. Raw response:', responseText);
 
-    // Try to parse as JSON, otherwise use raw text
+    // Try to parse as JSON for detailed error info
     let errorMessage: string;
+    let errorDetails: string = '';
     try {
       const error = JSON.parse(responseText);
-      errorMessage = error?.error?.message ||
-                    error?.error?.details?.[0]?.errors?.[0]?.message ||
-                    JSON.stringify(error);
+      // Extract detailed error information
+      const errorObj = error?.error;
+      errorMessage = errorObj?.message || 'Unknown error';
+
+      // Check for specific error codes
+      if (errorObj?.details) {
+        for (const detail of errorObj.details) {
+          if (detail.errors) {
+            for (const err of detail.errors) {
+              errorDetails += `\n  - ${err.errorCode?.authorizationError || err.errorCode?.requestError || 'Error'}: ${err.message}`;
+            }
+          }
+        }
+      }
+
+      console.error('❌ [Google Ads] Error code:', errorObj?.code);
+      console.error('❌ [Google Ads] Error status:', errorObj?.status);
+      console.error('❌ [Google Ads] Error details:', errorDetails || 'None');
+
+      // Common error explanations
+      if (errorMessage.includes('not implemented') || errorMessage.includes('not supported') || errorMessage.includes('not enabled')) {
+        console.error('❌ [Google Ads] This error usually means:');
+        console.error('   1. Developer token is in TEST mode (can only access test accounts)');
+        console.error('   2. Developer token approval is still pending');
+        console.error('   3. API access level is insufficient');
+        console.error('   Check: https://ads.google.com/nav/selectaccount → Tools & Settings → API Center');
+      }
     } catch {
       // HTML response - extract title or first meaningful text
       const titleMatch = responseText.match(/<title>([^<]+)<\/title>/i);
       errorMessage = titleMatch ? titleMatch[1] : `HTTP ${response.status}: Non-JSON response from Google API`;
     }
-    throw new Error(`Google Ads API error: ${errorMessage}`);
+    throw new Error(`Google Ads API error: ${errorMessage}${errorDetails}`);
   }
 
   // Parse the successful response
