@@ -95,26 +95,30 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        // Match campaigns by name and update spend
+        // Match campaigns by platform_campaign_id and update spend
         for (const fbCampaign of fbCampaigns) {
-          // Find matching campaign in our database by name
+          const today = new Date().toISOString().split('T')[0];
+
+          // Find matching campaign in our database by platform_campaign_id and today's date
           const { data: existingCampaigns } = await supabase
-            .from('campaigns')
+            .from('adwyse_campaigns')
             .select('*')
             .eq('store_id', storeId)
-            .eq('source', 'facebook')
-            .ilike('campaign_name', fbCampaign.name);
+            .eq('platform_campaign_id', fbCampaign.id)
+            .eq('date', today);
 
           if (existingCampaigns && existingCampaigns.length > 0) {
-            // Update existing campaign
+            // Update existing campaign for today
             const campaign = existingCampaigns[0];
 
             await supabase
-              .from('campaigns')
+              .from('adwyse_campaigns')
               .update({
-                ad_spend: fbCampaign.spend,
+                spend: fbCampaign.spend,
                 impressions: fbCampaign.impressions,
                 clicks: fbCampaign.clicks,
+                conversions: fbCampaign.conversions || 0,
+                status: fbCampaign.status?.toLowerCase() || campaign.status,
                 updated_at: new Date().toISOString(),
               })
               .eq('id', campaign.id);
@@ -125,17 +129,22 @@ export async function POST(request: NextRequest) {
           } else {
             // Create new campaign if it doesn't exist
             console.log(`➕ [SYNC] Inserting new campaign: ${fbCampaign.name}`);
+            const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
             const { data: newCampaign, error: insertError } = await supabase
-              .from('campaigns')
+              .from('adwyse_campaigns')
               .insert({
                 store_id: storeId,
-                source: 'facebook',
+                ad_account_id: account.id,
+                platform_campaign_id: fbCampaign.id,
                 campaign_name: fbCampaign.name,
-                ad_spend: fbCampaign.spend,
+                status: fbCampaign.status?.toLowerCase() || 'active',
+                date: today,
+                spend: fbCampaign.spend,
                 impressions: fbCampaign.impressions,
                 clicks: fbCampaign.clicks,
-                orders: 0, // Will be calculated from attributed orders
-                revenue: 0, // Will be calculated from attributed orders
+                conversions: fbCampaign.conversions || 0,
+                attributed_revenue: 0,
+                attributed_orders: 0,
               })
               .select()
               .single();
