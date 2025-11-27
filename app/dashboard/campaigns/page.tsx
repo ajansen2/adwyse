@@ -45,11 +45,12 @@ function CampaignsContent() {
 
         if (xhr.status === 200) {
           const data = JSON.parse(xhr.responseText);
+          const storeData = data.store || data.merchant;
 
-          if (data.merchant) {
+          if (storeData) {
             // Fetch campaigns
             const campaignsXhr = new XMLHttpRequest();
-            campaignsXhr.open('GET', `/api/campaigns/list?merchant_id=${data.merchant.id}`, false);
+            campaignsXhr.open('GET', `/api/campaigns/list?merchant_id=${storeData.id}`, false);
             campaignsXhr.send();
 
             if (campaignsXhr.status === 200) {

@@ -23,24 +23,37 @@ export async function GET(request: NextRequest) {
     );
 
     // In AdWyse schema, merchant_id IS the store_id (each store is its own merchant)
-    // Get campaigns for this store
+    // Get campaigns for this store (don't filter by status - show all synced campaigns)
     const { data: campaigns, error: campaignsError } = await supabase
       .from('campaigns')
       .select('*')
       .eq('store_id', merchantId)
-      .eq('status', 'active')
-      .order('created_at', { ascending: false});
+      .order('created_at', { ascending: false });
 
     if (campaignsError) {
       console.error('❌ Error fetching campaigns:', campaignsError);
       return NextResponse.json({ error: 'Failed to fetch campaigns' }, { status: 500 });
     }
 
-    // Calculate metrics for each campaign
+    // Map fields and calculate metrics for each campaign
     const campaignsWithMetrics = campaigns?.map(campaign => {
-      const roas = campaign.total_spend > 0 ? campaign.total_revenue / campaign.total_spend : 0;
+      // Map database fields to expected API fields
+      const totalSpend = campaign.total_spend || campaign.ad_spend || 0;
+      const totalRevenue = campaign.total_revenue || campaign.revenue || 0;
+      const totalOrders = campaign.total_orders || campaign.orders || 0;
+      const roas = totalSpend > 0 ? totalRevenue / totalSpend : 0;
+
       return {
-        ...campaign,
+        id: campaign.id,
+        name: campaign.campaign_name || campaign.name,
+        platform: campaign.source || campaign.platform || 'unknown',
+        status: campaign.status || 'active',
+        total_spend: totalSpend,
+        total_revenue: totalRevenue,
+        total_orders: totalOrders,
+        impressions: campaign.impressions || 0,
+        clicks: campaign.clicks || 0,
+        created_at: campaign.created_at,
         roas
       };
     }) || [];
