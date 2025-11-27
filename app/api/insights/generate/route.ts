@@ -144,7 +144,7 @@ Please provide:
 
 Keep the analysis concise, actionable, and focused on ROI improvement. Use bullet points and be specific with numbers.`;
 
-    const model = process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20241022';
+    const model = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514';
     const maxTokens = parseInt(process.env.ANTHROPIC_MAX_TOKENS || '1000', 10);
     console.log('🤖 [AI Insights] Calling Claude API with model:', model, 'max_tokens:', maxTokens);
 
