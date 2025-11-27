@@ -124,7 +124,8 @@ export async function POST(request: NextRequest) {
             totalSpendSynced += fbCampaign.spend;
           } else {
             // Create new campaign if it doesn't exist
-            const { data: newCampaign } = await supabase
+            console.log(`➕ [SYNC] Inserting new campaign: ${fbCampaign.name}`);
+            const { data: newCampaign, error: insertError } = await supabase
               .from('campaigns')
               .insert({
                 store_id: storeId,
@@ -139,10 +140,14 @@ export async function POST(request: NextRequest) {
               .select()
               .single();
 
-            if (newCampaign) {
-              console.log(`➕ Created new campaign: ${fbCampaign.name} ($${fbCampaign.spend})`);
+            if (insertError) {
+              console.error(`❌ [SYNC] Error inserting campaign ${fbCampaign.name}:`, insertError);
+            } else if (newCampaign) {
+              console.log(`✅ [SYNC] Created new campaign: ${fbCampaign.name} ($${fbCampaign.spend})`);
               totalCampaignsSynced++;
               totalSpendSynced += fbCampaign.spend;
+            } else {
+              console.log(`⚠️ [SYNC] Insert returned no data for campaign: ${fbCampaign.name}`);
             }
           }
         }
