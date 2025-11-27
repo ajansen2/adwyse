@@ -1010,7 +1010,7 @@ function DashboardContent() {
                       </div>
                       <div>
                         <h2 className="text-xl font-bold text-white">AI Insights</h2>
-                        <p className="text-white/60 text-sm">Powered by Claude</p>
+                        <p className="text-white/60 text-sm">Powered by AI</p>
                       </div>
                     </div>
                     <button
@@ -1033,9 +1033,29 @@ function DashboardContent() {
                       )}
                     </button>
                   </div>
-                  <div className="bg-white/5 rounded-lg p-4 text-white/80 whitespace-pre-wrap text-sm leading-relaxed">
-                    {latestInsight.content}
-                  </div>
+                  <div
+                    className="bg-white/5 rounded-lg p-4 text-white/80 text-sm leading-relaxed prose prose-invert prose-sm max-w-none
+                      [&>h1]:text-lg [&>h1]:font-bold [&>h1]:text-white [&>h1]:mb-3 [&>h1]:mt-4 [&>h1]:first:mt-0
+                      [&>h2]:text-base [&>h2]:font-semibold [&>h2]:text-purple-300 [&>h2]:mb-2 [&>h2]:mt-4 [&>h2]:first:mt-0
+                      [&>h3]:text-sm [&>h3]:font-semibold [&>h3]:text-white/90 [&>h3]:mb-2 [&>h3]:mt-3
+                      [&>p]:mb-2 [&>p]:text-white/80
+                      [&>ul]:mb-3 [&>ul]:ml-4 [&>ul]:list-disc [&>ul]:text-white/80
+                      [&>li]:mb-1
+                      [&_strong]:text-white [&_strong]:font-semibold"
+                    dangerouslySetInnerHTML={{
+                      __html: latestInsight.content
+                        .replace(/^### (.*$)/gm, '<h3>$1</h3>')
+                        .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+                        .replace(/^# (.*$)/gm, '<h1>$1</h1>')
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                        .replace(/^• (.*$)/gm, '<li>$1</li>')
+                        .replace(/^- (.*$)/gm, '<li>$1</li>')
+                        .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
+                        .replace(/\n\n/g, '</p><p>')
+                        .replace(/\n/g, '<br/>')
+                    }}
+                  />
                   {latestInsight.created_at && (
                     <div className="text-white/40 text-xs mt-3">
                       Generated {new Date(latestInsight.created_at).toLocaleDateString()}
@@ -1054,7 +1074,7 @@ function DashboardContent() {
                   </div>
                   <h3 className="text-xl font-bold text-white mb-2">Get AI-Powered Insights</h3>
                   <p className="text-white/60 mb-6 max-w-md mx-auto">
-                    Let Claude analyze your campaign performance and get personalized recommendations to improve your ROAS.
+                    Let AI analyze your campaign performance and get personalized recommendations to improve your ROAS.
                   </p>
                   <button
                     onClick={handleGenerateInsight}
