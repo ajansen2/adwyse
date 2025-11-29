@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     const { error } = await supabase
       .from('adwyse_stores')
       .update({
-        status: 'uninstalled',
+        subscription_status: 'cancelled',
         updated_at: new Date().toISOString(),
       })
       .eq('shop_domain', domain);
