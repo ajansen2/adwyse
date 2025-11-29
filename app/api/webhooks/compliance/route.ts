@@ -36,10 +36,17 @@ export async function POST(request: NextRequest) {
     const topic = request.headers.get('x-shopify-topic') || '';
 
     // Verify HMAC signature
+    console.log('🔐 [Webhook] Verifying compliance webhook signature...');
+    console.log('🔐 [Webhook] SHOPIFY_API_SECRET present:', !!SHOPIFY_API_SECRET);
+    console.log('🔐 [Webhook] HMAC header present:', !!hmacHeader);
+    console.log('🔐 [Webhook] Topic:', topic);
+
     if (!verifyShopifyWebhook(body, hmacHeader)) {
-      console.error('Invalid webhook signature for compliance webhook');
+      console.error('❌ [Webhook] Invalid webhook signature for compliance webhook');
+      console.error('❌ [Webhook] Secret length:', SHOPIFY_API_SECRET?.length || 0);
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
+    console.log('✅ [Webhook] Signature verified successfully');
 
     const data = JSON.parse(body);
     console.log(`Compliance webhook received - Topic: ${topic}`, {
