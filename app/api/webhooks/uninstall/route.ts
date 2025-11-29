@@ -63,10 +63,10 @@ export async function POST(request: NextRequest) {
 
     // Mark the store as uninstalled (don't delete yet - GDPR shop/redact will handle that)
     const { error } = await supabase
-      .from('stores')
+      .from('adwyse_stores')
       .update({
-        is_active: false,
-        uninstalled_at: new Date().toISOString(),
+        status: 'uninstalled',
+        updated_at: new Date().toISOString(),
       })
       .eq('shop_domain', domain);
 

@@ -79,10 +79,9 @@ export async function POST(request: NextRequest) {
         if (data.customer?.email) {
           // Anonymize customer email in orders
           const { error } = await supabase
-            .from('orders')
+            .from('adwyse_orders')
             .update({
               customer_email: 'redacted@privacy.local',
-              customer_name: 'Redacted Customer'
             })
             .eq('customer_email', data.customer.email);
 
@@ -104,19 +103,18 @@ export async function POST(request: NextRequest) {
 
         // Find the store
         const { data: store } = await supabase
-          .from('stores')
+          .from('adwyse_stores')
           .select('id')
           .eq('shop_domain', data.shop_domain)
           .single();
 
         if (store) {
-          // Delete all associated data
-          await supabase.from('alerts').delete().eq('store_id', store.id);
-          await supabase.from('store_settings').delete().eq('store_id', store.id);
-          await supabase.from('campaigns').delete().eq('store_id', store.id);
-          await supabase.from('orders').delete().eq('store_id', store.id);
-          await supabase.from('ad_accounts').delete().eq('store_id', store.id);
-          await supabase.from('stores').delete().eq('id', store.id);
+          // Delete all associated data (use correct table names)
+          await supabase.from('adwyse_insights').delete().eq('store_id', store.id);
+          await supabase.from('adwyse_campaigns').delete().eq('store_id', store.id);
+          await supabase.from('adwyse_orders').delete().eq('store_id', store.id);
+          await supabase.from('adwyse_ad_accounts').delete().eq('store_id', store.id);
+          await supabase.from('adwyse_stores').delete().eq('id', store.id);
 
           console.log('All shop data deleted for:', data.shop_domain);
         }
