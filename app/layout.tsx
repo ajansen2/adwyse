@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Argora - AI-Powered Abandoned Cart Recovery for Shopify",
-  description: "Recover $50K-200K annually from abandoned carts. AI-powered email campaigns for Shopify stores with 33% conversion rate.",
-  keywords: "abandoned cart recovery, shopify cart recovery, shopify app, ecommerce automation, AI cart recovery, email recovery, cart abandonment solution",
+  title: "AdWyse - Ad Attribution & ROAS Tracking for Shopify",
+  description: "Track which Facebook, Google, and TikTok ads drive your Shopify sales. Real-time attribution, ROAS calculations, and AI-powered campaign insights.",
+  keywords: "ad attribution, ROAS tracking, shopify analytics, facebook ads, google ads, tiktok ads, ecommerce attribution",
 };
 
 export default function RootLayout({
@@ -23,7 +23,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const apiKey = process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || 'e84f4a7fecd1e8c9c05791a35c0336d4';
+  const apiKey = process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || '08fa8bc27e0e3ac857912c7e7ee289d0';
   
   return (
     <html lang="en">
