@@ -9,6 +9,7 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 // Verify Shopify webhook HMAC signature
 function verifyShopifyWebhook(body: string, hmacHeader: string): boolean {
   if (!SHOPIFY_API_SECRET || !hmacHeader) {
+    console.log('❌ [HMAC] Missing secret or header');
     return false;
   }
 
@@ -17,12 +18,17 @@ function verifyShopifyWebhook(body: string, hmacHeader: string): boolean {
     .update(body, 'utf8')
     .digest('base64');
 
+  console.log('🔐 [HMAC] Generated hash:', generatedHash);
+  console.log('🔐 [HMAC] Received hash:', hmacHeader);
+  console.log('🔐 [HMAC] Match:', generatedHash === hmacHeader);
+
   try {
     return crypto.timingSafeEqual(
       Buffer.from(generatedHash),
       Buffer.from(hmacHeader)
     );
-  } catch {
+  } catch (e) {
+    console.error('❌ [HMAC] timingSafeEqual error:', e);
     return false;
   }
 }
