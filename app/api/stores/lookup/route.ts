@@ -37,12 +37,21 @@ export async function GET(request: NextRequest) {
     }
 
     // In AdWyse, the store IS the merchant - create a merchant object from store data
+    // Map subscription_status to subscription_tier for display
+    let subscriptionTier = 'trial'; // Default to trial for new users
+    if (storeData.subscription_status === 'active') {
+      subscriptionTier = 'pro';
+    } else if (storeData.subscription_status === 'cancelled' || storeData.subscription_status === 'past_due') {
+      subscriptionTier = 'free';
+    }
+    // 'trial' status or null/undefined defaults to 'trial'
+
     const merchantData = {
       id: storeData.id,
       email: storeData.email || '',
       full_name: storeData.store_name || '',
       company: storeData.store_name || '',
-      subscription_tier: storeData.subscription_status === 'active' ? 'pro' : storeData.subscription_status === 'trial' ? 'trial' : 'free'
+      subscription_tier: subscriptionTier
     };
 
     return NextResponse.json({
