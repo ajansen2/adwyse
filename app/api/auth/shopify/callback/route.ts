@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Shop mismatch' }, { status: 400 });
     }
 
-    // Verify HMAC (Shopify security check) - try both DEV and PRODUCTION secrets
+    // Verify HMAC (Shopify security check)
     const query = new URLSearchParams(searchParams.toString());
     query.delete('hmac');
     const message = Array.from(query.entries())
@@ -48,6 +48,7 @@ export async function GET(request: NextRequest) {
       .join('&');
 
     const secrets = [
+      process.env.SHOPIFY_API_SECRET,
       process.env.SHOPIFY_API_SECRET_PRODUCTION,
       process.env.SHOPIFY_API_SECRET_DEV,
     ].filter(Boolean);
@@ -72,9 +73,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Exchange code for access token
-    // Use PRODUCTION credentials (for App Store submission), fallback to DEV for local testing
-    const apiKey = process.env.SHOPIFY_CLIENT_ID_PRODUCTION || process.env.SHOPIFY_CLIENT_ID_DEV;
-    const apiSecret = process.env.SHOPIFY_API_SECRET_PRODUCTION || process.env.SHOPIFY_API_SECRET_DEV;
+    const apiKey = process.env.SHOPIFY_API_KEY || process.env.SHOPIFY_CLIENT_ID_PRODUCTION || process.env.SHOPIFY_CLIENT_ID_DEV;
+    const apiSecret = process.env.SHOPIFY_API_SECRET || process.env.SHOPIFY_API_SECRET_PRODUCTION || process.env.SHOPIFY_API_SECRET_DEV;
 
     console.log('🔑 Using API credentials:', apiKey ? (apiKey.substring(0, 8) + '...') : 'MISSING');
 
@@ -359,8 +359,8 @@ export async function GET(request: NextRequest) {
     // Create recurring application charge for billing ($99/month with 14-day trial)
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || `https://${request.headers.get('host')}`;
 
-    // Use test mode only for development stores (contains -test or when using DEV credentials explicitly)
-    const isTestCharge = shop.includes('-test') || (apiKey === process.env.SHOPIFY_CLIENT_ID_DEV && !process.env.SHOPIFY_CLIENT_ID_PRODUCTION);
+    // Use test mode only for development stores
+    const isTestCharge = shop.includes('-test') || shop.includes('development');
 
     // For embedded apps, use relative path in Shopify admin to avoid URL stacking
     // This redirects directly to our embedded dashboard after approval
@@ -412,7 +412,8 @@ export async function GET(request: NextRequest) {
       // Continue to dashboard without billing (can retry later)
       // Redirect to embedded app in Shopify admin
       const shopName = shop.replace('.myshopify.com', '');
-      const shopifyAdminUrl = `https://admin.shopify.com/store/${shopName}/apps/${apiKey}`;
+      const appHandle = 'adwyse'; // Use app handle instead of client ID
+      const shopifyAdminUrl = `https://admin.shopify.com/store/${shopName}/apps/${appHandle}?shop=${shop}`;
 
       console.log('✅ Installation complete, redirecting to embedded app:', shopifyAdminUrl);
 
@@ -429,8 +430,8 @@ export async function GET(request: NextRequest) {
     const shopParam = request.nextUrl.searchParams.get('shop');
     if (shopParam) {
       const shopName = shopParam.replace('.myshopify.com', '');
-      const apiKey = process.env.SHOPIFY_CLIENT_ID_PRODUCTION || process.env.SHOPIFY_CLIENT_ID_DEV;
-      const shopifyAdminUrl = `https://admin.shopify.com/store/${shopName}/apps/${apiKey}`;
+      const appHandle = 'adwyse';
+      const shopifyAdminUrl = `https://admin.shopify.com/store/${shopName}/apps/${appHandle}?shop=${shopParam}`;
       return NextResponse.redirect(shopifyAdminUrl);
     }
     return NextResponse.redirect(new URL('/dashboard?error=oauth_failed', request.url));
