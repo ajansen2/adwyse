@@ -29,6 +29,7 @@ export function getTikTokAuthUrl(storeId: string): string {
     app_id: appId!,
     redirect_uri: redirectUri,
     state: storeId,
+    rid: Math.random().toString(36).substring(7), // Random ID to prevent caching
   });
 
   return `https://business-api.tiktok.com/portal/auth?${params.toString()}`;
