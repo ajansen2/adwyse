@@ -763,13 +763,9 @@ function DashboardContent() {
                 <span className="px-3 py-1 bg-green-600/20 border border-green-500/30 rounded-full text-green-300 text-sm font-medium">
                   ✓ Pro Plan
                 </span>
-              ) : merchant.subscription_tier === 'trial' ? (
+              ) : (
                 <span className="px-3 py-1 bg-blue-600/20 border border-blue-500/30 rounded-full text-blue-300 text-sm font-medium">
                   7-Day Trial
-                </span>
-              ) : (
-                <span className="px-3 py-1 bg-gray-600/20 border border-gray-500/30 rounded-full text-gray-300 text-sm font-medium">
-                  Free Plan
                 </span>
               )}
             </div>

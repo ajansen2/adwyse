@@ -573,11 +573,9 @@ function SettingsContent() {
                   <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
                     store?.subscription_status === 'active'
                       ? 'bg-green-500/20 text-green-300'
-                      : store?.subscription_status === 'trial'
-                      ? 'bg-blue-500/20 text-blue-300'
-                      : 'bg-gray-500/20 text-gray-300'
+                      : 'bg-blue-500/20 text-blue-300'
                   }`}>
-                    {store?.subscription_status === 'active' ? 'Pro Plan' : store?.subscription_status === 'trial' ? '7-Day Trial' : 'Inactive'}
+                    {store?.subscription_status === 'active' ? 'Pro Plan' : '7-Day Trial'}
                   </span>
                 </div>
               </div>
