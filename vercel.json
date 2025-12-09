@@ -6,6 +6,14 @@
     {
       "path": "/api/sync/facebook",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/alerts/check",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/reports/send",
+      "schedule": "0 8 * * 1"
     }
   ]
 }
