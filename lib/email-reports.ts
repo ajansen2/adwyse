@@ -168,7 +168,7 @@ export async function sendReportEmail(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'AdWyse <reports@adwyse.ca>',
+        from: 'AdWyse <reports@send.adwyse.ca>',
         to: [to],
         subject: subject,
         html: html,
