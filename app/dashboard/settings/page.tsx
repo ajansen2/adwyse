@@ -31,6 +31,8 @@ function SettingsContent() {
   const [spendAlertEnabled, setSpendAlertEnabled] = useState(false);
   const [spendThreshold, setSpendThreshold] = useState(100);
   const [savingAlertSettings, setSavingAlertSettings] = useState(false);
+  const [sendingTestEmail, setSendingTestEmail] = useState(false);
+  const [testEmailSent, setTestEmailSent] = useState(false);
   const supabase = getSupabaseClient();
 
   // Get URL params directly from window.location (more reliable in iframes)
@@ -213,6 +215,42 @@ function SettingsContent() {
       setTimeout(() => setErrorMessage(''), 3000);
     } finally {
       setSavingEmailSettings(false);
+    }
+  };
+
+  const handleSendTestEmail = async () => {
+    if (!store) return;
+
+    setSendingTestEmail(true);
+    setTestEmailSent(false);
+    try {
+      const response = await fetch('/api/reports/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: store.email || 'adam@adwyse.ca',
+          storeName: store.store_name
+        }),
+      });
+
+      if (response.ok) {
+        setTestEmailSent(true);
+        setSuccessMessage('Test email sent! Check your inbox.');
+        setTimeout(() => {
+          setSuccessMessage('');
+          setTestEmailSent(false);
+        }, 5000);
+      } else {
+        const data = await response.json();
+        setErrorMessage(data.error || 'Failed to send test email');
+        setTimeout(() => setErrorMessage(''), 3000);
+      }
+    } catch (error) {
+      console.error('Error sending test email:', error);
+      setErrorMessage('Failed to send test email');
+      setTimeout(() => setErrorMessage(''), 3000);
+    } finally {
+      setSendingTestEmail(false);
     }
   };
 
@@ -857,6 +895,37 @@ function SettingsContent() {
                 Saving...
               </div>
             )}
+
+            {/* Send Test Email Button */}
+            <div className="mt-4 pt-4 border-t border-white/10">
+              <button
+                onClick={handleSendTestEmail}
+                disabled={sendingTestEmail}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800 disabled:cursor-not-allowed text-white rounded-lg font-medium transition flex items-center gap-2"
+              >
+                {sendingTestEmail ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Sending...
+                  </>
+                ) : testEmailSent ? (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Sent!
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    Send Test Email
+                  </>
+                )}
+              </button>
+              <p className="text-white/40 text-xs mt-2">Send a sample report to {store?.email || 'your email'}</p>
+            </div>
           </div>
 
           {/* Performance Alerts */}
