@@ -33,6 +33,8 @@ function SettingsContent() {
   const [savingAlertSettings, setSavingAlertSettings] = useState(false);
   const [sendingTestEmail, setSendingTestEmail] = useState(false);
   const [testEmailSent, setTestEmailSent] = useState(false);
+  const [sendingTestAlert, setSendingTestAlert] = useState(false);
+  const [testAlertSent, setTestAlertSent] = useState(false);
   const supabase = getSupabaseClient();
 
   // Get URL params directly from window.location (more reliable in iframes)
@@ -252,6 +254,44 @@ function SettingsContent() {
       setTimeout(() => setErrorMessage(''), 3000);
     } finally {
       setSendingTestEmail(false);
+    }
+  };
+
+  const handleSendTestAlert = async (alertType: 'low_roas' | 'high_spend') => {
+    if (!store) return;
+
+    setSendingTestAlert(true);
+    setTestAlertSent(false);
+    try {
+      const response = await fetch('/api/alerts/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: store.email || 'adam@adwyse.ca',
+          storeName: store.store_name,
+          shopDomain: store.shop_domain,
+          alertType
+        }),
+      });
+
+      if (response.ok) {
+        setTestAlertSent(true);
+        setSuccessMessage(`Test ${alertType === 'low_roas' ? 'ROAS' : 'Spend'} alert sent! Check your inbox.`);
+        setTimeout(() => {
+          setSuccessMessage('');
+          setTestAlertSent(false);
+        }, 5000);
+      } else {
+        const data = await response.json();
+        setErrorMessage(data.error || 'Failed to send test alert');
+        setTimeout(() => setErrorMessage(''), 3000);
+      }
+    } catch (error) {
+      console.error('Error sending test alert:', error);
+      setErrorMessage('Failed to send test alert');
+      setTimeout(() => setErrorMessage(''), 3000);
+    } finally {
+      setSendingTestAlert(false);
     }
   };
 
@@ -1026,6 +1066,35 @@ function SettingsContent() {
                   'Save Alert Settings'
                 )}
               </button>
+
+              {/* Test Alert Buttons */}
+              <div className="flex gap-2 mt-4 pt-4 border-t border-white/10">
+                <button
+                  onClick={() => handleSendTestAlert('low_roas')}
+                  disabled={sendingTestAlert}
+                  className="px-3 py-2 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 rounded-lg text-sm font-medium transition flex items-center gap-2"
+                >
+                  {sendingTestAlert ? (
+                    <div className="w-3 h-3 border-2 border-red-300 border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <span>📉</span>
+                  )}
+                  Test ROAS Alert
+                </button>
+                <button
+                  onClick={() => handleSendTestAlert('high_spend')}
+                  disabled={sendingTestAlert}
+                  className="px-3 py-2 bg-yellow-600/20 hover:bg-yellow-600/30 border border-yellow-500/30 text-yellow-300 rounded-lg text-sm font-medium transition flex items-center gap-2"
+                >
+                  {sendingTestAlert ? (
+                    <div className="w-3 h-3 border-2 border-yellow-300 border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <span>💸</span>
+                  )}
+                  Test Spend Alert
+                </button>
+              </div>
+              <p className="text-white/40 text-xs mt-2">Send a sample alert to {store?.email || 'your email'}</p>
             </div>
           </div>
 
