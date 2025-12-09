@@ -229,7 +229,8 @@ function SettingsContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: store.email || 'adam@adwyse.ca',
-          storeName: store.store_name
+          storeName: store.store_name,
+          shopDomain: store.shop_domain
         }),
       });
 

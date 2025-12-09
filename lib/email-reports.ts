@@ -7,6 +7,7 @@ import { createClient } from '@supabase/supabase-js';
 
 interface ReportData {
   storeName: string;
+  shopDomain: string; // e.g., "argora-test.myshopify.com"
   dateRange: string;
   totalOrders: number;
   totalRevenue: number;
@@ -28,6 +29,15 @@ interface ReportData {
  */
 export function generateReportEmail(data: ReportData): string {
   const roasColor = data.roas >= 2 ? '#22c55e' : data.roas >= 1 ? '#eab308' : '#ef4444';
+
+  // Generate Shopify admin URL for the dashboard
+  const shopName = data.shopDomain?.replace('.myshopify.com', '') || '';
+  const dashboardUrl = shopName
+    ? `https://admin.shopify.com/store/${shopName}/apps/adwyse/dashboard`
+    : 'https://adwyse.ca/dashboard';
+  const settingsUrl = shopName
+    ? `https://admin.shopify.com/store/${shopName}/apps/adwyse/dashboard/settings`
+    : 'https://adwyse.ca/dashboard/settings';
 
   return `
 <!DOCTYPE html>
@@ -122,7 +132,7 @@ export function generateReportEmail(data: ReportData): string {
           <!-- CTA -->
           <tr>
             <td style="padding: 0 30px 30px 30px; text-align: center;">
-              <a href="https://adwyse.ca/dashboard" style="display: inline-block; background: linear-gradient(135deg, #ea580c 0%, #dc2626 100%); color: white; text-decoration: none; padding: 14px 30px; border-radius: 8px; font-weight: 600; font-size: 14px;">View Full Dashboard</a>
+              <a href="${dashboardUrl}" style="display: inline-block; background: linear-gradient(135deg, #ea580c 0%, #dc2626 100%); color: white; text-decoration: none; padding: 14px 30px; border-radius: 8px; font-weight: 600; font-size: 14px;">View Full Dashboard</a>
             </td>
           </tr>
 
@@ -132,7 +142,7 @@ export function generateReportEmail(data: ReportData): string {
               <p style="color: rgba(255,255,255,0.4); margin: 0; font-size: 12px;">
                 You're receiving this because you enabled email reports in AdWyse.
                 <br>
-                <a href="https://adwyse.ca/dashboard/settings" style="color: #f97316;">Manage preferences</a>
+                <a href="${settingsUrl}" style="color: #f97316;">Manage preferences</a>
               </p>
             </td>
           </tr>

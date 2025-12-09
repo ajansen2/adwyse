@@ -7,7 +7,7 @@ import { generateReportEmail, sendReportEmail } from '@/lib/email-reports';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, storeName } = body;
+    const { email, storeName, shopDomain } = body;
 
     if (!email) {
       return NextResponse.json({ error: 'Email required' }, { status: 400 });
@@ -16,6 +16,7 @@ export async function POST(request: NextRequest) {
     // Generate test report data
     const testData = {
       storeName: storeName || 'Test Store',
+      shopDomain: shopDomain || '',
       dateRange: 'Last 7 days (Test)',
       totalOrders: 42,
       totalRevenue: 3250.00,
