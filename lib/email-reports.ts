@@ -257,6 +257,7 @@ export async function sendScheduledReports(frequency: 'weekly' | 'monthly') {
 
       const reportData: ReportData = {
         storeName: store.store_name,
+        shopDomain: store.shop_domain || '',
         dateRange: frequency === 'weekly' ? 'Last 7 days' : 'Last 30 days',
         totalOrders: orders.length,
         totalRevenue,
