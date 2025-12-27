@@ -28,11 +28,11 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    // Get all stores for this shop (including old duplicates)
+    // Get all stores for this shop (AdWyse uses shop_domain column)
     const { data: stores } = await supabase
       .from('stores')
       .select('id')
-      .eq('store_url', `https://${shop}`);
+      .eq('shop_domain', shop);
 
     if (!stores || stores.length === 0) {
       console.log('⚠️  No stores found for:', shop);

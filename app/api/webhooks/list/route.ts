@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const { data: store } = await supabase
       .from('stores')
       .select('*')
-      .eq('store_url', `https://${shop}`)
+      .eq('shop_domain', shop)
       .order('created_at', { ascending: false })
       .limit(1)
       .single();

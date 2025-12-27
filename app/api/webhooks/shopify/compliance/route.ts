@@ -68,11 +68,11 @@ export async function POST(request: NextRequest) {
         // Store uninstalled - delete all store data (48 hours after uninstall)
         console.log('🗑️  Shop data redaction:', payload.shop_domain);
 
-        // Get all stores for this shop
+        // Get all stores for this shop (AdWyse uses shop_domain)
         const { data: stores } = await supabase
           .from('stores')
           .select('id')
-          .eq('store_url', `https://${payload.shop_domain}`);
+          .eq('shop_domain', payload.shop_domain);
 
         if (stores && stores.length > 0) {
           const storeIds = stores.map(s => s.id);

@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
 
     // Mark the store as uninstalled (don't delete yet - GDPR shop/redact will handle that)
     const { error } = await supabase
-      .from('adwyse_stores')
+      .from('stores')
       .update({
         subscription_status: 'cancelled',
         updated_at: new Date().toISOString(),

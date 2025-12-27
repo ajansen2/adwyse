@@ -45,13 +45,12 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    // Get the most recent active store for this shop domain
+    // Get the most recent active store for this shop domain (AdWyse uses shop_domain)
     // (handles duplicate stores by using the latest one)
     const { data: stores } = await supabase
       .from('stores')
-      .select('id, merchant_id')
-      .eq('store_url', `https://${shop}`)
-      .eq('status', 'active')
+      .select('id')
+      .eq('shop_domain', shop)
       .order('created_at', { ascending: false })
       .limit(1);
 
