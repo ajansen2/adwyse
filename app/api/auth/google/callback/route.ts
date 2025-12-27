@@ -28,14 +28,17 @@ export async function GET(request: NextRequest) {
     const tokens = await exchangeGoogleCode(code);
     console.log('✅ Token exchange successful, access token length:', tokens.accessToken.length);
 
-    // Get accessible customer accounts
-    console.log('📊 Fetching Google Ads customer accounts...');
-    const customers = await getGoogleAdsCustomers(tokens.accessToken);
-    console.log('📊 Found customers:', customers.length);
+    // WORKAROUND: Skip listAccessibleCustomers due to 501 error
+    // Use hardcoded Manager Account ID for now
+    const managerAccountId = process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID || '7167233993';
+    console.log('📊 Using Manager Account ID directly:', managerAccountId);
 
-    if (customers.length === 0) {
-      return returnHtmlResponse(false, 'No Google Ads accounts found. Make sure you have access to at least one Google Ads account.');
-    }
+    // Create customer object with hardcoded values
+    const customers = [{
+      customerId: managerAccountId,
+      descriptiveName: 'Adwyse Manager Account',
+    }];
+    console.log('📊 Using hardcoded customer:', customers[0]);
 
     // Save to database
     const supabase = createClient(
