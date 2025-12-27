@@ -127,7 +127,7 @@ export async function getGoogleAdsCustomers(accessToken: string): Promise<Google
 
   console.log('🔵 [Google Ads] Using login-customer-id:', loginCustomerId);
 
-  const response = await fetch('https://googleads.googleapis.com/v18/customers:listAccessibleCustomers', {
+  const response = await fetch('https://googleads.googleapis.com/v17/customers:listAccessibleCustomers', {
     method: 'GET',
     headers: {
       'Authorization': `Bearer ${accessToken}`,
@@ -202,7 +202,7 @@ export async function getGoogleAdsCustomers(accessToken: string): Promise<Google
 
     try {
       const customerResponse = await fetch(
-        `https://googleads.googleapis.com/v18/customers/${customerId}`,
+        `https://googleads.googleapis.com/v17/customers/${customerId}`,
         {
           method: 'GET',
           headers: {
@@ -258,7 +258,7 @@ export async function fetchGoogleAdsCampaigns(
 
   try {
     const response = await fetch(
-      `https://googleads.googleapis.com/v18/customers/${cleanCustomerId}/googleAds:searchStream`,
+      `https://googleads.googleapis.com/v17/customers/${cleanCustomerId}/googleAds:searchStream`,
       {
         method: 'POST',
         headers: {
