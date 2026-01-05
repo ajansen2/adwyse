@@ -2,35 +2,50 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 
-const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET || '';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-// Verify Shopify webhook HMAC signature
+// Verify Shopify webhook HMAC signature - supports multiple secrets
 function verifyShopifyWebhook(body: string, hmacHeader: string): boolean {
-  if (!SHOPIFY_API_SECRET || !hmacHeader) {
+  const secrets = [
+    process.env.SHOPIFY_API_SECRET,
+    process.env.SHOPIFY_API_SECRET_PRODUCTION,
+    process.env.SHOPIFY_API_SECRET_DEV,
+  ].filter(Boolean);
+
+  if (secrets.length === 0 || !hmacHeader) {
+    console.log('❌ [HMAC] No secrets configured or no HMAC header');
     return false;
   }
 
-  const generatedHash = crypto
-    .createHmac('sha256', SHOPIFY_API_SECRET)
-    .update(body, 'utf8')
-    .digest('base64');
+  for (const secret of secrets) {
+    const generatedHash = crypto
+      .createHmac('sha256', secret!)
+      .update(body, 'utf8')
+      .digest('base64');
 
-  try {
-    return crypto.timingSafeEqual(
-      Buffer.from(generatedHash),
-      Buffer.from(hmacHeader)
-    );
-  } catch {
-    return false;
+    try {
+      if (crypto.timingSafeEqual(Buffer.from(generatedHash), Buffer.from(hmacHeader))) {
+        console.log('✅ [HMAC] Signature verified');
+        return true;
+      }
+    } catch {
+      continue;
+    }
   }
+
+  console.log('❌ [HMAC] No matching secret found');
+  return false;
 }
 
 // Orders webhook - track new orders for attribution
+// This endpoint handles the OLD webhook URL for backwards compatibility
 export async function POST(request: NextRequest) {
+  console.log('📦 [ORDERS WEBHOOK] Request received at /api/webhooks/orders');
+
   try {
     const body = await request.text();
+    console.log('📦 [ORDERS WEBHOOK] Body length:', body.length);
     const hmacHeader = request.headers.get('x-shopify-hmac-sha256') || '';
     const shopDomain = request.headers.get('x-shopify-shop-domain') || '';
 
