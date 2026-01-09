@@ -648,14 +648,27 @@ function SettingsContent() {
               </div>
               <div>
                 <label className="text-white/60 text-sm">Subscription Status</label>
-                <div>
+                <div className="flex items-center gap-2">
                   <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
                     store?.subscription_status === 'active'
                       ? 'bg-green-500/20 text-green-300'
+                      : store?.subscription_status === 'extended_trial'
+                      ? 'bg-purple-500/20 text-purple-300'
                       : 'bg-blue-500/20 text-blue-300'
                   }`}>
-                    {store?.subscription_status === 'active' ? 'Pro Plan' : '7-Day Trial'}
+                    {store?.subscription_status === 'active'
+                      ? 'Pro Plan - Active'
+                      : store?.subscription_status === 'extended_trial'
+                      ? 'Extended Trial'
+                      : 'Trial Period'}
                   </span>
+                  {store?.trial_ends_at && store?.subscription_status !== 'active' && (
+                    <span className="text-white/40 text-sm">
+                      {new Date(store.trial_ends_at) > new Date()
+                        ? `Ends ${new Date(store.trial_ends_at).toLocaleDateString()}`
+                        : 'Trial ended'}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
