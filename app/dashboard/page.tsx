@@ -126,7 +126,7 @@ function DashboardContent() {
   const filteredOrders = useMemo(() => {
     if (!dateRange.start) return orders;
     return orders.filter(order => {
-      const orderDate = new Date(order.created_at);
+      const orderDate = new Date(order.order_created_at);
       return orderDate >= dateRange.start! && (!dateRange.end || orderDate <= dateRange.end);
     });
   }, [orders, dateRange]);
@@ -153,7 +153,7 @@ function DashboardContent() {
 
     // Populate with order data
     filteredOrders.forEach(order => {
-      const key = order.created_at.split('T')[0];
+      const key = order.order_created_at.split('T')[0];
       if (days[key]) {
         days[key].revenue += order.total_price;
         days[key].orders += 1;
@@ -544,7 +544,7 @@ function DashboardContent() {
       order.utm_source || '',
       order.utm_medium || '',
       order.utm_campaign || '',
-      new Date(order.created_at).toISOString()
+      new Date(order.order_created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
     ]);
 
     const csvContent = [
@@ -1165,7 +1165,7 @@ function DashboardContent() {
                   </div>
                   <div className="space-y-3">
                     {filteredOrders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((order) => {
-                      const timeAgo = new Date(order.created_at).toLocaleDateString('en-US', {
+                      const timeAgo = new Date(order.order_created_at).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
                         hour: 'numeric',
