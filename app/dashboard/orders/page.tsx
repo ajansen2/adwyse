@@ -94,7 +94,7 @@ function OrdersContent() {
       filtered = filtered.filter(order =>
         order.order_number?.toLowerCase().includes(query) ||
         order.customer_email?.toLowerCase().includes(query) ||
-        order.campaign_name?.toLowerCase().includes(query)
+        order.utm_campaign?.toLowerCase().includes(query)
       );
     }
 
