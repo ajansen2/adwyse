@@ -664,20 +664,14 @@ function SettingsContent() {
                         </span>
                       )}
                     </>
-                  ) : store?.trial_ends_at && new Date(store.trial_ends_at) < new Date() ? (
-                    <span className="inline-flex px-3 py-1 rounded-full text-sm font-medium bg-red-500/20 text-red-300">
-                      Trial Expired - Upgrade to Pro
-                    </span>
                   ) : (
                     <>
                       <span className="inline-flex px-3 py-1 rounded-full text-sm font-medium bg-blue-500/20 text-blue-300">
-                        Trial Period
+                        Pro Plan - Trial
                       </span>
-                      {store?.trial_ends_at && (
-                        <span className="text-white/40 text-sm">
-                          Ends {new Date(store.trial_ends_at).toLocaleDateString()}
-                        </span>
-                      )}
+                      <span className="text-white/40 text-sm">
+                        Auto-renews after trial
+                      </span>
                     </>
                   )}
                 </div>

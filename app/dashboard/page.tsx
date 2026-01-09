@@ -761,11 +761,11 @@ function DashboardContent() {
 
               {merchant.subscription_tier === 'pro' ? (
                 <span className="px-3 py-1 bg-green-600/20 border border-green-500/30 rounded-full text-green-300 text-sm font-medium">
-                  Pro Plan - Active
+                  Pro Plan
                 </span>
               ) : (
                 <span className="px-3 py-1 bg-blue-600/20 border border-blue-500/30 rounded-full text-blue-300 text-sm font-medium">
-                  Trial Period
+                  Pro Plan - Trial
                 </span>
               )}
             </div>
