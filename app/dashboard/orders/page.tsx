@@ -279,7 +279,7 @@ function OrdersContent() {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-white">{order.campaign_name || '-'}</div>
+                        <div className="text-white">{order.utm_campaign || '-'}</div>
                         {order.utm_source && (
                           <div className="text-white/40 text-sm">UTM: {order.utm_source}</div>
                         )}

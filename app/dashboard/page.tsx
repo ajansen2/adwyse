@@ -540,7 +540,7 @@ function DashboardContent() {
       order.total_price.toFixed(2),
       order.currency,
       order.attributed_platform || 'direct',
-      order.campaign_name || '',
+      order.utm_campaign || '',
       order.utm_source || '',
       order.utm_medium || '',
       order.utm_campaign || '',
