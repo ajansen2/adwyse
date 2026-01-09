@@ -33,15 +33,15 @@ interface Store {
 interface Order {
   id: string;
   shopify_order_id: string;
-  shopify_order_number: string;
+  order_number: string;
   customer_email: string | null;
-  order_total: number;
+  total_price: number;
   currency: string;
-  ad_source: string;
-  campaign_name: string | null;
+  attributed_platform: string;
   utm_source: string | null;
   utm_medium: string | null;
   utm_campaign: string | null;
+  order_created_at: string;
   created_at: string;
 }
 
@@ -155,10 +155,10 @@ function DashboardContent() {
     filteredOrders.forEach(order => {
       const key = order.created_at.split('T')[0];
       if (days[key]) {
-        days[key].revenue += order.order_total;
+        days[key].revenue += order.total_price;
         days[key].orders += 1;
-        if (order.ad_source && order.ad_source !== 'direct') {
-          days[key].adRevenue += order.order_total;
+        if (order.attributed_platform && order.attributed_platform !== 'direct') {
+          days[key].adRevenue += order.total_price;
         }
       }
     });
@@ -517,11 +517,11 @@ function DashboardContent() {
 
   // Calculate metrics from filtered orders
   const totalOrders = filteredOrders.length;
-  const attributedOrders = filteredOrders.filter(order => order.ad_source && order.ad_source !== 'direct').length;
-  const totalRevenue = filteredOrders.reduce((sum, order) => sum + order.order_total, 0);
+  const attributedOrders = filteredOrders.filter(order => order.attributed_platform && order.attributed_platform !== 'direct').length;
+  const totalRevenue = filteredOrders.reduce((sum, order) => sum + order.total_price, 0);
   const attributedRevenue = filteredOrders
-    .filter(order => order.ad_source && order.ad_source !== 'direct')
-    .reduce((sum, order) => sum + order.order_total, 0);
+    .filter(order => order.attributed_platform && order.attributed_platform !== 'direct')
+    .reduce((sum, order) => sum + order.total_price, 0);
 
   // Calculate total ad spend and average ROAS
   const totalSpend = campaigns.reduce((sum, campaign) => sum + campaign.total_spend, 0);
@@ -535,11 +535,11 @@ function DashboardContent() {
     const headers = ['Order ID', 'Order Number', 'Customer Email', 'Total', 'Currency', 'Ad Source', 'Campaign', 'UTM Source', 'UTM Medium', 'UTM Campaign', 'Date'];
     const rows = filteredOrders.map(order => [
       order.shopify_order_id,
-      order.shopify_order_number,
+      order.order_number,
       order.customer_email || '',
-      order.order_total.toFixed(2),
+      order.total_price.toFixed(2),
       order.currency,
-      order.ad_source || 'direct',
+      order.attributed_platform || 'direct',
       order.campaign_name || '',
       order.utm_source || '',
       order.utm_medium || '',
@@ -1182,26 +1182,26 @@ function DashboardContent() {
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="text-white font-medium">
-                                Order #{order.shopify_order_number}
+                                Order #{order.order_number}
                               </div>
                               <div className="text-white/40 text-sm truncate">{order.customer_email || 'No email'}</div>
                             </div>
                           </div>
                           <div className="flex items-center gap-6">
                             <div className="text-right">
-                              <div className="text-white font-bold text-lg">${order.order_total.toFixed(2)}</div>
+                              <div className="text-white font-bold text-lg">${order.total_price.toFixed(2)}</div>
                               <div className="text-white/40 text-sm">{timeAgo}</div>
                             </div>
                             <span className={`px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap ${
-                              order.ad_source === 'facebook'
+                              order.attributed_platform === 'facebook'
                                 ? 'bg-blue-500/20 text-blue-300'
-                                : order.ad_source === 'google'
+                                : order.attributed_platform === 'google'
                                 ? 'bg-red-500/20 text-red-300'
-                                : order.ad_source === 'tiktok'
+                                : order.attributed_platform === 'tiktok'
                                 ? 'bg-pink-500/20 text-pink-300'
                                 : 'bg-gray-500/20 text-gray-300'
                             }`}>
-                              {order.ad_source || 'direct'}
+                              {order.attributed_platform || 'direct'}
                             </span>
                           </div>
                         </div>

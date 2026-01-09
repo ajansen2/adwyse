@@ -9,12 +9,11 @@ import Link from 'next/link';
 interface Order {
   id: string;
   shopify_order_id: string;
-  shopify_order_number: string;
+  order_number: string;
   customer_email: string | null;
-  order_total: number;
+  total_price: number;
   currency: string;
-  ad_source: string;
-  campaign_name: string | null;
+  attributed_platform: string;
   utm_source: string | null;
   utm_medium: string | null;
   utm_campaign: string | null;
@@ -22,8 +21,8 @@ interface Order {
   utm_term: string | null;
   fbclid: string | null;
   gclid: string | null;
-  landing_site: string | null;
-  landing_site_referrer: string | null;
+  ttclid: string | null;
+  order_created_at: string;
   created_at: string;
 }
 
@@ -86,14 +85,14 @@ function OrdersContent() {
 
     // Filter by ad source
     if (filterSource !== 'all') {
-      filtered = filtered.filter(order => order.ad_source === filterSource);
+      filtered = filtered.filter(order => order.attributed_platform === filterSource);
     }
 
     // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(order =>
-        order.shopify_order_number?.toLowerCase().includes(query) ||
+        order.order_number?.toLowerCase().includes(query) ||
         order.customer_email?.toLowerCase().includes(query) ||
         order.campaign_name?.toLowerCase().includes(query)
       );
@@ -104,10 +103,10 @@ function OrdersContent() {
   }, [orders, filterSource, searchQuery]);
 
   // Get unique ad sources for filter dropdown
-  const adSources = Array.from(new Set(orders.map(order => order.ad_source))).filter(Boolean);
+  const adSources = Array.from(new Set(orders.map(order => order.attributed_platform))).filter(Boolean);
 
   // Calculate totals
-  const totalRevenue = filteredOrders.reduce((sum, order) => sum + order.order_total, 0);
+  const totalRevenue = filteredOrders.reduce((sum, order) => sum + order.total_price, 0);
   const averageOrderValue = filteredOrders.length > 0 ? totalRevenue / filteredOrders.length : 0;
 
   if (loading) {
@@ -256,27 +255,27 @@ function OrdersContent() {
                   {paginatedOrders.map((order) => (
                     <tr key={order.id} className="hover:bg-white/5 transition">
                       <td className="px-6 py-4">
-                        <div className="text-white font-medium">#{order.shopify_order_number}</div>
+                        <div className="text-white font-medium">#{order.order_number}</div>
                         <div className="text-white/40 text-sm">{order.shopify_order_id}</div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-white">{order.customer_email || 'No email'}</div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-white font-bold">${order.order_total.toFixed(2)}</div>
+                        <div className="text-white font-bold">${order.total_price.toFixed(2)}</div>
                         <div className="text-white/40 text-sm">{order.currency}</div>
                       </td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
-                          order.ad_source === 'facebook'
+                          order.attributed_platform === 'facebook'
                             ? 'bg-blue-500/20 text-blue-300'
-                            : order.ad_source === 'google'
+                            : order.attributed_platform === 'google'
                             ? 'bg-red-500/20 text-red-300'
-                            : order.ad_source === 'tiktok'
+                            : order.attributed_platform === 'tiktok'
                             ? 'bg-pink-500/20 text-pink-300'
                             : 'bg-gray-500/20 text-gray-300'
                         }`}>
-                          {order.ad_source || 'direct'}
+                          {order.attributed_platform || 'direct'}
                         </span>
                       </td>
                       <td className="px-6 py-4">
