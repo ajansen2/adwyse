@@ -256,7 +256,6 @@ function OrdersContent() {
                     <tr key={order.id} className="hover:bg-white/5 transition">
                       <td className="px-6 py-4">
                         <div className="text-white font-medium">#{order.order_number}</div>
-                        <div className="text-white/40 text-sm">{order.shopify_order_id}</div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-white">{order.customer_email || 'No email'}</div>

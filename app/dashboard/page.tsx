@@ -139,7 +139,7 @@ function DashboardContent() {
     const days: { [key: string]: { revenue: number; orders: number; adRevenue: number } } = {};
 
     // Initialize days based on date range
-    const orderTimes = filteredOrders.map(o => new Date(o.created_at).getTime());
+    const orderTimes = filteredOrders.map(o => new Date(o.order_created_at).getTime());
     const startDate = dateRange.start || new Date(Math.min(...orderTimes));
     const endDate = dateRange.end || new Date();
 
@@ -532,9 +532,8 @@ function DashboardContent() {
 
   // Export to CSV function
   const handleExportCSV = () => {
-    const headers = ['Order ID', 'Order Number', 'Customer Email', 'Total', 'Currency', 'Ad Source', 'Campaign', 'UTM Source', 'UTM Medium', 'UTM Campaign', 'Date'];
+    const headers = ['Order Number', 'Customer Email', 'Total', 'Currency', 'Ad Source', 'Campaign', 'UTM Source', 'UTM Medium', 'UTM Campaign', 'Date'];
     const rows = filteredOrders.map(order => [
-      order.shopify_order_id,
       order.order_number,
       order.customer_email || '',
       order.total_price.toFixed(2),
@@ -942,19 +941,20 @@ function DashboardContent() {
                     </div>
 
                     {/* Chart area */}
-                    <div className="ml-16 h-full flex items-end gap-1 pb-8">
+                    <div className="ml-16 flex items-end gap-1" style={{ height: '200px' }}>
                       {chartData.slice(-30).map((day, index) => {
-                        const heightPercent = (day.revenue / maxRevenue) * 100;
-                        const adHeightPercent = (day.adRevenue / maxRevenue) * 100;
+                        const barHeight = Math.max((day.revenue / maxRevenue) * 200, 4);
+                        const adBarHeight = day.revenue > 0 ? (day.adRevenue / day.revenue) * barHeight : 0;
                         const displayDate = new Date(day.date);
 
                         return (
                           <div
                             key={day.date}
-                            className="flex-1 min-w-0 flex flex-col items-center group relative"
+                            className="flex-1 min-w-0 flex items-end group relative"
+                            style={{ height: '200px' }}
                           >
                             {/* Tooltip */}
-                            <div className="absolute bottom-full mb-2 hidden group-hover:block z-10">
+                            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:block z-10">
                               <div className="bg-slate-800 border border-white/20 rounded-lg px-3 py-2 text-xs whitespace-nowrap shadow-xl">
                                 <div className="text-white font-medium mb-1">
                                   {displayDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -966,14 +966,16 @@ function DashboardContent() {
                             </div>
 
                             {/* Bar */}
-                            <div className="w-full relative" style={{ height: `${Math.max(heightPercent, 2)}%` }}>
+                            <div
+                              className="w-full relative rounded-t overflow-hidden"
+                              style={{ height: `${barHeight}px` }}
+                            >
                               <div
-                                className="absolute inset-x-0 bottom-0 bg-green-500/60 rounded-t transition-all group-hover:bg-green-500"
-                                style={{ height: '100%' }}
+                                className="absolute inset-0 bg-green-500/60 transition-all group-hover:bg-green-500"
                               />
                               <div
-                                className="absolute inset-x-0 bottom-0 bg-orange-500 rounded-t transition-all group-hover:bg-orange-400"
-                                style={{ height: `${adHeightPercent > 0 ? (day.adRevenue / day.revenue) * 100 : 0}%` }}
+                                className="absolute inset-x-0 bottom-0 bg-orange-500 transition-all group-hover:bg-orange-400"
+                                style={{ height: `${adBarHeight}px` }}
                               />
                             </div>
                           </div>
