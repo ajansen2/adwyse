@@ -50,10 +50,23 @@ export async function GET(request: NextRequest) {
   const returnUrl = `https://admin.shopify.com/store/${shopName}/apps/${clientId}`;
 
   // Check for existing charges first
+  console.log('🔍 [BILLING TEST] Checking existing charges...');
   const existingResponse = await fetch(
     `https://${shop}/admin/api/2024-01/recurring_application_charges.json`,
     { headers: { 'X-Shopify-Access-Token': accessToken } }
   );
+
+  console.log('🔍 [BILLING TEST] Existing charges response:', existingResponse.status);
+
+  if (!existingResponse.ok) {
+    const errorText = await existingResponse.text();
+    console.log('❌ [BILLING TEST] Failed to get existing charges:', existingResponse.status, errorText);
+    return NextResponse.json({
+      error: 'Failed to get existing charges',
+      status: existingResponse.status,
+      details: errorText
+    }, { status: 500 });
+  }
 
   if (existingResponse.ok) {
     const existing = await existingResponse.json();
@@ -96,12 +109,23 @@ export async function GET(request: NextRequest) {
   );
 
   if (!chargeResponse.ok) {
-    const error = await chargeResponse.json().catch(() => ({}));
-    console.log('❌ [BILLING TEST] Failed:', chargeResponse.status, error);
+    const errorText = await chargeResponse.text();
+    console.log('❌ [BILLING TEST] Failed:', chargeResponse.status);
+    console.log('❌ [BILLING TEST] Response headers:', Object.fromEntries(chargeResponse.headers.entries()));
+    console.log('❌ [BILLING TEST] Response body:', errorText);
+
+    let errorJson = {};
+    try {
+      errorJson = JSON.parse(errorText);
+    } catch (e) {
+      errorJson = { raw: errorText };
+    }
+
     return NextResponse.json({
       error: 'Failed to create charge',
       status: chargeResponse.status,
-      details: error
+      statusText: chargeResponse.statusText,
+      details: errorJson
     }, { status: 500 });
   }
 
