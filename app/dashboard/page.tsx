@@ -267,6 +267,30 @@ function DashboardContent() {
               if (data.store) {
                 console.log('✅ Got store data:', data.store.id);
                 setStores([data.store as Store]);
+
+                // Check billing status - if not active, create charge and redirect
+                const store = data.store;
+                if (store.subscription_status !== 'active' && !searchParams.get('billing')) {
+                  console.log('💰 Checking billing status...');
+                  try {
+                    const billingResponse = await fetch('/api/billing/create', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ storeId: store.id, shop })
+                    });
+                    const billingData = await billingResponse.json();
+
+                    if (billingData.confirmationUrl) {
+                      console.log('💰 Redirecting to billing approval:', billingData.confirmationUrl);
+                      window.top!.location.href = billingData.confirmationUrl;
+                      return;
+                    } else if (billingData.status === 'active') {
+                      console.log('✅ Billing already active');
+                    }
+                  } catch (error) {
+                    console.error('❌ Billing check error:', error);
+                  }
+                }
               }
             } else if (xhr.status === 404) {
               console.log('⚠️  Store not found, creating records for first install:', shop);
@@ -284,6 +308,25 @@ function DashboardContent() {
                   merchantData = installData.merchant as Merchant;
                   if (installData.store) {
                     setStores([installData.store as Store]);
+
+                    // New install - redirect to billing approval
+                    console.log('💰 New install - creating billing charge...');
+                    try {
+                      const billingResponse = await fetch('/api/billing/create', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ storeId: installData.store.id, shop })
+                      });
+                      const billingData = await billingResponse.json();
+
+                      if (billingData.confirmationUrl) {
+                        console.log('💰 Redirecting to billing approval:', billingData.confirmationUrl);
+                        window.top!.location.href = billingData.confirmationUrl;
+                        return;
+                      }
+                    } catch (error) {
+                      console.error('❌ Billing create error:', error);
+                    }
                   }
                 } else {
                   console.error('❌ Failed to create merchant/store');
