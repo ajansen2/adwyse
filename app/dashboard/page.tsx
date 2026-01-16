@@ -758,15 +758,9 @@ function DashboardContent() {
                 </button>
               )}
 
-              {merchant.subscription_tier === 'pro' ? (
-                <span className="px-3 py-1 bg-green-600/20 border border-green-500/30 rounded-full text-green-300 text-sm font-medium">
-                  Pro Plan
-                </span>
-              ) : (
-                <span className="px-3 py-1 bg-blue-600/20 border border-blue-500/30 rounded-full text-blue-300 text-sm font-medium">
-                  Pro Plan - Trial
-                </span>
-              )}
+              <span className="px-3 py-1 bg-green-600/20 border border-green-500/30 rounded-full text-green-300 text-sm font-medium">
+                Pro Plan
+              </span>
             </div>
           </div>
         </header>
@@ -791,7 +785,7 @@ function DashboardContent() {
               <div className="flex-1">
                 <h3 className="text-2xl font-bold text-white mb-2">Welcome to AdWyse! 🎉</h3>
                 <p className="text-green-100 text-lg mb-3">
-                  Your Pro Plan subscription is now active with a <span className="font-bold">7-day free trial</span>!
+                  Your Pro Plan subscription is now active!
                 </p>
                 <div className="space-y-2 text-white/80">
                   <div className="flex items-center gap-2">
@@ -814,7 +808,7 @@ function DashboardContent() {
                   </div>
                 </div>
                 <p className="text-white/60 text-sm mt-4">
-                  You'll be charged $99/month after your trial ends. Cancel anytime.
+                  Your subscription is $99/month. Cancel anytime.
                 </p>
               </div>
             </div>

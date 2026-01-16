@@ -649,31 +649,9 @@ function SettingsContent() {
               <div>
                 <label className="text-white/60 text-sm">Subscription Status</label>
                 <div className="flex items-center gap-2">
-                  {store?.subscription_status === 'active' ? (
-                    <span className="inline-flex px-3 py-1 rounded-full text-sm font-medium bg-green-500/20 text-green-300">
-                      Pro Plan - Active
-                    </span>
-                  ) : store?.subscription_status === 'extended_trial' ? (
-                    <>
-                      <span className="inline-flex px-3 py-1 rounded-full text-sm font-medium bg-purple-500/20 text-purple-300">
-                        Extended Trial
-                      </span>
-                      {store?.trial_ends_at && (
-                        <span className="text-white/40 text-sm">
-                          Ends {new Date(store.trial_ends_at).toLocaleDateString()}
-                        </span>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <span className="inline-flex px-3 py-1 rounded-full text-sm font-medium bg-blue-500/20 text-blue-300">
-                        Pro Plan - Trial
-                      </span>
-                      <span className="text-white/40 text-sm">
-                        Auto-renews after trial
-                      </span>
-                    </>
-                  )}
+                  <span className="inline-flex px-3 py-1 rounded-full text-sm font-medium bg-green-500/20 text-green-300">
+                    Pro Plan - Active
+                  </span>
                 </div>
               </div>
             </div>
