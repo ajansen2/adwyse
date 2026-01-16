@@ -760,15 +760,9 @@ function DashboardContent() {
                 </button>
               )}
 
-              {stores[0]?.subscription_status === 'active' ? (
-                <span className="px-3 py-1 bg-green-600/20 border border-green-500/30 rounded-full text-green-300 text-sm font-medium">
-                  Pro Plan
-                </span>
-              ) : (
-                <span className="px-3 py-1 bg-blue-600/20 border border-blue-500/30 rounded-full text-blue-300 text-sm font-medium">
-                  Pro Plan - Trial
-                </span>
-              )}
+              <span className="px-3 py-1 bg-green-600/20 border border-green-500/30 rounded-full text-green-300 text-sm font-medium">
+                Pro Plan
+              </span>
             </div>
           </div>
         </header>
