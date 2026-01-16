@@ -356,7 +356,7 @@ export async function GET(request: NextRequest) {
 
     console.log('✅ Webhook registration process completed for', shop);
 
-    // Create recurring application charge for billing ($99/month with 14-day trial)
+    // Create recurring application charge for billing ($99.99/month with 7-day trial)
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || `https://${request.headers.get('host')}`;
 
     // Use test mode only for development stores
@@ -370,6 +370,46 @@ export async function GET(request: NextRequest) {
     console.log('💰 Store ID:', store.id);
     console.log('💰 Test charge:', isTestCharge);
 
+    // First check for existing pending charges
+    const existingChargesResponse = await fetch(`https://${shop}/admin/api/2024-01/recurring_application_charges.json`, {
+      headers: {
+        'X-Shopify-Access-Token': accessToken,
+      },
+    });
+
+    if (existingChargesResponse.ok) {
+      const existingCharges = await existingChargesResponse.json();
+      const pendingCharge = existingCharges.recurring_application_charges?.find(
+        (c: any) => c.status === 'pending'
+      );
+
+      if (pendingCharge) {
+        console.log('💰 Found existing pending charge, redirecting to confirmation');
+        const response = NextResponse.redirect(pendingCharge.confirmation_url);
+        response.cookies.delete('shopify_oauth_state');
+        response.cookies.delete('shopify_oauth_merchant_id');
+        response.cookies.delete('shopify_oauth_shop');
+        return response;
+      }
+
+      // Check if already has active subscription
+      const activeCharge = existingCharges.recurring_application_charges?.find(
+        (c: any) => c.status === 'active'
+      );
+
+      if (activeCharge) {
+        console.log('✅ Already has active subscription, going to dashboard');
+        const shopName = shop.replace('.myshopify.com', '');
+        const shopifyAdminUrl = `https://admin.shopify.com/store/${shopName}/apps/adwyse?shop=${shop}`;
+        const response = NextResponse.redirect(shopifyAdminUrl);
+        response.cookies.delete('shopify_oauth_state');
+        response.cookies.delete('shopify_oauth_merchant_id');
+        response.cookies.delete('shopify_oauth_shop');
+        return response;
+      }
+    }
+
+    // Create new charge
     const chargeResponse = await fetch(`https://${shop}/admin/api/2024-01/recurring_application_charges.json`, {
       method: 'POST',
       headers: {
@@ -379,7 +419,7 @@ export async function GET(request: NextRequest) {
       body: JSON.stringify({
         recurring_application_charge: {
           name: 'AdWyse - Pro Plan',
-          price: 99,
+          price: 99.99,
           trial_days: 7,
           return_url: returnUrl,
           test: isTestCharge, // Test mode for development stores
