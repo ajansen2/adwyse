@@ -39,6 +39,9 @@ export async function GET(request: NextRequest) {
   }
 
   console.log('✅ [BILLING TEST] Found store with access token');
+  console.log('🔍 [BILLING TEST] Token preview:', store.access_token ? (store.access_token.substring(0, 10) + '...') : 'EMPTY');
+  console.log('🔍 [BILLING TEST] Store ID:', store.id);
+  console.log('🔍 [BILLING TEST] Updated at:', store.updated_at);
 
   const accessToken = store.access_token;
   const isTestCharge = shop.includes('-test') || shop.includes('development');

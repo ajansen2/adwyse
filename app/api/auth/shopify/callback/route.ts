@@ -97,6 +97,8 @@ export async function GET(request: NextRequest) {
     const tokenData = await tokenResponse.json();
     const accessToken = tokenData.access_token;
 
+    console.log('🔑 Token exchange result:', accessToken ? (accessToken.substring(0, 10) + '...') : 'EMPTY/MISSING');
+
     // Get shop details from Shopify
     const shopResponse = await fetch(`https://${shop}/admin/api/2024-01/shop.json`, {
       headers: {
