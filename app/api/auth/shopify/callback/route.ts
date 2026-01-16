@@ -362,10 +362,8 @@ export async function GET(request: NextRequest) {
     // Use test mode only for development stores
     const isTestCharge = shop.includes('-test') || shop.includes('development');
 
-    // For embedded apps, use relative path in Shopify admin to avoid URL stacking
-    // This redirects directly to our embedded dashboard after approval
-    const shopName = shop.replace('.myshopify.com', '');
-    const returnUrl = `https://admin.shopify.com/store/${shopName}/apps/adwyse/dashboard?billing=success&shop=${shop}&store_id=${store.id}`;
+    // Return URL goes to billing callback to activate the charge, then redirects to dashboard
+    const returnUrl = `${appUrl}/api/billing/callback?shop=${shop}&store_id=${store.id}`;
 
     console.log('💰 Creating billing charge with return_url:', returnUrl);
     console.log('💰 Shop:', shop);
