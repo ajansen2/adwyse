@@ -85,8 +85,10 @@ export async function POST(request: NextRequest) {
       console.log('❌ [BILLING CREATE] Failed to get existing charges:', errorText);
     }
 
-    // Create new charge
-    const returnUrl = `${appUrl}/api/billing/callback?shop=${shop}&store_id=${storeId}`;
+    // Create new charge - return URL goes to Shopify admin app page
+    const shopName = shop.replace('.myshopify.com', '');
+    const apiKey = process.env.SHOPIFY_API_KEY || process.env.SHOPIFY_CLIENT_ID_PRODUCTION || '08fa8bc27e0e3ac857912c7e7ee289d0';
+    const returnUrl = `https://admin.shopify.com/store/${shopName}/apps/${apiKey}`;
     console.log('💰 [BILLING CREATE] Creating new charge with return URL:', returnUrl);
 
     const chargeResponse = await fetch(

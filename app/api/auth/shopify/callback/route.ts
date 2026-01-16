@@ -362,8 +362,10 @@ export async function GET(request: NextRequest) {
     // Use test mode only for development stores
     const isTestCharge = shop.includes('-test') || shop.includes('development');
 
-    // Return URL goes to billing callback to activate the charge, then redirects to dashboard
-    const returnUrl = `${appUrl}/api/billing/callback?shop=${shop}&store_id=${store.id}`;
+    // Return URL goes back to Shopify admin app page (same format as working apps)
+    const shopName = shop.replace('.myshopify.com', '');
+    const apiKey = process.env.SHOPIFY_API_KEY || process.env.SHOPIFY_CLIENT_ID_PRODUCTION || '08fa8bc27e0e3ac857912c7e7ee289d0';
+    const returnUrl = `https://admin.shopify.com/store/${shopName}/apps/${apiKey}`;
 
     console.log('💰 Creating billing charge with return_url:', returnUrl);
     console.log('💰 Shop:', shop);
