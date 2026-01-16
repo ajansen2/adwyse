@@ -126,7 +126,7 @@ export async function GET(request: NextRequest) {
       if (merchant) {
         // For embedded apps, construct the proper Shopify admin URL
         const shopName = shop!.replace('.myshopify.com', '');
-        const shopifyAdminUrl = `https://admin.shopify.com/store/${shopName}/apps/argora-cart-recovery/dashboard?billing=success`;
+        const shopifyAdminUrl = `https://admin.shopify.com/store/${shopName}/apps/adwyse/dashboard?billing=success`;
 
         console.log('🔄 Redirecting to:', shopifyAdminUrl);
         console.log('📍 Shop:', shop);
