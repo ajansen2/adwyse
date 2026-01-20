@@ -41,11 +41,12 @@ export async function POST(request: NextRequest) {
 
     const storeIds = stores.map(s => s.id);
 
-    // Mark all stores as disconnected
+    // Mark all stores as uninstalled
     const { error: updateError } = await supabase
       .from('stores')
       .update({
-        status: 'disconnected',
+        subscription_status: 'cancelled',
+        access_token: null,
         updated_at: new Date().toISOString()
       })
       .in('id', storeIds);
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to update store' }, { status: 500 });
     }
 
-    console.log('✅ Store(s) marked as disconnected:', shop, `(${storeIds.length} stores)`);
+    console.log('✅ Store(s) marked as cancelled:', shop, `(${storeIds.length} stores)`);
 
     // Delete abandoned carts for all stores (for clean demo)
     const { error: deleteError } = await supabase
