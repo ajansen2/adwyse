@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       .from('stores')
       .update({
         subscription_status: 'cancelled',
-        access_token: null,
+        access_token: 'revoked',
         updated_at: new Date().toISOString()
       })
       .in('id', storeIds);
