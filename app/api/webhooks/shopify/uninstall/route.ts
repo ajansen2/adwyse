@@ -58,18 +58,6 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Store(s) marked as cancelled:', shop, `(${storeIds.length} stores)`);
 
-    // Delete abandoned carts for all stores (for clean demo)
-    const { error: deleteError } = await supabase
-      .from('abandoned_carts')
-      .delete()
-      .in('store_id', storeIds);
-
-    if (deleteError) {
-      console.error('⚠️  Could not delete abandoned carts (non-critical):', deleteError);
-    } else {
-      console.log('✅ Abandoned carts cleaned up for:', shop);
-    }
-
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
     console.error('❌ Uninstall webhook error:', error);
