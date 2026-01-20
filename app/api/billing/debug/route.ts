@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   // Get ALL stores matching this shop domain
   const { data: stores, error } = await supabase
     .from('stores')
-    .select('id, shop_domain, store_name, access_token, subscription_status, updated_at, created_at')
+    .select('id, shop_domain, store_name, access_token, subscription_status, trial_ends_at, updated_at, created_at')
     .eq('shop_domain', shop);
 
   if (error) {
