@@ -814,8 +814,8 @@ function DashboardContent() {
                   const daysLeft = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
                   return (
-                    <span className="px-3 py-1 bg-yellow-600/20 border border-yellow-500/30 rounded-full text-yellow-300 text-sm font-medium">
-                      Trial - {daysLeft} day{daysLeft !== 1 ? 's' : ''} left
+                    <span className="px-3 py-1 bg-green-600/20 border border-green-500/30 rounded-full text-green-300 text-sm font-medium">
+                      Pro Plan <span className="text-yellow-300">({daysLeft} day{daysLeft !== 1 ? 's' : ''} left)</span>
                     </span>
                   );
                 }

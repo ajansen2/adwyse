@@ -649,9 +649,28 @@ function SettingsContent() {
               <div>
                 <label className="text-white/60 text-sm">Subscription Status</label>
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex px-3 py-1 rounded-full text-sm font-medium bg-green-500/20 text-green-300">
-                    Pro Plan - Active
-                  </span>
+                  {(() => {
+                    const isTrialing = store?.subscription_status === 'trial' ||
+                      (store?.trial_ends_at && new Date(store.trial_ends_at) > new Date());
+
+                    if (isTrialing && store?.trial_ends_at) {
+                      const trialEnd = new Date(store.trial_ends_at);
+                      const now = new Date();
+                      const daysLeft = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+                      return (
+                        <span className="inline-flex px-3 py-1 rounded-full text-sm font-medium bg-green-500/20 text-green-300">
+                          Pro Plan <span className="text-yellow-300 ml-1">({daysLeft} day{daysLeft !== 1 ? 's' : ''} left)</span>
+                        </span>
+                      );
+                    }
+
+                    return (
+                      <span className="inline-flex px-3 py-1 rounded-full text-sm font-medium bg-green-500/20 text-green-300">
+                        Pro Plan - Active
+                      </span>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
