@@ -133,13 +133,15 @@ export async function GET(request: NextRequest) {
     if (existingStore) {
       console.log('✅ Store already exists, updating access token');
 
-      // Update existing store with new access token
+      // Update existing store with new access token and reset trial
       const { data: updatedStore, error: updateError } = await supabase
         .from('stores')
         .update({
           access_token: accessToken,
           store_name: shopInfo.name || shop,
           email: shopInfo.email,
+          subscription_status: 'trial',
+          trial_ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Reset 7-day trial
           updated_at: new Date().toISOString(),
         })
         .eq('id', existingStore.id)
