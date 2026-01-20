@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
 // Verify Shopify webhook signature
 function verifyWebhook(data: string, hmac: string): boolean {
   const secrets = [
+    process.env.SHOPIFY_API_SECRET,
     process.env.SHOPIFY_API_SECRET_PRODUCTION,
     process.env.SHOPIFY_API_SECRET_DEV,
   ].filter(Boolean);

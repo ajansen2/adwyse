@@ -147,6 +147,7 @@ export async function POST(request: NextRequest) {
 // Supports both DEV and PRODUCTION app secrets + manual webhook signing secret
 function verifyWebhook(data: string, hmac: string): boolean {
   const secrets = [
+    process.env.SHOPIFY_API_SECRET,              // Primary secret
     process.env.SHOPIFY_API_SECRET_PRODUCTION,   // Production app secret
     process.env.SHOPIFY_API_SECRET_DEV,          // Dev app secret
     process.env.SHOPIFY_WEBHOOK_SIGNING_SECRET,  // Manual webhook signing secret
