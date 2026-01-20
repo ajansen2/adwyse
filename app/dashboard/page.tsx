@@ -803,9 +803,29 @@ function DashboardContent() {
                 </button>
               )}
 
-              <span className="px-3 py-1 bg-green-600/20 border border-green-500/30 rounded-full text-green-300 text-sm font-medium">
-                Pro Plan
-              </span>
+              {(() => {
+                const store = stores[0];
+                const isTrialing = store?.subscription_status === 'trial' ||
+                  (store?.trial_ends_at && new Date(store.trial_ends_at) > new Date());
+
+                if (isTrialing && store?.trial_ends_at) {
+                  const trialEnd = new Date(store.trial_ends_at);
+                  const now = new Date();
+                  const daysLeft = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+                  return (
+                    <span className="px-3 py-1 bg-yellow-600/20 border border-yellow-500/30 rounded-full text-yellow-300 text-sm font-medium">
+                      Trial - {daysLeft} day{daysLeft !== 1 ? 's' : ''} left
+                    </span>
+                  );
+                }
+
+                return (
+                  <span className="px-3 py-1 bg-green-600/20 border border-green-500/30 rounded-full text-green-300 text-sm font-medium">
+                    Pro Plan
+                  </span>
+                );
+              })()}
             </div>
           </div>
         </header>
