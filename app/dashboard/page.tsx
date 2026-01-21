@@ -270,8 +270,13 @@ function DashboardContent() {
 
                 // Check billing status - if not active, create charge and redirect
                 const store = data.store;
-                if (store.subscription_status !== 'active' && !searchParams.get('billing')) {
-                  console.log('💰 Checking billing status...');
+                const billingStatus = searchParams.get('billing');
+                const isReturningFromBilling = billingStatus === 'success' || searchParams.get('charge_id');
+
+                if (store.subscription_status !== 'active' && !isReturningFromBilling) {
+                  console.log('💰 Checking billing status for store:', store.id);
+                  console.log('💰 Current subscription_status:', store.subscription_status);
+
                   try {
                     const billingResponse = await fetch('/api/billing/create', {
                       method: 'POST',
@@ -280,16 +285,45 @@ function DashboardContent() {
                     });
                     const billingData = await billingResponse.json();
 
+                    console.log('💰 Billing create response:', billingData);
+
                     if (billingData.confirmationUrl) {
                       console.log('💰 Redirecting to billing approval:', billingData.confirmationUrl);
-                      window.top!.location.href = billingData.confirmationUrl;
+                      // Use window.top for embedded apps to redirect parent frame
+                      if (window.top && window.top !== window) {
+                        window.top.location.href = billingData.confirmationUrl;
+                      } else {
+                        window.location.href = billingData.confirmationUrl;
+                      }
                       return;
                     } else if (billingData.status === 'active') {
                       console.log('✅ Billing already active');
+                      // Update local store data
+                      store.subscription_status = 'active';
+                    } else if (billingData.error || billingData.needsOAuth) {
+                      // Billing failed - might need to re-authenticate
+                      console.error('❌ Billing creation failed:', billingData.error);
+
+                      // If we need OAuth, redirect to install flow
+                      if (billingData.needsOAuth ||
+                          billingData.error?.includes('401') ||
+                          billingData.error?.includes('403') ||
+                          billingData.error?.includes('OAuth required')) {
+                        console.log('🔄 Access token invalid, redirecting to OAuth install...');
+                        const installUrl = `/api/auth/shopify/install?shop=${encodeURIComponent(shop)}`;
+                        if (window.top && window.top !== window) {
+                          window.top.location.href = installUrl;
+                        } else {
+                          window.location.href = installUrl;
+                        }
+                        return;
+                      }
                     }
                   } catch (error) {
                     console.error('❌ Billing check error:', error);
                   }
+                } else if (isReturningFromBilling) {
+                  console.log('✅ Returning from billing flow, skipping billing check');
                 }
               }
             } else if (xhr.status === 404) {
@@ -319,9 +353,27 @@ function DashboardContent() {
                       });
                       const billingData = await billingResponse.json();
 
+                      console.log('💰 New install billing response:', billingData);
+
                       if (billingData.confirmationUrl) {
                         console.log('💰 Redirecting to billing approval:', billingData.confirmationUrl);
-                        window.top!.location.href = billingData.confirmationUrl;
+                        if (window.top && window.top !== window) {
+                          window.top.location.href = billingData.confirmationUrl;
+                        } else {
+                          window.location.href = billingData.confirmationUrl;
+                        }
+                        return;
+                      } else if (billingData.error || billingData.needsOAuth) {
+                        // Billing failed - need OAuth
+                        console.error('❌ New install billing failed:', billingData.error);
+                        // Store was created without valid access token - redirect to OAuth
+                        console.log('🔄 Redirecting to OAuth install for new store...');
+                        const installUrl = `/api/auth/shopify/install?shop=${encodeURIComponent(shop)}`;
+                        if (window.top && window.top !== window) {
+                          window.top.location.href = installUrl;
+                        } else {
+                          window.location.href = installUrl;
+                        }
                         return;
                       }
                     } catch (error) {

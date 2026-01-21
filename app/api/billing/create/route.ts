@@ -35,6 +35,16 @@ export async function POST(request: NextRequest) {
 
     const accessToken = store.access_token;
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://adwyse.ca';
+
+    // Check if we have a valid access token
+    if (!accessToken || accessToken === '' || accessToken === 'revoked') {
+      console.log('❌ [BILLING CREATE] No valid access token for store');
+      return NextResponse.json({
+        error: 'No valid access token - OAuth required',
+        needsOAuth: true
+      }, { status: 401 });
+    }
+
     const isTestCharge = shop.includes('-test') || shop.includes('development');
     console.log('💰 [BILLING CREATE] Test charge:', isTestCharge, 'App URL:', appUrl);
 
@@ -48,6 +58,17 @@ export async function POST(request: NextRequest) {
     );
 
     console.log('💰 [BILLING CREATE] Existing charges response:', existingChargesResponse.status);
+
+    // Check for authentication errors
+    if (existingChargesResponse.status === 401 || existingChargesResponse.status === 403) {
+      const errorText = await existingChargesResponse.text();
+      console.log('❌ [BILLING CREATE] Auth error checking charges:', errorText);
+      return NextResponse.json({
+        error: `Shopify API error: ${existingChargesResponse.status}`,
+        needsOAuth: true,
+        details: errorText
+      }, { status: 401 });
+    }
 
     if (existingChargesResponse.ok) {
       const existingCharges = await existingChargesResponse.json();
@@ -116,7 +137,20 @@ export async function POST(request: NextRequest) {
     if (!chargeResponse.ok) {
       const errorData = await chargeResponse.json().catch(() => null);
       console.error('❌ [BILLING CREATE] Failed to create charge:', chargeResponse.status, errorData);
-      return NextResponse.json({ error: 'Failed to create billing charge', details: errorData }, { status: 500 });
+
+      // Check if it's an auth error
+      if (chargeResponse.status === 401 || chargeResponse.status === 403) {
+        return NextResponse.json({
+          error: `Shopify API error: ${chargeResponse.status}`,
+          needsOAuth: true,
+          details: errorData
+        }, { status: 401 });
+      }
+
+      return NextResponse.json({
+        error: 'Failed to create billing charge',
+        details: errorData
+      }, { status: 500 });
     }
 
     const chargeData = await chargeResponse.json();
