@@ -363,8 +363,12 @@ export async function GET(request: NextRequest) {
     // Create recurring application charge for billing ($99.99/month with 7-day trial)
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || `https://${request.headers.get('host')}`;
 
-    // Use test mode only for development stores
-    const isTestCharge = shop.includes('-test') || shop.includes('development');
+    // Use test mode for development/partner stores
+    // Partner test stores often have random names, so also check for non-standard patterns
+    const isTestCharge = shop.includes('-test') ||
+                         shop.includes('development') ||
+                         shop.includes('dev-') ||
+                         /^[a-z0-9]{6,8}-[a-z0-9]{2}\.myshopify\.com$/.test(shop); // Pattern like 2unilf-1m.myshopify.com
 
     // Return URL goes back to Shopify admin app page (same format as working apps)
     const shopName = shop.replace('.myshopify.com', '');
@@ -383,8 +387,16 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    console.log('💰 Checking existing charges...');
+
     if (existingChargesResponse.ok) {
       const existingCharges = await existingChargesResponse.json();
+      console.log('💰 Existing charges:', JSON.stringify(existingCharges.recurring_application_charges?.map((c: any) => ({
+        id: c.id,
+        status: c.status,
+        name: c.name
+      }))));
+
       const pendingCharge = existingCharges.recurring_application_charges?.find(
         (c: any) => c.status === 'pending'
       );
@@ -398,21 +410,12 @@ export async function GET(request: NextRequest) {
         return response;
       }
 
-      // Check if already has active subscription
-      const activeCharge = existingCharges.recurring_application_charges?.find(
-        (c: any) => c.status === 'active'
-      );
-
-      if (activeCharge) {
-        console.log('✅ Already has active subscription, going to dashboard');
-        const shopName = shop.replace('.myshopify.com', '');
-        const shopifyAdminUrl = `https://admin.shopify.com/store/${shopName}/apps/adwyse?shop=${shop}`;
-        const response = NextResponse.redirect(shopifyAdminUrl);
-        response.cookies.delete('shopify_oauth_state');
-        response.cookies.delete('shopify_oauth_merchant_id');
-        response.cookies.delete('shopify_oauth_shop');
-        return response;
-      }
+      // Note: Don't skip for active charges - always create new charge on fresh install
+      // The old charge may be from a cancelled subscription
+      console.log('💰 No pending charge found, will create new charge');
+    } else {
+      const errorText = await existingChargesResponse.text();
+      console.log('⚠️ Could not fetch existing charges:', existingChargesResponse.status, errorText);
     }
 
     // Create new charge
@@ -451,15 +454,47 @@ export async function GET(request: NextRequest) {
     } else {
       const errorData = await chargeResponse.json().catch(() => null);
       console.error('❌ Failed to create billing charge:', chargeResponse.status, errorData);
-      console.error('This is expected for development stores. Billing will work on production stores.');
 
-      // Continue to dashboard without billing (can retry later)
-      // Redirect to embedded app in Shopify admin
+      // If billing failed, try creating a TEST charge as fallback
+      console.log('💰 Retrying with test: true...');
+      const retryResponse = await fetch(`https://${shop}/admin/api/2024-01/recurring_application_charges.json`, {
+        method: 'POST',
+        headers: {
+          'X-Shopify-Access-Token': accessToken,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          recurring_application_charge: {
+            name: 'AdWyse - Pro Plan',
+            price: 99.99,
+            trial_days: 7,
+            return_url: returnUrl,
+            test: true, // Force test mode
+          }
+        })
+      });
+
+      if (retryResponse.ok) {
+        const retryData = await retryResponse.json();
+        const confirmationUrl = retryData.recurring_application_charge.confirmation_url;
+        console.log('✅ Test billing charge created on retry, redirecting to confirmation');
+
+        const response = NextResponse.redirect(confirmationUrl);
+        response.cookies.delete('shopify_oauth_state');
+        response.cookies.delete('shopify_oauth_merchant_id');
+        response.cookies.delete('shopify_oauth_shop');
+        return response;
+      }
+
+      const retryError = await retryResponse.json().catch(() => null);
+      console.error('❌ Retry also failed:', retryResponse.status, retryError);
+
+      // Only redirect to dashboard if all billing attempts fail
       const shopName = shop.replace('.myshopify.com', '');
-      const appHandle = 'adwyse'; // Use app handle instead of client ID
-      const shopifyAdminUrl = `https://admin.shopify.com/store/${shopName}/apps/${appHandle}?shop=${shop}`;
+      const appHandle = 'adwyse';
+      const shopifyAdminUrl = `https://admin.shopify.com/store/${shopName}/apps/${appHandle}?shop=${shop}&billing_error=true`;
 
-      console.log('✅ Installation complete, redirecting to embedded app:', shopifyAdminUrl);
+      console.log('⚠️ All billing attempts failed, redirecting to dashboard with error flag');
 
       const response = NextResponse.redirect(shopifyAdminUrl);
       response.cookies.delete('shopify_oauth_state');
