@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getSupabaseClient } from '@/lib/supabase-client';
-import { initializeAppBridge, isEmbeddedInShopify, navigateInApp, getShopifySessionToken } from '@/lib/shopify-app-bridge';
+import { initializeAppBridge, isEmbeddedInShopify, navigateInApp, getShopifySessionToken, redirectToOAuth } from '@/lib/shopify-app-bridge';
 import Link from 'next/link';
 
 type DateRangeOption = '7d' | '14d' | '30d' | '90d' | 'all' | 'custom';
@@ -289,33 +289,26 @@ function DashboardContent() {
 
                     if (billingData.confirmationUrl) {
                       console.log('💰 Redirecting to billing approval:', billingData.confirmationUrl);
-                      // Use window.top for embedded apps to redirect parent frame
-                      if (window.top && window.top !== window) {
-                        window.top.location.href = billingData.confirmationUrl;
-                      } else {
-                        window.location.href = billingData.confirmationUrl;
-                      }
+                      // Use App Bridge redirect for embedded apps
+                      redirectToOAuth(billingData.confirmationUrl);
                       return;
                     } else if (billingData.status === 'active') {
                       console.log('✅ Billing already active');
                       // Update local store data
                       store.subscription_status = 'active';
-                    } else if (billingData.error || billingData.needsOAuth) {
+                    } else if (billingData.error || billingData.needsOAuth || !billingResponse.ok) {
                       // Billing failed - might need to re-authenticate
-                      console.error('❌ Billing creation failed:', billingData.error);
+                      console.error('❌ Billing creation failed:', billingData.error, 'Status:', billingResponse.status);
 
-                      // If we need OAuth, redirect to install flow
+                      // If we need OAuth (401/403 or explicit flag), redirect to install flow
                       if (billingData.needsOAuth ||
-                          billingData.error?.includes('401') ||
-                          billingData.error?.includes('403') ||
+                          billingResponse.status === 401 ||
+                          billingResponse.status === 403 ||
                           billingData.error?.includes('OAuth required')) {
                         console.log('🔄 Access token invalid, redirecting to OAuth install...');
                         const installUrl = `/api/auth/shopify/install?shop=${encodeURIComponent(shop)}`;
-                        if (window.top && window.top !== window) {
-                          window.top.location.href = installUrl;
-                        } else {
-                          window.location.href = installUrl;
-                        }
+                        // Use App Bridge redirect for proper iframe handling
+                        redirectToOAuth(installUrl);
                         return;
                       }
                     }
@@ -357,23 +350,15 @@ function DashboardContent() {
 
                       if (billingData.confirmationUrl) {
                         console.log('💰 Redirecting to billing approval:', billingData.confirmationUrl);
-                        if (window.top && window.top !== window) {
-                          window.top.location.href = billingData.confirmationUrl;
-                        } else {
-                          window.location.href = billingData.confirmationUrl;
-                        }
+                        redirectToOAuth(billingData.confirmationUrl);
                         return;
-                      } else if (billingData.error || billingData.needsOAuth) {
+                      } else if (billingData.error || billingData.needsOAuth || !billingResponse.ok) {
                         // Billing failed - need OAuth
-                        console.error('❌ New install billing failed:', billingData.error);
+                        console.error('❌ New install billing failed:', billingData.error, 'Status:', billingResponse.status);
                         // Store was created without valid access token - redirect to OAuth
                         console.log('🔄 Redirecting to OAuth install for new store...');
                         const installUrl = `/api/auth/shopify/install?shop=${encodeURIComponent(shop)}`;
-                        if (window.top && window.top !== window) {
-                          window.top.location.href = installUrl;
-                        } else {
-                          window.location.href = installUrl;
-                        }
+                        redirectToOAuth(installUrl);
                         return;
                       }
                     } catch (error) {

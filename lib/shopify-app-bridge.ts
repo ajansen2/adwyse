@@ -170,34 +170,65 @@ export function navigateInApp(path: string) {
   }
 }
 
-// Redirect to external URL (like OAuth) - breaks out of iframe as required for OAuth
+// Redirect to external URL (like OAuth or billing) - breaks out of iframe as required
 export function redirectToOAuth(url: string) {
   const isEmbedded = window.self !== window.top;
+  console.log('🔄 redirectToOAuth called:', url, 'isEmbedded:', isEmbedded);
 
   if (!isEmbedded) {
     // Not embedded - use regular navigation
+    console.log('🔄 Not embedded, direct redirect');
     window.location.href = url;
     return;
   }
 
+  // For embedded apps, we need to break out of the iframe
+  // Try multiple methods in order of preference
+
+  // Method 1: Use window.open with _top target (most reliable)
+  try {
+    console.log('🔄 Trying window.open with _top target...');
+    const opened = window.open(url, '_top');
+    if (opened !== null) {
+      console.log('✅ window.open succeeded');
+      return;
+    }
+  } catch (e) {
+    console.log('⚠️ window.open failed:', e);
+  }
+
+  // Method 2: Use parent.location (works if same origin)
+  try {
+    console.log('🔄 Trying parent.location...');
+    if (window.parent && window.parent !== window) {
+      window.parent.location.href = url;
+      console.log('✅ parent.location redirect initiated');
+      return;
+    }
+  } catch (e) {
+    console.log('⚠️ parent.location failed (likely cross-origin):', e);
+  }
+
+  // Method 3: Use top.location (works if same origin)
+  try {
+    console.log('🔄 Trying top.location...');
+    if (window.top && window.top !== window) {
+      window.top.location.href = url;
+      console.log('✅ top.location redirect initiated');
+      return;
+    }
+  } catch (e) {
+    console.log('⚠️ top.location failed (likely cross-origin):', e);
+  }
+
+  // Method 4: Initialize App Bridge and use dispatch (Shopify's preferred method)
   if (!appBridge) {
     initializeAppBridge();
   }
 
-  if (!appBridge) {
-    // Fallback - try to break out of iframe
-    if (window.top) {
-      window.top.location.href = url;
-    } else {
-      window.location.href = url;
-    }
-    return;
-  }
-
-  try {
-    // Use App Bridge to redirect to external URL (OAuth)
-    // This properly breaks out of the iframe for OAuth flow
-    if (appBridge.dispatch) {
+  if (appBridge && appBridge.dispatch) {
+    try {
+      console.log('🔄 Trying App Bridge dispatch...');
       appBridge.dispatch({
         type: 'Redirect',
         payload: {
@@ -205,22 +236,14 @@ export function redirectToOAuth(url: string) {
           newContext: true, // Open in new context (breaks out of iframe)
         },
       });
-      console.log('✅ App Bridge OAuth redirect to:', url);
-    } else {
-      // Fallback - try to break out of iframe
-      if (window.top) {
-        window.top.location.href = url;
-      } else {
-        window.location.href = url;
-      }
-    }
-  } catch (error) {
-    console.error('❌ Failed to redirect with App Bridge:', error);
-    // Fallback - try to break out of iframe
-    if (window.top) {
-      window.top.location.href = url;
-    } else {
-      window.location.href = url;
+      console.log('✅ App Bridge dispatch redirect initiated');
+      return;
+    } catch (e) {
+      console.log('⚠️ App Bridge dispatch failed:', e);
     }
   }
+
+  // Method 5: Final fallback - just redirect the iframe and hope for the best
+  console.log('🔄 Final fallback: direct iframe redirect');
+  window.location.href = url;
 }
