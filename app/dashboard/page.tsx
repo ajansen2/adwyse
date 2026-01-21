@@ -58,6 +58,7 @@ interface Campaign {
 
 function DashboardContent() {
   const [loading, setLoading] = useState(true);
+  const [loadingMessage, setLoadingMessage] = useState('Loading dashboard...');
   const [merchant, setMerchant] = useState<Merchant | null>(null);
   const [stores, setStores] = useState<Store[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -289,6 +290,7 @@ function DashboardContent() {
 
                     if (billingData.confirmationUrl) {
                       console.log('💰 Redirecting to billing approval:', billingData.confirmationUrl);
+                      setLoadingMessage('Redirecting to billing...');
                       // Use App Bridge redirect for embedded apps
                       redirectToOAuth(billingData.confirmationUrl);
                       return;
@@ -306,6 +308,7 @@ function DashboardContent() {
                           billingResponse.status === 403 ||
                           billingData.error?.includes('OAuth required')) {
                         console.log('🔄 Access token invalid, redirecting to OAuth install...');
+                        setLoadingMessage('Connecting to Shopify...');
                         const installUrl = `/api/auth/shopify/install?shop=${encodeURIComponent(shop)}`;
                         // Use App Bridge redirect for proper iframe handling
                         redirectToOAuth(installUrl);
@@ -350,6 +353,7 @@ function DashboardContent() {
 
                       if (billingData.confirmationUrl) {
                         console.log('💰 Redirecting to billing approval:', billingData.confirmationUrl);
+                        setLoadingMessage('Redirecting to billing...');
                         redirectToOAuth(billingData.confirmationUrl);
                         return;
                       } else if (billingData.error || billingData.needsOAuth || !billingResponse.ok) {
@@ -357,6 +361,7 @@ function DashboardContent() {
                         console.error('❌ New install billing failed:', billingData.error, 'Status:', billingResponse.status);
                         // Store was created without valid access token - redirect to OAuth
                         console.log('🔄 Redirecting to OAuth install for new store...');
+                        setLoadingMessage('Connecting to Shopify...');
                         const installUrl = `/api/auth/shopify/install?shop=${encodeURIComponent(shop)}`;
                         redirectToOAuth(installUrl);
                         return;
@@ -565,7 +570,7 @@ function DashboardContent() {
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-solid border-orange-500 border-r-transparent mb-4"></div>
-          <div className="text-white text-xl">Loading dashboard...</div>
+          <div className="text-white text-xl">{loadingMessage}</div>
         </div>
       </div>
     );
