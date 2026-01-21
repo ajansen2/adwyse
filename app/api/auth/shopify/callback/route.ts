@@ -361,14 +361,21 @@ export async function GET(request: NextRequest) {
     console.log('✅ Webhook registration process completed for', shop);
 
     // Create recurring application charge for billing ($99.99/month with 7-day trial)
+    console.log('='.repeat(50));
+    console.log('💰 BILLING SECTION START');
+    console.log('='.repeat(50));
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || `https://${request.headers.get('host')}`;
 
     // Use test mode for development/partner stores
     // Partner test stores often have random names, so also check for non-standard patterns
-    const isTestCharge = shop.includes('-test') ||
-                         shop.includes('development') ||
-                         shop.includes('dev-') ||
-                         /^[a-z0-9]{6,8}-[a-z0-9]{2}\.myshopify\.com$/.test(shop); // Pattern like 2unilf-1m.myshopify.com
+    const hasTestInName = shop.includes('-test');
+    const hasDevelopment = shop.includes('development');
+    const hasDevPrefix = shop.includes('dev-');
+    const matchesPartnerPattern = /^[a-z0-9]{6,8}-[a-z0-9]{2}\.myshopify\.com$/.test(shop);
+
+    console.log('💰 Test store detection:', { hasTestInName, hasDevelopment, hasDevPrefix, matchesPartnerPattern });
+
+    const isTestCharge = hasTestInName || hasDevelopment || hasDevPrefix || matchesPartnerPattern;
 
     // Return URL goes back to Shopify admin app page (same format as working apps)
     const shopName = shop.replace('.myshopify.com', '');
