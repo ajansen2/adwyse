@@ -438,7 +438,8 @@ export async function GET(request: NextRequest) {
           price: 99.99,
           trial_days: 7,
           return_url: returnUrl,
-          test: isTestCharge, // Test mode for development stores
+          // Only include test flag for dev/test stores - real stores should NOT have this flag
+          ...(isTestCharge && { test: true }),
         }
       })
     });
@@ -462,41 +463,45 @@ export async function GET(request: NextRequest) {
       const errorData = await chargeResponse.json().catch(() => null);
       console.error('❌ Failed to create billing charge:', chargeResponse.status, errorData);
 
-      // If billing failed, try creating a TEST charge as fallback
-      console.log('💰 Retrying with test: true...');
-      const retryResponse = await fetch(`https://${shop}/admin/api/2024-01/recurring_application_charges.json`, {
-        method: 'POST',
-        headers: {
-          'X-Shopify-Access-Token': accessToken,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          recurring_application_charge: {
-            name: 'AdWyse - Pro Plan',
-            price: 99.99,
-            trial_days: 7,
-            return_url: returnUrl,
-            test: true, // Force test mode
-          }
-        })
-      });
+      // Only retry with test mode for development stores - real stores should fail if billing fails
+      if (isTestCharge) {
+        console.log('💰 Retrying with test: true for dev store...');
+        const retryResponse = await fetch(`https://${shop}/admin/api/2024-01/recurring_application_charges.json`, {
+          method: 'POST',
+          headers: {
+            'X-Shopify-Access-Token': accessToken,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            recurring_application_charge: {
+              name: 'AdWyse - Pro Plan',
+              price: 99.99,
+              trial_days: 7,
+              return_url: returnUrl,
+              test: true, // Test mode for dev stores only
+            }
+          })
+        });
 
-      if (retryResponse.ok) {
-        const retryData = await retryResponse.json();
-        const confirmationUrl = retryData.recurring_application_charge.confirmation_url;
-        console.log('✅ Test billing charge created on retry, redirecting to confirmation');
+        if (retryResponse.ok) {
+          const retryData = await retryResponse.json();
+          const confirmationUrl = retryData.recurring_application_charge.confirmation_url;
+          console.log('✅ Test billing charge created on retry, redirecting to confirmation');
 
-        const response = NextResponse.redirect(confirmationUrl);
-        response.cookies.delete('shopify_oauth_state');
-        response.cookies.delete('shopify_oauth_merchant_id');
-        response.cookies.delete('shopify_oauth_shop');
-        return response;
+          const response = NextResponse.redirect(confirmationUrl);
+          response.cookies.delete('shopify_oauth_state');
+          response.cookies.delete('shopify_oauth_merchant_id');
+          response.cookies.delete('shopify_oauth_shop');
+          return response;
+        }
+
+        const retryError = await retryResponse.json().catch(() => null);
+        console.error('❌ Retry also failed:', retryResponse.status, retryError);
+      } else {
+        console.error('❌ Billing failed for real store - not retrying with test mode');
       }
 
-      const retryError = await retryResponse.json().catch(() => null);
-      console.error('❌ Retry also failed:', retryResponse.status, retryError);
-
-      // Only redirect to dashboard if all billing attempts fail
+      // Redirect to dashboard if billing fails
       const shopName = shop.replace('.myshopify.com', '');
       const appHandle = 'adwyse';
       const shopifyAdminUrl = `https://admin.shopify.com/store/${shopName}/apps/${appHandle}?shop=${shop}&billing_error=true`;

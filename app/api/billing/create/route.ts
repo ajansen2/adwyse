@@ -126,7 +126,8 @@ export async function POST(request: NextRequest) {
             price: 99.99,
             trial_days: 7,
             return_url: returnUrl,
-            test: isTestCharge,
+            // Only include test flag for dev/test stores - real stores should NOT have this flag
+            ...(isTestCharge && { test: true }),
           },
         }),
       }
