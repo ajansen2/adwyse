@@ -98,7 +98,7 @@ export default function AboutPage() {
                 <div className="text-5xl font-bold gradient-text mb-4">70%</div>
                 <h3 className="text-xl font-bold text-white mb-2">Broken Tracking</h3>
                 <p className="text-white/70">
-                  Apple's iOS 14 update destroyed Facebook and Google ad tracking. Merchants are flying blind, not knowing which ads actually work.
+                  Privacy changes broke Facebook and Google ad tracking. Merchants are flying blind, not knowing which ads actually work.
                 </p>
               </div>
               <div>
@@ -145,7 +145,7 @@ export default function AboutPage() {
                 Hi, I'm Adam. I built AdWyse to solve the biggest problem in e-commerce advertising: broken attribution tracking.
               </p>
               <p className="text-lg text-white/70 mb-4">
-                After iOS 14, Facebook and Google's tracking became unreliable. Merchants started spending thousands on ads without knowing which ones actually drove sales. I watched businesses waste 30-40% of their ad budgets on campaigns that didn't work.
+                Facebook and Google's conversion tracking became unreliable. Merchants started spending thousands on ads without knowing which ones actually drove sales. I watched businesses waste 30-40% of their ad budgets on campaigns that didn't work.
               </p>
               <p className="text-lg text-white/70 mb-4">
                 Existing solutions like Triple Whale ($129-599/month) and Polar Analytics ($199-599/month) are too expensive and complex. Most Shopify merchants spending $1k-50k/month on ads can't justify those prices.

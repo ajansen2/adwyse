@@ -166,7 +166,7 @@ export default function HowItWorksPage() {
                 <div>
                   <h3 className="text-3xl font-bold text-white mb-4">Multi-Source Attribution</h3>
                   <p className="text-white/70 mb-4">
-                    iOS 14 broke Facebook Pixel and Google Analytics tracking. AdWyse fixes it by using multiple attribution methods simultaneously.
+                    Platform-reported conversions are unreliable. AdWyse fixes it by matching actual Shopify orders to your ad campaigns using multiple attribution methods.
                   </p>
                   <p className="text-white/70 mb-4">
                     We track:
@@ -182,7 +182,7 @@ export default function HowItWorksPage() {
                       <svg className="w-6 h-6 text-orange-400 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                      <span><strong>FBCLID:</strong> Facebook Click ID that survives iOS 14 restrictions</span>
+                      <span><strong>FBCLID:</strong> Facebook Click ID for precise Meta attribution</span>
                     </li>
                     <li className="flex items-start gap-3">
                       <svg className="w-6 h-6 text-orange-400 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -226,7 +226,7 @@ export default function HowItWorksPage() {
                     </div>
                     <div>
                       <h4 className="text-xl font-bold text-white">Facebook's Broken ROAS</h4>
-                      <p className="text-red-400 text-sm">Post-iOS 14</p>
+                      <p className="text-red-400 text-sm">Unreliable Estimates</p>
                     </div>
                   </div>
                   <p className="text-white/70 text-sm">
@@ -247,7 +247,7 @@ export default function HowItWorksPage() {
                     </div>
                   </div>
                   <p className="text-white/70 text-sm">
-                    We track orders on your Shopify server (not the customer's browser), so iOS 14 doesn't affect us. You see real revenue from real orders matched to exact ad spend.
+                    We track orders on your Shopify server (not the customer's browser), so privacy restrictions don't affect us. You see real revenue from real orders matched to exact ad spend.
                   </p>
                 </div>
               </div>

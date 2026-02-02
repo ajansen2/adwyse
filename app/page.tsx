@@ -290,7 +290,7 @@ export default function HomePage() {
               maxWidth: '700px',
               margin: '0 auto 50px'
             }}>
-              iOS 14 broke your ad tracking. AdWyse fixes it. Track Facebook, Google, and TikTok ads with AI-powered insights that tell you exactly which campaigns to scale and which to kill.
+              Facebook and Google over-report conversions. AdWyse shows you real ROAS from actual Shopify orders. Track every campaign with AI-powered insights that tell you exactly what to scale and what to kill.
             </p>
             <div style={{ display: 'flex', gap: '30px', justifyContent: 'center', flexWrap: 'wrap', alignItems: 'center' }}>
               <button
@@ -361,7 +361,7 @@ export default function HomePage() {
             textAlign: 'center'
           }}>
             {[
-              { number: '70%', label: 'Of Ad Tracking Broken by iOS 14' },
+              { number: '70%', label: 'Of Platform Conversions Are Inflated' },
               { number: '$2.4B', label: 'Wasted on Bad Ads Annually' },
               { number: '5x', label: 'Better ROAS with Attribution' },
               { number: '< 2min', label: 'Setup Time' }

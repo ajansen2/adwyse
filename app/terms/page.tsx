@@ -216,7 +216,7 @@ export default function TermsPage() {
             <ul className="list-disc list-inside space-y-2 ml-4">
               <li>The Services will be uninterrupted, secure, or error-free</li>
               <li>Data provided will be 100% accurate, complete, or current</li>
-              <li>Attribution tracking will capture 100% of orders (iOS 14 limitations apply)</li>
+              <li>Attribution tracking will capture 100% of orders (platform limitations may apply)</li>
               <li>Defects will be corrected immediately</li>
               <li>The Services will meet your specific requirements</li>
             </ul>

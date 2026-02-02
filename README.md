@@ -4,7 +4,7 @@ AI-powered ad attribution for Shopify merchants. Track which ads actually make y
 
 ## What is AdWyse?
 
-AdWyse solves the attribution crisis caused by iOS 14 privacy updates. We help Shopify merchants:
+AdWyse solves the attribution gap between what ad platforms report and actual Shopify sales. We help Shopify merchants:
 - Track every order back to its original ad source (Facebook, Google, TikTok)
 - Calculate true ROAS (Return on Ad Spend)
 - Get AI-powered insights on which campaigns to pause/scale
