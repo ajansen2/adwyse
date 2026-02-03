@@ -126,15 +126,14 @@ export async function POST(request: NextRequest) {
       store_id: store.id,
       shopify_order_id: order.id.toString(),
       order_number: order.order_number?.toString() || order.name,
-      order_total: parseFloat(order.total_price) || 0,
+      total_price: parseFloat(order.total_price) || 0,
+      currency: order.currency || 'USD',
       customer_email: order.email || order.customer?.email,
-      customer_name: order.customer ? `${order.customer.first_name || ''} ${order.customer.last_name || ''}`.trim() : null,
-      ad_source: adSource,
+      attributed_platform: adSource,
       utm_source: utmSource,
       utm_medium: utmMedium,
       utm_campaign: utmCampaign,
-      landing_page: landingSite,
-      created_at: order.created_at,
+      order_created_at: order.created_at,
     });
 
     if (error) {

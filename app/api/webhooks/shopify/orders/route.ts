@@ -80,14 +80,13 @@ export async function POST(request: NextRequest) {
       .insert({
         store_id: store.id,
         shopify_order_id: orderData.id.toString(),
-        shopify_order_number: orderData.order_number?.toString() || orderData.name,
+        order_number: orderData.order_number?.toString() || orderData.name,
         customer_email: customerEmail,
-        order_total: orderTotal,
+        total_price: orderTotal,
         currency: orderData.currency || 'USD',
 
         // Attribution fields
-        ad_source: adSource,
-        campaign_name: campaignName,
+        attributed_platform: adSource,
         utm_source: utmParams.utm_source,
         utm_medium: utmParams.utm_medium,
         utm_campaign: utmParams.utm_campaign,
@@ -95,10 +94,8 @@ export async function POST(request: NextRequest) {
         utm_term: utmParams.utm_term,
         fbclid: fbclid,
         gclid: gclid,
-        landing_site: landingSite,
-        landing_site_referrer: landingSiteReferrer,
 
-        created_at: orderData.created_at || new Date().toISOString(),
+        order_created_at: orderData.created_at || new Date().toISOString(),
       })
       .select()
       .single();
@@ -119,18 +116,18 @@ export async function POST(request: NextRequest) {
       shopifyOrderId: orderData.id,
       orderTotal,
       adSource,
-      campaignName,
+      utmCampaign: utmParams.utm_campaign,
     });
 
     // If we have a campaign name and ad source, try to link to campaign
-    if (campaignName && adSource) {
-      await linkOrderToCampaign(supabase, insertedOrder.id, store.id, campaignName, adSource);
+    if (utmParams.utm_campaign && adSource) {
+      await linkOrderToCampaign(supabase, insertedOrder.id, store.id, utmParams.utm_campaign, adSource);
     }
 
     return NextResponse.json({
       success: true,
       orderId: insertedOrder.id,
-      attribution: { adSource, campaignName }
+      attribution: { adSource, utmCampaign: utmParams.utm_campaign }
     }, { status: 200 });
 
   } catch (error) {
