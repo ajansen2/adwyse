@@ -1,100 +1,274 @@
+'use client';
+
 import Link from 'next/link';
+import { Navigation } from '@/components/ui/navigation';
+import { Footer } from '@/components/ui/footer';
+import { ArrowRight, Check, HelpCircle } from 'lucide-react';
 
 export default function PricingPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900">
-      <div className="max-w-4xl mx-auto px-6 py-16">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <Link href="/" className="inline-flex items-center gap-3 mb-8">
-            <img src="/logo.png" alt="AdWyse" className="w-12 h-12" />
-            <span className="text-3xl font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
-              AdWyse
-            </span>
-          </Link>
-          <h1 className="text-4xl font-bold text-white mb-4">Simple, Transparent Pricing</h1>
-          <p className="text-white/60 text-lg">Track your ad performance and maximize your ROAS</p>
-        </div>
+    <div className="min-h-screen bg-zinc-950 text-white">
+      <Navigation />
 
-        {/* Pricing Card */}
-        <div className="max-w-md mx-auto">
-          <div className="bg-white/10 backdrop-blur border-2 border-orange-500/50 rounded-2xl p-8 text-center">
-            <div className="inline-flex px-4 py-1 bg-orange-500/20 rounded-full text-orange-300 text-sm font-medium mb-4">
-              Most Popular
+      {/* Hero Section */}
+      <section className="pt-32 pb-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center">
+            <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/20 bg-amber-500/10 px-4 py-2 mb-6">
+              <span className="text-xs font-semibold uppercase tracking-wider text-amber-300">
+                Simple Pricing
+              </span>
             </div>
-            <h2 className="text-2xl font-bold text-white mb-2">Pro Plan</h2>
-            <div className="mb-6">
-              <span className="text-5xl font-bold text-white">$99.99</span>
-              <span className="text-white/60">/month</span>
-            </div>
-            <div className="text-green-400 font-medium mb-6">7-day free trial included</div>
-
-            <ul className="text-left space-y-3 mb-8">
-              <li className="flex items-center gap-3 text-white/80">
-                <svg className="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Connect Facebook, Google & TikTok Ads
-              </li>
-              <li className="flex items-center gap-3 text-white/80">
-                <svg className="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Real-time order attribution
-              </li>
-              <li className="flex items-center gap-3 text-white/80">
-                <svg className="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Accurate ROAS tracking
-              </li>
-              <li className="flex items-center gap-3 text-white/80">
-                <svg className="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                AI-powered campaign insights
-              </li>
-              <li className="flex items-center gap-3 text-white/80">
-                <svg className="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Email performance reports
-              </li>
-              <li className="flex items-center gap-3 text-white/80">
-                <svg className="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Performance alerts
-              </li>
-              <li className="flex items-center gap-3 text-white/80">
-                <svg className="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                CSV data export
-              </li>
-              <li className="flex items-center gap-3 text-white/80">
-                <svg className="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Unlimited orders tracked
-              </li>
-            </ul>
-
-            <a
-              href="https://apps.shopify.com/adwyse"
-              className="block w-full py-3 px-6 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold rounded-lg transition"
-            >
-              Start Free Trial
-            </a>
-            <p className="text-white/40 text-sm mt-3">No credit card required</p>
+            <h1 className="text-5xl md:text-6xl font-bold mb-6">
+              One Plan,{" "}
+              <span className="bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">
+                Unlimited Value
+              </span>
+            </h1>
+            <p className="text-xl text-zinc-400 max-w-3xl mx-auto">
+              No complex tiers, no hidden fees. Just powerful attribution that pays for itself.
+            </p>
           </div>
         </div>
+      </section>
 
-        {/* Footer */}
-        <div className="text-center mt-12 text-white/40 text-sm">
-          <p>Questions? Contact us at <a href="mailto:support@adwyse.ca" className="text-orange-400 hover:underline">support@adwyse.ca</a></p>
+      {/* Pricing Card */}
+      <section className="py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-lg mx-auto">
+          <div className="relative overflow-hidden rounded-3xl border-2 border-amber-500/50 bg-gradient-to-b from-amber-500/10 to-transparent p-8 md:p-12">
+            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 rounded-full bg-amber-500/10 blur-3xl" />
+            <div className="absolute top-6 right-6 px-3 py-1 bg-amber-500 rounded-full text-xs font-bold">
+              BEST VALUE
+            </div>
+
+            <div className="relative z-10">
+              <div className="mb-8">
+                <div className="text-amber-400 font-semibold mb-2">Pro Plan</div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-5xl font-bold">$99</span>
+                  <span className="text-zinc-400">/month</span>
+                </div>
+                <p className="text-zinc-500 mt-2">Billed monthly · Cancel anytime</p>
+              </div>
+
+              <div className="inline-flex items-center gap-2 rounded-full bg-green-500/10 border border-green-500/20 px-4 py-2 mb-8">
+                <span className="text-green-400 font-medium">7-day free trial included</span>
+              </div>
+
+              <ul className="space-y-4 mb-8">
+                {[
+                  "Unlimited order tracking",
+                  "Facebook Ads integration",
+                  "Google Ads integration",
+                  "TikTok Ads integration",
+                  "AI-powered insights by Claude",
+                  "Real ROAS calculations",
+                  "Campaign comparison",
+                  "Revenue attribution",
+                  "Email performance reports",
+                  "CSV data export"
+                ].map((feature, i) => (
+                  <li key={i} className="flex items-center gap-3 text-zinc-300">
+                    <div className="w-5 h-5 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                      <Check className="w-3 h-3 text-amber-400" />
+                    </div>
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+
+              <button
+                onClick={() => window.location.href = '/dashboard'}
+                className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-600 rounded-xl font-semibold text-lg hover:shadow-lg hover:shadow-amber-500/25 transition flex items-center justify-center gap-2"
+              >
+                Start Free Trial
+                <ArrowRight className="w-5 h-5" />
+              </button>
+
+              <p className="text-center text-zinc-500 text-sm mt-4">
+                No credit card required for trial
+              </p>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
+
+      {/* Comparison Section */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-zinc-900/50">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Compare & Save
+            </h2>
+            <p className="text-zinc-400 text-lg">
+              See how AdWyse stacks up against enterprise alternatives
+            </p>
+          </div>
+
+          <div className="overflow-hidden rounded-2xl border border-white/10">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-white/10 bg-white/5">
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-zinc-300">Feature</th>
+                  <th className="px-6 py-4 text-center text-sm font-semibold text-amber-400">AdWyse</th>
+                  <th className="px-6 py-4 text-center text-sm font-semibold text-zinc-500">Triple Whale</th>
+                  <th className="px-6 py-4 text-center text-sm font-semibold text-zinc-500">Polar Analytics</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                <tr>
+                  <td className="px-6 py-4 text-sm text-zinc-400">Starting Price</td>
+                  <td className="px-6 py-4 text-center text-sm font-semibold text-amber-400">$99/mo</td>
+                  <td className="px-6 py-4 text-center text-sm text-zinc-500">$129/mo</td>
+                  <td className="px-6 py-4 text-center text-sm text-zinc-500">$199/mo</td>
+                </tr>
+                <tr className="bg-white/[0.02]">
+                  <td className="px-6 py-4 text-sm text-zinc-400">Order Attribution</td>
+                  <td className="px-6 py-4 text-center"><Check className="w-5 h-5 text-green-400 mx-auto" /></td>
+                  <td className="px-6 py-4 text-center"><Check className="w-5 h-5 text-zinc-600 mx-auto" /></td>
+                  <td className="px-6 py-4 text-center"><Check className="w-5 h-5 text-zinc-600 mx-auto" /></td>
+                </tr>
+                <tr>
+                  <td className="px-6 py-4 text-sm text-zinc-400">AI-Powered Insights</td>
+                  <td className="px-6 py-4 text-center"><Check className="w-5 h-5 text-green-400 mx-auto" /></td>
+                  <td className="px-6 py-4 text-center text-zinc-600">Limited</td>
+                  <td className="px-6 py-4 text-center text-zinc-600">No</td>
+                </tr>
+                <tr className="bg-white/[0.02]">
+                  <td className="px-6 py-4 text-sm text-zinc-400">Multi-Platform (FB, Google, TikTok)</td>
+                  <td className="px-6 py-4 text-center"><Check className="w-5 h-5 text-green-400 mx-auto" /></td>
+                  <td className="px-6 py-4 text-center"><Check className="w-5 h-5 text-zinc-600 mx-auto" /></td>
+                  <td className="px-6 py-4 text-center"><Check className="w-5 h-5 text-zinc-600 mx-auto" /></td>
+                </tr>
+                <tr>
+                  <td className="px-6 py-4 text-sm text-zinc-400">Unlimited Orders</td>
+                  <td className="px-6 py-4 text-center"><Check className="w-5 h-5 text-green-400 mx-auto" /></td>
+                  <td className="px-6 py-4 text-center text-zinc-600">Tiered</td>
+                  <td className="px-6 py-4 text-center text-zinc-600">Tiered</td>
+                </tr>
+                <tr className="bg-white/[0.02]">
+                  <td className="px-6 py-4 text-sm text-zinc-400">Setup Time</td>
+                  <td className="px-6 py-4 text-center text-sm font-semibold text-amber-400">2 minutes</td>
+                  <td className="px-6 py-4 text-center text-sm text-zinc-500">30+ min</td>
+                  <td className="px-6 py-4 text-center text-sm text-zinc-500">30+ min</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      {/* ROI Calculator */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-8 md:p-12">
+            <div className="absolute top-0 left-0 -ml-20 -mt-20 w-64 h-64 rounded-full bg-amber-500/5 blur-3xl" />
+
+            <div className="relative z-10 text-center">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                Calculate Your ROI
+              </h2>
+              <p className="text-zinc-400 mb-8 max-w-2xl mx-auto">
+                If you spend $10,000/month on ads and waste just 15% on underperforming campaigns:
+              </p>
+
+              <div className="grid md:grid-cols-3 gap-6 mb-8">
+                <div className="rounded-2xl border border-white/10 bg-zinc-900 p-6">
+                  <div className="text-4xl font-bold text-red-400 mb-2">$1,500</div>
+                  <div className="text-zinc-400 text-sm">Wasted monthly</div>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-zinc-900 p-6">
+                  <div className="text-4xl font-bold text-amber-400 mb-2">$99</div>
+                  <div className="text-zinc-400 text-sm">AdWyse cost</div>
+                </div>
+                <div className="rounded-2xl border border-green-500/20 bg-green-500/5 p-6">
+                  <div className="text-4xl font-bold text-green-400 mb-2">15x</div>
+                  <div className="text-zinc-400 text-sm">Your ROI</div>
+                </div>
+              </div>
+
+              <p className="text-zinc-400">
+                Most merchants save <span className="text-amber-400 font-semibold">$1,500-3,000/month</span> by cutting bad campaigns
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-zinc-900/50">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Frequently Asked Questions
+            </h2>
+          </div>
+
+          <div className="space-y-4">
+            {[
+              {
+                q: "How does the 7-day free trial work?",
+                a: "Install AdWyse and connect your ad accounts. You get full access for 7 days with no credit card required. If you love it, you'll be prompted to subscribe."
+              },
+              {
+                q: "Can I cancel anytime?",
+                a: "Yes! No contracts, no commitments. Cancel from your Shopify admin whenever you want. Your data stays accessible until your billing period ends."
+              },
+              {
+                q: "What ad platforms do you support?",
+                a: "Currently Facebook Ads and Google Ads, with TikTok Ads coming soon. We track all orders and attribute them to the correct campaign source."
+              },
+              {
+                q: "How is ROAS calculated?",
+                a: "We pull your actual ad spend from Facebook/Google APIs daily and match it with Shopify orders attributed to each campaign. ROAS = Revenue / Ad Spend."
+              },
+              {
+                q: "What makes the AI insights special?",
+                a: "Claude AI analyzes your campaign data daily and generates specific, actionable recommendations. Not generic tips - actual decisions like 'pause campaign X' or 'increase budget on Y'."
+              }
+            ].map((faq, i) => (
+              <div
+                key={i}
+                className="rounded-2xl border border-white/10 bg-white/5 p-6"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <HelpCircle className="w-4 h-4 text-amber-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-2">{faq.q}</h3>
+                    <p className="text-zinc-400">{faq.a}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-4xl md:text-5xl font-bold mb-6">
+            Ready to Stop Wasting Ad Spend?
+          </h2>
+          <p className="text-zinc-400 text-lg mb-8">
+            Join Shopify merchants who track every dollar with AI-powered attribution.
+          </p>
+          <button
+            onClick={() => window.location.href = '/dashboard'}
+            className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-600 rounded-full font-semibold text-lg hover:shadow-lg hover:shadow-amber-500/25 transition"
+          >
+            Start Free Trial
+            <ArrowRight className="w-5 h-5" />
+          </button>
+          <p className="text-zinc-500 text-sm mt-4">
+            7-day free trial · $99/month · No credit card required
+          </p>
+        </div>
+      </section>
+
+      <Footer />
     </div>
   );
 }
