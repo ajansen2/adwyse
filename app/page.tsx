@@ -2,6 +2,17 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { InteractiveGlobe } from '@/components/ui/interactive-globe'
+import { StatsMarquee } from '@/components/ui/stats-marquee'
+
+const heroStats = [
+  { value: "70%", label: "Platform Over-Reporting" },
+  { value: "$2.4B", label: "Wasted on Bad Ads" },
+  { value: "5x", label: "Better ROAS" },
+  { value: "<2min", label: "Setup Time" },
+  { value: "$99/mo", label: "Flat Pricing" },
+  { value: "7-Day", label: "Free Trial" },
+]
 
 export default function HomePage() {
   const router = useRouter()
@@ -334,9 +345,18 @@ export default function HomePage() {
               </button>
             </div>
 
-            <div style={{ marginTop: '30px', color: '#888', fontSize: '14px' }}>
-              ✓ 7-day free trial • ✓ $99/month • ✓ 2-minute setup
-            </div>
+          </div>
+
+          {/* Interactive Globe - positioned right side on desktop */}
+          <div style={{
+            position: 'absolute',
+            right: '-100px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            opacity: 0.6,
+            display: 'none',
+          }} className="hidden lg:block">
+            <InteractiveGlobe size={500} />
           </div>
 
           <div style={{
@@ -350,8 +370,13 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Stats Section */}
-        <section style={{ padding: '80px 20px', background: '#0f0f0f' }}>
+        {/* Stats Marquee Section */}
+        <section style={{ padding: '40px 0', background: '#0f0f0f', overflow: 'hidden' }}>
+          <StatsMarquee stats={heroStats} speed={25} />
+        </section>
+
+        {/* Features Section - continue with original stats display for SEO */}
+        <section style={{ padding: '60px 20px', background: '#0f0f0f' }}>
           <div style={{
             maxWidth: '1400px',
             margin: '0 auto',
