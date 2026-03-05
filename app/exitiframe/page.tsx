@@ -19,7 +19,7 @@ function ExitIframeContent() {
 
     // Construct the proper Shopify admin embedded app URL
     // This uses the Shopify admin path structure with just the app handle and relative path
-    const appUrl = `https://admin.shopify.com/store/${shopName}/apps/argora-cart-recovery${redirectUri}`;
+    const appUrl = `https://admin.shopify.com/store/${shopName}/apps/adwyse${redirectUri}`;
 
     // Use window.top to break out of iframe and redirect
     if (window.top) {

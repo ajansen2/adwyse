@@ -26,7 +26,7 @@ function BillingSuccessContent() {
         // If we at least have shop, redirect to embedded dashboard
         if (shop) {
           const shopName = shop.replace('.myshopify.com', '');
-          const redirectUrl = `https://admin.shopify.com/store/${shopName}/apps/argora-cart-recovery/dashboard?error=billing_params_missing`;
+          const redirectUrl = `https://admin.shopify.com/store/${shopName}/apps/adwyse/dashboard?error=billing_params_missing`;
           console.log('🔄 Redirecting to (with shop):', redirectUrl);
           window.top!.location.href = redirectUrl;
         } else {
@@ -43,18 +43,18 @@ function BillingSuccessContent() {
         if (response.ok) {
           // Successfully processed - redirect to dashboard WITH shop parameter for embedded app
           const shopName = shop.replace('.myshopify.com', '');
-          const dashboardUrl = `https://admin.shopify.com/store/${shopName}/apps/argora-cart-recovery/dashboard?billing=success`;
+          const dashboardUrl = `https://admin.shopify.com/store/${shopName}/apps/adwyse/dashboard?billing=success`;
           console.log('✅ Billing processed, redirecting to:', dashboardUrl);
           window.top!.location.href = dashboardUrl;
         } else {
           console.error('Billing callback failed');
           const shopName = shop.replace('.myshopify.com', '');
-          window.top!.location.href = `https://admin.shopify.com/store/${shopName}/apps/argora-cart-recovery/dashboard?error=billing_failed`;
+          window.top!.location.href = `https://admin.shopify.com/store/${shopName}/apps/adwyse/dashboard?error=billing_failed`;
         }
       } catch (error) {
         console.error('Error processing billing:', error);
         const shopName = shop!.replace('.myshopify.com', '');
-        window.top!.location.href = `https://admin.shopify.com/store/${shopName}/apps/argora-cart-recovery/dashboard?error=billing_error`;
+        window.top!.location.href = `https://admin.shopify.com/store/${shopName}/apps/adwyse/dashboard?error=billing_error`;
       }
     }
 
