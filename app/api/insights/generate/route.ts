@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
+import { requireActiveSubscription } from '@/lib/check-subscription';
 
 /**
  * Generate AI insights for a store's campaigns using Claude
@@ -15,6 +16,12 @@ export async function POST(request: NextRequest) {
 
     if (!storeId) {
       return NextResponse.json({ error: 'Store ID required' }, { status: 400 });
+    }
+
+    // Check subscription status
+    const subscriptionCheck = await requireActiveSubscription(storeId);
+    if ('error' in subscriptionCheck) {
+      return subscriptionCheck.error;
     }
 
     // Check for Anthropic API key
