@@ -131,15 +131,17 @@ export async function GET(request: NextRequest) {
       })) || [];
 
       // Log the query for Built for Shopify tracking
-      await supabase.from('segment_queries').insert({
-        store_id: storeId,
-        segment_id: segmentId,
-        member_count: members.length,
-        queried_at: new Date().toISOString(),
-      }).catch(() => {
-        // Table may not exist yet
+      try {
+        await supabase.from('segment_queries').insert({
+          store_id: storeId,
+          segment_id: segmentId,
+          member_count: members.length,
+          queried_at: new Date().toISOString(),
+        });
         console.log('📝 Segment query logged');
-      });
+      } catch {
+        // Table may not exist yet - that's OK
+      }
 
       return NextResponse.json({
         segmentId,
@@ -257,14 +259,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Log the sync for Built for Shopify compliance
-    await supabase.from('segment_queries').insert({
-      store_id: storeId,
-      segment_id: 'sync_all',
-      member_count: totalMembers,
-      queried_at: new Date().toISOString(),
-    }).catch(() => {
+    try {
+      await supabase.from('segment_queries').insert({
+        store_id: storeId,
+        segment_id: 'sync_all',
+        member_count: totalMembers,
+        queried_at: new Date().toISOString(),
+      });
       console.log('📝 Segment sync logged');
-    });
+    } catch {
+      // Table may not exist yet - that's OK
+    }
 
     return NextResponse.json({
       message: 'Segment sync complete',

@@ -51,46 +51,50 @@ export async function POST(request: NextRequest) {
     }
 
     // Log customer event for analytics/attribution purposes
+    // Note: Table may not exist yet - errors are non-critical
     switch (topic) {
       case 'customers/create':
         console.log('👤 New customer created:', payload.id, payload.email);
-        // Track new customer acquisition - useful for attribution
-        await supabase.from('customer_events').insert({
-          store_id: store.id,
-          customer_id: String(payload.id),
-          event_type: 'created',
-          customer_email: payload.email,
-          created_at: new Date().toISOString(),
-        }).catch(() => {
-          // Table may not exist - that's OK, we're just logging
-          console.log('📝 Customer event logged (or table not yet created)');
-        });
+        try {
+          await supabase.from('customer_events').insert({
+            store_id: store.id,
+            customer_id: String(payload.id),
+            event_type: 'created',
+            customer_email: payload.email,
+            created_at: new Date().toISOString(),
+          });
+        } catch {
+          // Table may not exist - that's OK
+        }
         break;
 
       case 'customers/update':
         console.log('👤 Customer updated:', payload.id);
-        await supabase.from('customer_events').insert({
-          store_id: store.id,
-          customer_id: String(payload.id),
-          event_type: 'updated',
-          customer_email: payload.email,
-          created_at: new Date().toISOString(),
-        }).catch(() => {
-          console.log('📝 Customer event logged (or table not yet created)');
-        });
+        try {
+          await supabase.from('customer_events').insert({
+            store_id: store.id,
+            customer_id: String(payload.id),
+            event_type: 'updated',
+            customer_email: payload.email,
+            created_at: new Date().toISOString(),
+          });
+        } catch {
+          // Table may not exist - that's OK
+        }
         break;
 
       case 'customers/delete':
         console.log('👤 Customer deleted:', payload.id);
-        // Clean up any customer data we have
-        await supabase.from('customer_events').insert({
-          store_id: store.id,
-          customer_id: String(payload.id),
-          event_type: 'deleted',
-          created_at: new Date().toISOString(),
-        }).catch(() => {
-          console.log('📝 Customer event logged (or table not yet created)');
-        });
+        try {
+          await supabase.from('customer_events').insert({
+            store_id: store.id,
+            customer_id: String(payload.id),
+            event_type: 'deleted',
+            created_at: new Date().toISOString(),
+          });
+        } catch {
+          // Table may not exist - that's OK
+        }
         break;
 
       default:
