@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
-import { requireActiveSubscription } from '@/lib/check-subscription';
+import { requireProTier } from '@/lib/check-subscription';
 
 /**
  * Generate AI insights for a store's campaigns using Claude
+ * PRO FEATURE - requires active Pro subscription
  */
 export async function POST(request: NextRequest) {
   console.log('🤖 [AI Insights] Starting generation...');
@@ -18,8 +19,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Store ID required' }, { status: 400 });
     }
 
-    // Check subscription status
-    const subscriptionCheck = await requireActiveSubscription(storeId);
+    // Check subscription - AI Insights is a Pro feature
+    const subscriptionCheck = await requireProTier(storeId, 'ai_insights');
     if ('error' in subscriptionCheck) {
       return subscriptionCheck.error;
     }

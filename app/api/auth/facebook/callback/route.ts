@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
+import { checkAdAccountLimit } from '@/lib/subscription-tiers';
 
 // Facebook OAuth - Handle callback
 export async function GET(request: NextRequest) {
@@ -76,9 +77,22 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    // Save each ad account
+    // Check ad account limits before saving
+    const limitCheck = await checkAdAccountLimit(storeId);
+
+    // Save each ad account (respecting tier limits)
     if (adAccountsData.data && adAccountsData.data.length > 0) {
+      let connectedCount = 0;
+      let skippedDueToLimit = 0;
+
       for (const adAccount of adAccountsData.data) {
+        // Re-check limit before each account (in case they're on free tier)
+        const currentLimit = await checkAdAccountLimit(storeId);
+        if (!currentLimit.allowed) {
+          skippedDueToLimit++;
+          continue;
+        }
+
         const { error: upsertError } = await supabase.from('ad_accounts').upsert({
           store_id: storeId,
           platform: 'facebook',
@@ -92,10 +106,16 @@ export async function GET(request: NextRequest) {
 
         if (upsertError) {
           console.error('❌ Error saving ad account:', upsertError);
+        } else {
+          connectedCount++;
         }
       }
 
-      console.log(`✅ Connected ${adAccountsData.data.length} Facebook ad accounts for store ${storeId}`);
+      if (skippedDueToLimit > 0) {
+        console.log(`⚠️ Connected ${connectedCount} accounts, skipped ${skippedDueToLimit} due to plan limits`);
+      } else {
+        console.log(`✅ Connected ${connectedCount} Facebook ad accounts for store ${storeId}`);
+      }
     } else {
       console.log('⚠️ No ad accounts found for this Facebook user');
     }

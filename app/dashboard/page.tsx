@@ -70,6 +70,8 @@ function DashboardContent() {
   const itemsPerPage = 20;
   const [latestInsight, setLatestInsight] = useState<any>(null);
   const [generatingInsight, setGeneratingInsight] = useState(false);
+  const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'trial' | 'pro'>('trial');
+  const [tierLimits, setTierLimits] = useState<{adAccounts: number; ordersPerMonth: number; aiInsights: boolean} | null>(null);
   const [dateRangeOption, setDateRangeOption] = useState<DateRangeOption>('30d');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [customStartDate, setCustomStartDate] = useState('');
@@ -501,6 +503,19 @@ function DashboardContent() {
                   setLatestInsight(insightsJson.insights[0]);
                 }
               }
+
+              // Fetch subscription tier info
+              const tierXhr = new XMLHttpRequest();
+              tierXhr.open('GET', `/api/subscription/tier?store_id=${storeId}`, false);
+              tierXhr.send();
+
+              if (tierXhr.status === 200) {
+                const tierJson = JSON.parse(tierXhr.responseText);
+                if (tierJson.tier) {
+                  setSubscriptionTier(tierJson.tier);
+                  setTierLimits(tierJson.limits);
+                }
+              }
             }
           }
         } catch (error) {
@@ -847,17 +862,23 @@ function DashboardContent() {
 
               {(() => {
                 const store = stores[0];
-                const isTrialing = store?.subscription_status === 'trial' ||
-                  (store?.trial_ends_at && new Date(store.trial_ends_at) > new Date());
 
-                if (isTrialing && store?.trial_ends_at) {
+                if (subscriptionTier === 'free') {
+                  return (
+                    <span className="px-3 py-1 bg-zinc-600/20 border border-zinc-500/30 rounded-full text-zinc-300 text-sm font-medium">
+                      Free Plan
+                    </span>
+                  );
+                }
+
+                if (subscriptionTier === 'trial' && store?.trial_ends_at) {
                   const trialEnd = new Date(store.trial_ends_at);
                   const now = new Date();
                   const daysLeft = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
                   return (
                     <span className="px-3 py-1 bg-green-600/20 border border-green-500/30 rounded-full text-green-300 text-sm font-medium">
-                      Pro Plan <span className="text-yellow-300">({daysLeft} day{daysLeft !== 1 ? 's' : ''} left)</span>
+                      Pro Trial <span className="text-yellow-300">({daysLeft} day{daysLeft !== 1 ? 's' : ''} left)</span>
                     </span>
                   );
                 }
@@ -871,6 +892,36 @@ function DashboardContent() {
             </div>
           </div>
         </header>
+
+        {/* Free Tier Upgrade Banner */}
+        {subscriptionTier === 'free' && (
+          <div className="mx-6 mt-6 mb-0 bg-gradient-to-r from-amber-500/20 to-orange-500/20 border-2 border-amber-500/50 rounded-xl p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-amber-500/30 rounded-full flex items-center justify-center flex-shrink-0">
+                  <svg className="w-6 h-6 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">You&apos;re on the Free Plan</h3>
+                  <p className="text-amber-100/80 text-sm">
+                    Limited to {tierLimits?.ordersPerMonth || 100} orders/month and {tierLimits?.adAccounts || 1} ad account. Upgrade for unlimited tracking + AI insights.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => navigateInApp('/dashboard/settings?upgrade=true')}
+                className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 rounded-lg text-white font-semibold hover:shadow-lg hover:shadow-amber-500/25 transition flex items-center gap-2"
+              >
+                Upgrade to Pro
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Billing Success Notification */}
         {showBillingSuccess && (
@@ -1175,25 +1226,45 @@ function DashboardContent() {
                   <p className="text-white/60 mb-6 max-w-md mx-auto">
                     Let AI analyze your campaign performance and get personalized recommendations to improve your ROAS.
                   </p>
-                  <button
-                    onClick={handleGenerateInsight}
-                    disabled={generatingInsight}
-                    className="px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800 disabled:cursor-not-allowed text-white rounded-lg font-medium transition inline-flex items-center gap-2"
-                  >
-                    {generatingInsight ? (
-                      <>
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        Generating Insights...
-                      </>
-                    ) : (
-                      <>
+                  {subscriptionTier === 'free' ? (
+                    <div>
+                      <div className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-600/30 rounded-lg text-zinc-400 mb-4">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                         </svg>
-                        Generate Insights
-                      </>
-                    )}
-                  </button>
+                        Pro Feature
+                      </div>
+                      <button
+                        onClick={() => navigateInApp('/dashboard/settings?upgrade=true')}
+                        className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 rounded-lg text-white font-medium transition inline-flex items-center gap-2"
+                      >
+                        Upgrade to Unlock
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleGenerateInsight}
+                      disabled={generatingInsight}
+                      className="px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800 disabled:cursor-not-allowed text-white rounded-lg font-medium transition inline-flex items-center gap-2"
+                    >
+                      {generatingInsight ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          Generating Insights...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                          Generate Insights
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
               )}
 

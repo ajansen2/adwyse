@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { checkSubscription } from '@/lib/check-subscription';
 
 /**
  * Get alert settings for a store
@@ -18,6 +19,10 @@ export async function GET(request: NextRequest) {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
+    // Check subscription to determine feature access
+    const subscription = await checkSubscription(storeId);
+    const canUseCustomAlerts = subscription.limits.customAlerts;
+
     const { data: settings } = await supabase
       .from('store_settings')
       .select('roas_alert_enabled, roas_threshold, spend_alert_enabled, spend_threshold')
@@ -29,6 +34,8 @@ export async function GET(request: NextRequest) {
       roas_threshold: settings?.roas_threshold || 1.5,
       spend_alert_enabled: settings?.spend_alert_enabled || false,
       spend_threshold: settings?.spend_threshold || 100,
+      tier: subscription.tier,
+      canUseCustomAlerts,
     });
   } catch (error) {
     console.error('Error fetching alert settings:', error);
@@ -41,6 +48,7 @@ export async function GET(request: NextRequest) {
 
 /**
  * Update alert settings for a store
+ * PRO FEATURE - Custom alerts require Pro subscription
  */
 export async function POST(request: NextRequest) {
   try {
@@ -49,6 +57,16 @@ export async function POST(request: NextRequest) {
 
     if (!storeId) {
       return NextResponse.json({ error: 'Store ID required' }, { status: 400 });
+    }
+
+    // Check subscription - Custom Alerts is a Pro feature
+    const subscription = await checkSubscription(storeId);
+    if (!subscription.limits.customAlerts) {
+      return NextResponse.json({
+        error: 'Pro feature required',
+        message: 'Custom alerts are a Pro feature. Upgrade to unlock.',
+        currentTier: subscription.tier
+      }, { status: 403 });
     }
 
     const supabase = createClient(
