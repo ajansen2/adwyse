@@ -521,6 +521,18 @@ function DashboardContent() {
                   setTierLimits(tierJson.limits);
                 }
               }
+
+              // Sync customer segments in background (for Built for Shopify requirement)
+              // This queries customerSegmentMembers API as required
+              fetch('/api/segments', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ storeId }),
+              }).then(() => {
+                console.log('📊 Customer segments synced');
+              }).catch(() => {
+                // Non-critical, ignore errors
+              });
             }
           }
         } catch (error) {

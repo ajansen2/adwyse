@@ -34,65 +34,68 @@ export async function POST(request: NextRequest) {
 
     // Extract shop domain from store (AdWyse uses shop_domain column)
     const shop = store.shop_domain;
-    const ordersWebhookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/shopify/orders`;
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL;
 
     console.log('🔧 Registering webhooks for', shop);
-    console.log('📍 Orders Webhook URL:', ordersWebhookUrl);
 
-    // Register orders/create webhook (for attribution tracking)
-    const ordersCreateWebhook = await fetch(`https://${shop}/admin/api/2025-01/webhooks.json`, {
-      method: 'POST',
-      headers: {
-        'X-Shopify-Access-Token': store.access_token,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        webhook: {
-          topic: 'orders/create',
-          address: ordersWebhookUrl,
-          format: 'json',
+    // Helper function to register a webhook
+    async function registerWebhook(topic: string, endpoint: string) {
+      const url = `${baseUrl}${endpoint}`;
+      console.log(`📍 Registering ${topic} webhook:`, url);
+
+      const response = await fetch(`https://${shop}/admin/api/2025-01/webhooks.json`, {
+        method: 'POST',
+        headers: {
+          'X-Shopify-Access-Token': store.access_token,
+          'Content-Type': 'application/json',
         },
-      }),
-    });
+        body: JSON.stringify({
+          webhook: {
+            topic,
+            address: url,
+            format: 'json',
+          },
+        }),
+      });
 
-    if (!ordersCreateWebhook.ok) {
-      const errorText = await ordersCreateWebhook.text();
-      console.error('❌ Failed to register orders/create webhook:', errorText);
-      return NextResponse.json({
-        error: 'Failed to register webhook',
-        details: errorText
-      }, { status: ordersCreateWebhook.status });
+      if (!response.ok) {
+        const errorText = await response.text();
+        // Check if webhook already exists (409 conflict)
+        if (response.status === 409 || errorText.includes('already exists')) {
+          console.log(`⚠️ ${topic} webhook already exists`);
+          return { exists: true };
+        }
+        console.error(`❌ Failed to register ${topic} webhook:`, errorText);
+        return { error: errorText };
+      }
+
+      const result = await response.json();
+      console.log(`✅ ${topic} webhook registered`);
+      return result;
     }
 
-    const ordersCreateResult = await ordersCreateWebhook.json();
-    console.log('✅ orders/create webhook registered:', ordersCreateResult);
+    // Register all required webhooks for Built for Shopify
+    const webhookResults: Record<string, any> = {};
 
-    // Register app/uninstalled webhook
-    const uninstallWebhookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/shopify/uninstall`;
-    const uninstallWebhook = await fetch(`https://${shop}/admin/api/2025-01/webhooks.json`, {
-      method: 'POST',
-      headers: {
-        'X-Shopify-Access-Token': store.access_token,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        webhook: {
-          topic: 'app/uninstalled',
-          address: uninstallWebhookUrl,
-          format: 'json',
-        },
-      }),
-    });
+    // Orders webhook (core functionality)
+    webhookResults.orders_create = await registerWebhook('orders/create', '/api/webhooks/shopify/orders');
 
-    const uninstallResult = uninstallWebhook.ok ? await uninstallWebhook.json() : null;
-    console.log('✅ app/uninstalled webhook registered:', uninstallResult);
+    // App lifecycle
+    webhookResults.app_uninstalled = await registerWebhook('app/uninstalled', '/api/webhooks/shopify/uninstall');
+
+    // Customer events (required for Built for Shopify - Ads & Analytics category)
+    webhookResults.customers_create = await registerWebhook('customers/create', '/api/webhooks/shopify/customers');
+    webhookResults.customers_update = await registerWebhook('customers/update', '/api/webhooks/shopify/customers');
+    webhookResults.customers_delete = await registerWebhook('customers/delete', '/api/webhooks/shopify/customers');
+
+    // Compliance webhooks (required)
+    webhookResults.customers_data_request = await registerWebhook('customers/data_request', '/api/webhooks/shopify/compliance');
+    webhookResults.customers_redact = await registerWebhook('customers/redact', '/api/webhooks/shopify/compliance');
+    webhookResults.shop_redact = await registerWebhook('shop/redact', '/api/webhooks/shopify/compliance');
 
     return NextResponse.json({
       success: true,
-      webhooks: {
-        orders_create: ordersCreateResult,
-        app_uninstalled: uninstallResult,
-      },
+      webhooks: webhookResults,
     });
   } catch (error) {
     console.error('❌ Webhook registration error:', error);

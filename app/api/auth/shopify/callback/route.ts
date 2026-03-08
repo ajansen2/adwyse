@@ -358,6 +358,42 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Register customer event webhooks (REQUIRED for Built for Shopify - Ads & Analytics category)
+    const customerTopics = [
+      'customers/create',
+      'customers/update',
+      'customers/delete'
+    ];
+
+    for (const customerTopic of customerTopics) {
+      const customerResponse = await fetch(`https://${shop}/admin/api/2024-01/webhooks.json`, {
+        method: 'POST',
+        headers: {
+          'X-Shopify-Access-Token': accessToken,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          webhook: {
+            topic: customerTopic,
+            address: `${webhookUrl}/customers`,
+            format: 'json',
+          },
+        }),
+      });
+
+      const customerData = await customerResponse.json();
+      if (!customerResponse.ok) {
+        // Check if already exists (not an error)
+        if (customerResponse.status !== 409 && !JSON.stringify(customerData).includes('already exists')) {
+          console.error(`❌ Failed to register ${customerTopic} webhook:`, customerData);
+        } else {
+          console.log(`⚠️ ${customerTopic} webhook already exists`);
+        }
+      } else {
+        console.log(`✅ ${customerTopic} webhook registered:`, customerData.webhook?.id);
+      }
+    }
+
     console.log('✅ Webhook registration process completed for', shop);
 
     // Create recurring application charge for billing ($99.99/month with 7-day trial)
