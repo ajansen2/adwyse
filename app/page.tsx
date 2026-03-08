@@ -444,7 +444,13 @@ export default function HomePage() {
                   <th className="px-6 py-5 text-left text-sm font-semibold text-zinc-300">Feature</th>
                   <th className="px-6 py-5 text-center">
                     <div className="flex flex-col items-center">
-                      <span className="text-amber-400 font-bold">AdWyse</span>
+                      <span className="text-green-400 font-bold">AdWyse Free</span>
+                      <span className="text-xs text-zinc-500 mt-1">$0/mo</span>
+                    </div>
+                  </th>
+                  <th className="px-6 py-5 text-center">
+                    <div className="flex flex-col items-center">
+                      <span className="text-amber-400 font-bold">AdWyse Pro</span>
                       <span className="text-xs text-zinc-500 mt-1">$99/mo</span>
                     </div>
                   </th>
@@ -454,34 +460,36 @@ export default function HomePage() {
                       <span className="text-xs text-zinc-600 mt-1">$129-599/mo</span>
                     </div>
                   </th>
-                  <th className="px-6 py-5 text-center">
-                    <div className="flex flex-col items-center">
-                      <span className="text-zinc-500 font-semibold">Polar Analytics</span>
-                      <span className="text-xs text-zinc-600 mt-1">$199-599/mo</span>
-                    </div>
-                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {[
-                  { feature: "Order Attribution", adwyse: true, tw: true, polar: true },
-                  { feature: "AI-Powered Insights", adwyse: true, tw: "Limited", polar: false },
-                  { feature: "Multi-Platform Tracking", adwyse: true, tw: true, polar: true },
-                  { feature: "Unlimited Orders", adwyse: true, tw: "Tiered", polar: "Tiered" },
-                  { feature: "Real-Time Sync", adwyse: true, tw: true, polar: true },
-                  { feature: "Setup Time", adwyse: "2 min", tw: "30+ min", polar: "30+ min" },
-                  { feature: "Free Trial", adwyse: "7 days", tw: "7 days", polar: "14 days" },
-                  { feature: "No Revenue Caps", adwyse: true, tw: false, polar: false }
+                  { feature: "Order Attribution", free: true, pro: true, tw: true },
+                  { feature: "Ad Accounts", free: "1", pro: "Unlimited", tw: "Tiered" },
+                  { feature: "Orders/Month", free: "100", pro: "Unlimited", tw: "Tiered" },
+                  { feature: "AI-Powered Insights", free: false, pro: true, tw: "Limited" },
+                  { feature: "Email Reports", free: false, pro: true, tw: true },
+                  { feature: "Setup Time", free: "2 min", pro: "2 min", tw: "30+ min" },
+                  { feature: "Price", free: "Free forever", pro: "$99/mo", tw: "$129-599/mo" }
                 ].map((row, i) => (
                   <tr key={i} className={i % 2 === 0 ? "bg-white/[0.02]" : ""}>
                     <td className="px-6 py-4 text-sm text-zinc-400">{row.feature}</td>
                     <td className="px-6 py-4 text-center">
-                      {row.adwyse === true ? (
+                      {row.free === true ? (
                         <Check className="w-5 h-5 text-green-400 mx-auto" />
-                      ) : row.adwyse === false ? (
+                      ) : row.free === false ? (
+                        <X className="w-5 h-5 text-zinc-600 mx-auto" />
+                      ) : (
+                        <span className="text-sm font-medium text-green-400">{row.free}</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      {row.pro === true ? (
+                        <Check className="w-5 h-5 text-green-400 mx-auto" />
+                      ) : row.pro === false ? (
                         <X className="w-5 h-5 text-red-400 mx-auto" />
                       ) : (
-                        <span className="text-sm font-medium text-amber-400">{row.adwyse}</span>
+                        <span className="text-sm font-medium text-amber-400">{row.pro}</span>
                       )}
                     </td>
                     <td className="px-6 py-4 text-center">
@@ -491,15 +499,6 @@ export default function HomePage() {
                         <X className="w-5 h-5 text-zinc-600 mx-auto" />
                       ) : (
                         <span className="text-sm text-zinc-500">{row.tw}</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      {row.polar === true ? (
-                        <Check className="w-5 h-5 text-zinc-600 mx-auto" />
-                      ) : row.polar === false ? (
-                        <X className="w-5 h-5 text-zinc-600 mx-auto" />
-                      ) : (
-                        <span className="text-sm text-zinc-500">{row.polar}</span>
                       )}
                     </td>
                   </tr>
@@ -527,21 +526,65 @@ export default function HomePage() {
               </span>
             </div>
             <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              One Plan,{" "}
+              Start Free,{" "}
               <span className="bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">
-                Unlimited Value
+                Scale When Ready
               </span>
             </h2>
             <p className="text-zinc-400 text-lg">
-              No complex tiers. No revenue caps. No hidden fees.
+              Get started free. Upgrade to Pro for unlimited tracking and AI insights.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {/* Pricing Card */}
-            <div className="relative overflow-hidden rounded-3xl border-2 border-amber-500/50 bg-gradient-to-b from-amber-500/10 to-transparent p-8 md:p-10">
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {/* Free Plan */}
+            <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-8">
+              <div className="relative z-10">
+                <div className="mb-8">
+                  <div className="text-zinc-400 font-semibold mb-2">Free Plan</div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-5xl font-bold">$0</span>
+                    <span className="text-zinc-400">/month</span>
+                  </div>
+                  <p className="text-zinc-500 mt-2">Forever free · No credit card</p>
+                </div>
+
+                <ul className="space-y-3 mb-8">
+                  {[
+                    { text: "1 ad account", included: true },
+                    { text: "100 orders/month", included: true },
+                    { text: "30 days data history", included: true },
+                    { text: "ROAS dashboard", included: true },
+                    { text: "AI insights", included: false },
+                    { text: "Email reports", included: false },
+                  ].map((feature, i) => (
+                    <li key={i} className={`flex items-center gap-3 ${feature.included ? 'text-zinc-300' : 'text-zinc-600'}`}>
+                      <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${feature.included ? 'bg-green-500/20' : 'bg-zinc-800'}`}>
+                        {feature.included ? (
+                          <Check className="w-3 h-3 text-green-400" />
+                        ) : (
+                          <X className="w-3 h-3 text-zinc-600" />
+                        )}
+                      </div>
+                      {feature.text}
+                    </li>
+                  ))}
+                </ul>
+
+                <button
+                  onClick={() => window.location.href = '/dashboard'}
+                  className="w-full py-4 border border-white/20 rounded-xl font-semibold text-lg hover:bg-white/5 transition flex items-center justify-center gap-2"
+                >
+                  Get Started Free
+                  <ArrowRight className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Pro Plan */}
+            <div className="relative overflow-hidden rounded-3xl border-2 border-amber-500/50 bg-gradient-to-b from-amber-500/10 to-transparent p-8">
               <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 rounded-full bg-amber-500/10 blur-3xl" />
-              <div className="absolute top-6 right-6 px-3 py-1 bg-amber-500 rounded-full text-xs font-bold">
+              <div className="absolute top-6 right-6 px-3 py-1 bg-amber-500 rounded-full text-xs font-bold text-zinc-900">
                 BEST VALUE
               </div>
 
@@ -552,31 +595,23 @@ export default function HomePage() {
                     <span className="text-5xl font-bold">$99</span>
                     <span className="text-zinc-400">/month</span>
                   </div>
-                  <p className="text-zinc-500 mt-2">Billed monthly · Cancel anytime</p>
-                </div>
-
-                <div className="inline-flex items-center gap-2 rounded-full bg-green-500/10 border border-green-500/20 px-4 py-2 mb-6">
-                  <span className="text-green-400 font-medium text-sm">7-day free trial included</span>
+                  <p className="text-zinc-500 mt-2">7-day trial · Cancel anytime</p>
                 </div>
 
                 <ul className="space-y-3 mb-8">
                   {[
-                    "Unlimited order tracking",
-                    "Facebook Ads integration",
-                    "Google Ads integration",
-                    "TikTok Ads integration",
-                    "AI-powered insights by Claude",
-                    "Real ROAS calculations",
-                    "Campaign comparison",
-                    "Revenue attribution",
-                    "Email performance reports",
-                    "CSV data export"
+                    { text: "Unlimited ad accounts", highlight: false },
+                    { text: "Unlimited orders", highlight: false },
+                    { text: "Full data history", highlight: false },
+                    { text: "ROAS dashboard", highlight: false },
+                    { text: "AI insights", highlight: true },
+                    { text: "Email reports & alerts", highlight: true },
                   ].map((feature, i) => (
-                    <li key={i} className="flex items-center gap-3 text-zinc-300">
-                      <div className="w-5 h-5 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
-                        <Check className="w-3 h-3 text-amber-400" />
+                    <li key={i} className={`flex items-center gap-3 ${feature.highlight ? 'text-amber-300' : 'text-zinc-300'}`}>
+                      <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${feature.highlight ? 'bg-amber-500/20' : 'bg-green-500/20'}`}>
+                        <Check className={`w-3 h-3 ${feature.highlight ? 'text-amber-400' : 'text-green-400'}`} />
                       </div>
-                      {feature}
+                      {feature.text}
                     </li>
                   ))}
                 </ul>
@@ -590,48 +625,48 @@ export default function HomePage() {
                 </button>
 
                 <p className="text-center text-zinc-500 text-sm mt-4">
-                  No credit card required for trial
+                  No credit card required
                 </p>
               </div>
             </div>
 
             {/* ROI Calculator */}
             <div className="flex flex-col gap-6">
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-8 flex-1">
-                <h3 className="text-xl font-semibold mb-6">Calculate Your ROI</h3>
-                <p className="text-zinc-400 text-sm mb-6">
-                  If you spend $10,000/month on ads and waste just 15% on underperforming campaigns:
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-6 flex-1">
+                <h3 className="text-lg font-semibold mb-4">Calculate Your ROI</h3>
+                <p className="text-zinc-400 text-sm mb-4">
+                  If you spend $10,000/month on ads and waste 15%:
                 </p>
 
-                <div className="space-y-4 mb-6">
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-red-500/10 border border-red-500/20">
-                    <span className="text-zinc-400">Monthly waste</span>
-                    <span className="text-2xl font-bold text-red-400">$1,500</span>
+                <div className="space-y-3 mb-4">
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+                    <span className="text-zinc-400 text-sm">Monthly waste</span>
+                    <span className="text-xl font-bold text-red-400">$1,500</span>
                   </div>
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-zinc-800">
-                    <span className="text-zinc-400">AdWyse cost</span>
-                    <span className="text-2xl font-bold text-white">$99</span>
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-800">
+                    <span className="text-zinc-400 text-sm">AdWyse cost</span>
+                    <span className="text-xl font-bold text-white">$99</span>
                   </div>
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-green-500/10 border border-green-500/20">
-                    <span className="text-zinc-400">Your ROI</span>
-                    <span className="text-2xl font-bold text-green-400">15x</span>
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-green-500/10 border border-green-500/20">
+                    <span className="text-zinc-400 text-sm">Your ROI</span>
+                    <span className="text-xl font-bold text-green-400">15x</span>
                   </div>
                 </div>
 
-                <p className="text-zinc-500 text-sm">
-                  Most merchants save <span className="text-amber-400 font-semibold">$1,500-3,000/month</span> by cutting underperforming campaigns.
+                <p className="text-zinc-500 text-xs">
+                  Most merchants save <span className="text-amber-400 font-semibold">$1,500-3,000/mo</span>
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
-                    <ShieldCheck className="w-5 h-5 text-amber-400" />
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                    <ShieldCheck className="w-4 h-4 text-amber-400" />
                   </div>
                   <div>
-                    <h4 className="font-semibold mb-1">Money-Back Guarantee</h4>
-                    <p className="text-zinc-400 text-sm">
-                      If you don't see value within 30 days, we'll refund your subscription. No questions asked.
+                    <h4 className="font-semibold text-sm mb-1">Money-Back Guarantee</h4>
+                    <p className="text-zinc-400 text-xs">
+                      30-day refund if you don't see value.
                     </p>
                   </div>
                 </div>
