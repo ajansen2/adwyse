@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { checkSubscription } from '@/lib/check-subscription';
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,12 +23,22 @@ export async function GET(request: NextRequest) {
       }
     );
 
+    // Check subscription tier to apply data retention limits
+    const subscription = await checkSubscription(merchantId);
+    const dataRetentionDays = subscription.limits.dataRetentionDays;
+
+    // Calculate date cutoff based on tier
+    const dateCutoff = new Date();
+    dateCutoff.setDate(dateCutoff.getDate() - dataRetentionDays);
+
     // Get campaigns for this store, aggregated by campaign name
     // Since campaigns table stores daily data, we need to aggregate
+    // Apply tier-based date filter
     const { data: campaigns, error: campaignsError } = await supabase
       .from('adwyse_campaigns')
       .select('*')
       .eq('store_id', merchantId)
+      .gte('date', dateCutoff.toISOString().split('T')[0])
       .order('date', { ascending: false });
 
     if (campaignsError) {

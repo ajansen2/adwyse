@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { checkSubscription } from '@/lib/check-subscription';
 
 /**
  * Get email report settings for a store
@@ -11,6 +12,10 @@ export async function GET(request: NextRequest) {
     if (!storeId) {
       return NextResponse.json({ error: 'Store ID required' }, { status: 400 });
     }
+
+    // Check subscription to determine if email reports are available
+    const subscription = await checkSubscription(storeId);
+    const canUseEmailReports = subscription.limits.emailReports;
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,6 +31,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       frequency: settings?.email_report_frequency || 'none',
+      tier: subscription.tier,
+      canUseEmailReports,
     });
   } catch (error) {
     console.error('Error fetching report settings:', error);
@@ -38,6 +45,7 @@ export async function GET(request: NextRequest) {
 
 /**
  * Update email report settings for a store
+ * PRO FEATURE - Email reports require Pro subscription
  */
 export async function POST(request: NextRequest) {
   try {
@@ -53,6 +61,19 @@ export async function POST(request: NextRequest) {
         { error: 'Invalid frequency. Use "none", "weekly", or "monthly"' },
         { status: 400 }
       );
+    }
+
+    // Check subscription - Email Reports is a Pro feature
+    // Allow setting to 'none' for any tier, but require Pro for weekly/monthly
+    if (frequency !== 'none') {
+      const subscription = await checkSubscription(storeId);
+      if (!subscription.limits.emailReports) {
+        return NextResponse.json({
+          error: 'Pro feature required',
+          message: 'Email reports are a Pro feature. Upgrade to unlock.',
+          currentTier: subscription.tier
+        }, { status: 403 });
+      }
     }
 
     const supabase = createClient(

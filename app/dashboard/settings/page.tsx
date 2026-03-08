@@ -35,6 +35,9 @@ function SettingsContent() {
   const [testEmailSent, setTestEmailSent] = useState(false);
   const [sendingTestAlert, setSendingTestAlert] = useState(false);
   const [testAlertSent, setTestAlertSent] = useState(false);
+  const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'trial' | 'pro'>('pro');
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgrading, setUpgrading] = useState(false);
   const supabase = getSupabaseClient();
 
   // Get URL params directly from window.location (more reliable in iframes)
@@ -44,10 +47,11 @@ function SettingsContent() {
     return params.get(name);
   };
 
-  // Check for OAuth callback messages
+  // Check for OAuth callback messages and upgrade param
   useEffect(() => {
     const success = getUrlParam('success');
     const error = getUrlParam('error');
+    const upgrade = getUrlParam('upgrade');
 
     if (success === 'facebook_connected') {
       setSuccessMessage('Facebook Ads account connected successfully!');
@@ -67,6 +71,11 @@ function SettingsContent() {
     if (error) {
       setErrorMessage(`Failed to connect: ${error.replace(/_/g, ' ')}`);
       setTimeout(() => setErrorMessage(''), 5000);
+    }
+
+    // If upgrade=true, show the upgrade modal
+    if (upgrade === 'true') {
+      setShowUpgradeModal(true);
     }
   }, []);
 
@@ -146,6 +155,21 @@ function SettingsContent() {
             }
           } catch (err) {
             console.error('Error loading alert settings:', err);
+          }
+
+          // Load subscription tier
+          try {
+            console.log('🔧 Settings: Loading subscription tier via XHR...');
+            const tierXhr = new XMLHttpRequest();
+            tierXhr.open('GET', `/api/subscription/tier?store_id=${data.store.id}`, false);
+            tierXhr.send();
+            if (tierXhr.status === 200) {
+              const tierData = JSON.parse(tierXhr.responseText);
+              setSubscriptionTier(tierData.tier || 'pro');
+              console.log('🔧 Settings: Subscription tier:', tierData.tier);
+            }
+          } catch (err) {
+            console.error('Error loading subscription tier:', err);
           }
         } else {
           console.log('🔧 Settings: No store in response data');
@@ -292,6 +316,41 @@ function SettingsContent() {
       setTimeout(() => setErrorMessage(''), 3000);
     } finally {
       setSendingTestAlert(false);
+    }
+  };
+
+  const handleUpgrade = async () => {
+    if (!store) return;
+
+    setUpgrading(true);
+    try {
+      const shop = getUrlParam('shop');
+      const response = await fetch('/api/billing/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storeId: store.id, shop })
+      });
+
+      const data = await response.json();
+
+      if (data.confirmationUrl) {
+        // Redirect to Shopify billing approval page
+        window.top?.location.assign(data.confirmationUrl);
+      } else if (data.status === 'active') {
+        setSuccessMessage('You already have an active Pro subscription!');
+        setShowUpgradeModal(false);
+        setSubscriptionTier('pro');
+        setTimeout(() => setSuccessMessage(''), 5000);
+      } else {
+        setErrorMessage(data.error || 'Failed to create billing charge');
+        setTimeout(() => setErrorMessage(''), 5000);
+      }
+    } catch (error) {
+      console.error('Error creating billing charge:', error);
+      setErrorMessage('Failed to start upgrade process');
+      setTimeout(() => setErrorMessage(''), 5000);
+    } finally {
+      setUpgrading(false);
     }
   };
 
@@ -630,6 +689,130 @@ function SettingsContent() {
             </div>
           )}
 
+          {/* Upgrade Modal */}
+          {showUpgradeModal && (
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+              <div className="bg-slate-800 border border-white/20 rounded-2xl max-w-lg w-full p-8 relative">
+                <button
+                  onClick={() => setShowUpgradeModal(false)}
+                  className="absolute top-4 right-4 text-white/60 hover:text-white transition"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-2xl font-bold text-white mb-2">Upgrade to Pro</h2>
+                  <p className="text-white/60">Unlock the full power of AdWyse</p>
+                </div>
+
+                <div className="space-y-3 mb-6">
+                  <div className="flex items-center gap-3 text-white">
+                    <svg className="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Unlimited order tracking</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-white">
+                    <svg className="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Unlimited ad account connections</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-white">
+                    <svg className="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>AI-powered campaign insights</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-white">
+                    <svg className="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Custom performance alerts</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-white">
+                    <svg className="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Weekly/monthly email reports</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-white">
+                    <svg className="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Unlimited data history</span>
+                  </div>
+                </div>
+
+                <div className="text-center mb-6">
+                  <div className="text-4xl font-bold text-white">$99<span className="text-lg font-normal text-white/60">/month</span></div>
+                  <p className="text-white/40 text-sm mt-1">Cancel anytime</p>
+                </div>
+
+                <button
+                  onClick={handleUpgrade}
+                  disabled={upgrading}
+                  className="w-full py-4 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 disabled:from-orange-800 disabled:to-red-800 text-white font-bold rounded-xl transition flex items-center justify-center gap-2"
+                >
+                  {upgrading ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      Upgrade Now
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                      </svg>
+                    </>
+                  )}
+                </button>
+
+                <p className="text-white/40 text-xs text-center mt-4">
+                  Billed through Shopify. Secure payment processing.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Free Tier Upgrade Banner */}
+          {subscriptionTier === 'free' && !showUpgradeModal && (
+            <div className="mb-6 bg-gradient-to-r from-amber-500/20 to-orange-500/20 border-2 border-amber-500/50 rounded-xl p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-amber-500/30 rounded-full flex items-center justify-center flex-shrink-0">
+                    <svg className="w-6 h-6 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-white">You&apos;re on the Free Plan</h3>
+                    <p className="text-amber-100/80 text-sm">
+                      Upgrade to Pro for unlimited tracking, AI insights, and more.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowUpgradeModal(true)}
+                  className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 rounded-lg text-white font-semibold hover:shadow-lg hover:shadow-amber-500/25 transition flex items-center gap-2"
+                >
+                  Upgrade to Pro
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Account Info */}
           <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6 mb-6">
             <h2 className="text-xl font-bold text-white mb-4">Account Information</h2>
@@ -650,17 +833,30 @@ function SettingsContent() {
                 <label className="text-white/60 text-sm">Subscription Status</label>
                 <div className="flex items-center gap-2">
                   {(() => {
-                    const isTrialing = store?.subscription_status === 'trial' ||
-                      (store?.trial_ends_at && new Date(store.trial_ends_at) > new Date());
+                    if (subscriptionTier === 'free') {
+                      return (
+                        <>
+                          <span className="inline-flex px-3 py-1 rounded-full text-sm font-medium bg-zinc-500/20 text-zinc-300">
+                            Free Plan
+                          </span>
+                          <button
+                            onClick={() => setShowUpgradeModal(true)}
+                            className="px-3 py-1 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium rounded-full transition"
+                          >
+                            Upgrade
+                          </button>
+                        </>
+                      );
+                    }
 
-                    if (isTrialing && store?.trial_ends_at) {
+                    if (subscriptionTier === 'trial' && store?.trial_ends_at) {
                       const trialEnd = new Date(store.trial_ends_at);
                       const now = new Date();
                       const daysLeft = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
                       return (
                         <span className="inline-flex px-3 py-1 rounded-full text-sm font-medium bg-green-500/20 text-green-300">
-                          Pro Plan <span className="text-yellow-300 ml-1">({daysLeft} day{daysLeft !== 1 ? 's' : ''} left)</span>
+                          Pro Trial <span className="text-yellow-300 ml-1">({daysLeft} day{daysLeft !== 1 ? 's' : ''} left)</span>
                         </span>
                       );
                     }

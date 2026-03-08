@@ -201,6 +201,7 @@ export async function sendReportEmail(
 
 /**
  * Generate and send weekly/monthly reports for all subscribed merchants
+ * Only sends to Pro/Trial users (email reports is a Pro feature)
  */
 export async function sendScheduledReports(frequency: 'weekly' | 'monthly') {
   const supabase = createClient(
@@ -210,6 +211,7 @@ export async function sendScheduledReports(frequency: 'weekly' | 'monthly') {
   );
 
   // Get all stores with email reports enabled
+  // Only include stores with active subscription or valid trial (Pro feature)
   const { data: stores, error } = await supabase
     .from('stores')
     .select(`
@@ -218,21 +220,31 @@ export async function sendScheduledReports(frequency: 'weekly' | 'monthly') {
       email_report_frequency
     `)
     .eq('email_report_frequency', frequency)
-    .eq('status', 'active');
+    .eq('status', 'active')
+    .in('subscription_status', ['active', 'trial']); // Only Pro/Trial users
 
   if (error || !stores) {
     console.error('Failed to fetch stores for reports:', error);
     return;
   }
 
-  console.log(`📧 Sending ${frequency} reports to ${stores.length} stores`);
-
+  // Filter out expired trials
   const now = new Date();
+  const eligibleStores = stores.filter(store => {
+    if (store.subscription_status === 'active') return true;
+    if (store.subscription_status === 'trial' && store.trial_ends_at) {
+      return new Date(store.trial_ends_at) > now;
+    }
+    return false;
+  });
+
+  console.log(`📧 Sending ${frequency} reports to ${eligibleStores.length} eligible stores (${stores.length - eligibleStores.length} skipped - free tier)`);
+
   const startDate = frequency === 'weekly'
     ? new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
     : new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
 
-  for (const store of stores) {
+  for (const store of eligibleStores) {
     try {
       // Get orders for the period
       const { data: orders } = await supabase
