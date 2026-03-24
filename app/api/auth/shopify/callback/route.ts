@@ -394,6 +394,29 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Register APP_SUBSCRIPTIONS_UPDATE webhook (for billing status changes)
+    const subscriptionWebhookResponse = await fetch(`https://${shop}/admin/api/2024-01/webhooks.json`, {
+      method: 'POST',
+      headers: {
+        'X-Shopify-Access-Token': accessToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        webhook: {
+          topic: 'app_subscriptions/update',
+          address: `${webhookUrl}/subscription`,
+          format: 'json',
+        },
+      }),
+    });
+
+    const subscriptionWebhookData = await subscriptionWebhookResponse.json();
+    if (!subscriptionWebhookResponse.ok) {
+      console.error('❌ Failed to register app_subscriptions/update webhook:', subscriptionWebhookData);
+    } else {
+      console.log('✅ app_subscriptions/update webhook registered:', subscriptionWebhookData.webhook?.id);
+    }
+
     console.log('✅ Webhook registration process completed for', shop);
 
     // Create recurring application charge for billing ($99.99/month with 7-day trial)
@@ -413,10 +436,9 @@ export async function GET(request: NextRequest) {
 
     const isTestCharge = hasTestInName || hasDevelopment || hasDevPrefix || matchesPartnerPattern;
 
-    // Return URL goes back to Shopify admin app page (same format as working apps)
+    // Return URL goes to billing callback to properly update subscription status
     const shopName = shop.replace('.myshopify.com', '');
-    const clientId = '08fa8bc27e0e3ac857912c7e7ee289d0';
-    const returnUrl = `https://admin.shopify.com/store/${shopName}/apps/${clientId}`;
+    const returnUrl = `${appUrl}/api/billing/callback?shop=${shop}&store_id=${store.id}`;
 
     console.log('💰 Creating billing charge with return_url:', returnUrl);
     console.log('💰 Shop:', shop);

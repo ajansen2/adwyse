@@ -83,6 +83,7 @@ export async function GET(request: NextRequest) {
       await supabase
         .from('stores')
         .update({
+          subscription_status: 'cancelled',
           billing_status: 'declined',
           subscription_tier: 'free',
         })
@@ -99,10 +100,10 @@ export async function GET(request: NextRequest) {
       await supabase
         .from('stores')
         .update({
+          subscription_status: 'active',
           billing_status: 'active',
           billing_charge_id: chargeId,
           subscription_tier: 'pro',
-          trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days from now
         })
         .eq('id', storeId);
 
