@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Navigation } from '@/components/ui/navigation';
 import { Footer } from '@/components/ui/footer';
 import { ArrowRight, Check, HelpCircle } from 'lucide-react';
+import PricingCard from '@/components/ui/pricing-card';
 
 export default function PricingPage() {
   return (
@@ -34,103 +35,8 @@ export default function PricingPage() {
 
       {/* Pricing Cards */}
       <section className="py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-6">
-          {/* Free Plan */}
-          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-8">
-            <div className="relative z-10">
-              <div className="mb-8">
-                <div className="text-zinc-400 font-semibold mb-2">Free Plan</div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-bold">$0</span>
-                  <span className="text-zinc-400">/month</span>
-                </div>
-                <p className="text-zinc-500 mt-2">Forever free · No credit card</p>
-              </div>
-
-              <ul className="space-y-4 mb-8">
-                {[
-                  { text: "1 ad account connection", included: true },
-                  { text: "100 orders tracked/month", included: true },
-                  { text: "30 days data history", included: true },
-                  { text: "Basic ROAS dashboard", included: true },
-                  { text: "Facebook OR Google Ads", included: true },
-                  { text: "AI-powered insights", included: false },
-                  { text: "Email reports", included: false },
-                  { text: "Custom alerts", included: false },
-                ].map((feature, i) => (
-                  <li key={i} className={`flex items-center gap-3 ${feature.included ? 'text-zinc-300' : 'text-zinc-600'}`}>
-                    <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${feature.included ? 'bg-green-500/20' : 'bg-zinc-800'}`}>
-                      {feature.included ? (
-                        <Check className="w-3 h-3 text-green-400" />
-                      ) : (
-                        <span className="w-2 h-0.5 bg-zinc-600 rounded" />
-                      )}
-                    </div>
-                    {feature.text}
-                  </li>
-                ))}
-              </ul>
-
-              <button
-                onClick={() => window.location.href = '/dashboard'}
-                className="w-full py-4 border border-white/20 rounded-xl font-semibold text-lg hover:bg-white/5 transition flex items-center justify-center gap-2"
-              >
-                Get Started Free
-                <ArrowRight className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Pro Plan */}
-          <div className="relative overflow-hidden rounded-3xl border-2 border-amber-500/50 bg-gradient-to-b from-amber-500/10 to-transparent p-8">
-            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 rounded-full bg-amber-500/10 blur-3xl" />
-            <div className="absolute top-6 right-6 px-3 py-1 bg-amber-500 rounded-full text-xs font-bold text-zinc-900">
-              BEST VALUE
-            </div>
-
-            <div className="relative z-10">
-              <div className="mb-8">
-                <div className="text-amber-400 font-semibold mb-2">Pro Plan</div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-bold">$99</span>
-                  <span className="text-zinc-400">/month</span>
-                </div>
-                <p className="text-zinc-500 mt-2">7-day trial · Cancel anytime</p>
-              </div>
-
-              <ul className="space-y-4 mb-8">
-                {[
-                  { text: "Unlimited ad accounts", included: true },
-                  { text: "Unlimited orders tracked", included: true },
-                  { text: "Full data history", included: true },
-                  { text: "Advanced ROAS dashboard", included: true },
-                  { text: "Facebook, Google & TikTok", included: true },
-                  { text: "AI-powered insights", included: true, highlight: true },
-                  { text: "Email reports", included: true, highlight: true },
-                  { text: "Custom alerts", included: true, highlight: true },
-                ].map((feature, i) => (
-                  <li key={i} className={`flex items-center gap-3 ${feature.highlight ? 'text-amber-300' : 'text-zinc-300'}`}>
-                    <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${feature.highlight ? 'bg-amber-500/20' : 'bg-green-500/20'}`}>
-                      <Check className={`w-3 h-3 ${feature.highlight ? 'text-amber-400' : 'text-green-400'}`} />
-                    </div>
-                    {feature.text}
-                  </li>
-                ))}
-              </ul>
-
-              <button
-                onClick={() => window.location.href = '/dashboard'}
-                className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-600 rounded-xl font-semibold text-lg hover:shadow-lg hover:shadow-amber-500/25 transition flex items-center justify-center gap-2"
-              >
-                Start Free Trial
-                <ArrowRight className="w-5 h-5" />
-              </button>
-
-              <p className="text-center text-zinc-500 text-sm mt-4">
-                No credit card required for trial
-              </p>
-            </div>
-          </div>
+        <div className="flex justify-center">
+          <PricingCard />
         </div>
       </section>
 
