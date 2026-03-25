@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
   console.log('🔍 [BILLING TEST] Updated at:', store.updated_at);
 
   const accessToken = store.access_token;
-  const isTestCharge = shop.includes('-test') || shop.includes('development');
+  const isTestCharge = shop.includes('-test') || shop.includes('development') || shop.includes('dev-');
   const shopName = shop.replace('.myshopify.com', '');
   const clientId = '08fa8bc27e0e3ac857912c7e7ee289d0';
   const returnUrl = `https://admin.shopify.com/store/${shopName}/apps/${clientId}`;

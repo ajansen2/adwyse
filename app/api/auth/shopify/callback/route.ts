@@ -425,16 +425,15 @@ export async function GET(request: NextRequest) {
     console.log('='.repeat(50));
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || `https://${request.headers.get('host')}`;
 
-    // Use test mode for development/partner stores
-    // Partner test stores often have random names, so also check for non-standard patterns
+    // Use test mode only for explicitly marked development/test stores
+    // DO NOT use pattern matching - real stores could accidentally match
     const hasTestInName = shop.includes('-test');
     const hasDevelopment = shop.includes('development');
     const hasDevPrefix = shop.includes('dev-');
-    const matchesPartnerPattern = /^[a-z0-9]{6,8}-[a-z0-9]{2}\.myshopify\.com$/.test(shop);
 
-    console.log('💰 Test store detection:', { hasTestInName, hasDevelopment, hasDevPrefix, matchesPartnerPattern });
+    console.log('💰 Test store detection:', { hasTestInName, hasDevelopment, hasDevPrefix });
 
-    const isTestCharge = hasTestInName || hasDevelopment || hasDevPrefix || matchesPartnerPattern;
+    const isTestCharge = hasTestInName || hasDevelopment || hasDevPrefix;
 
     // Return URL goes to billing callback to properly update subscription status
     const shopName = shop.replace('.myshopify.com', '');
