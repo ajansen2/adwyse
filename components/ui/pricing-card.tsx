@@ -2,38 +2,43 @@
 
 import {
   Add01Icon,
+  MinusPlus01Icon,
   MinusSignIcon,
   Tick02Icon,
+  UserGroupIcon,
   UserStoryIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import NumberFlow from "@number-flow/react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, LayoutGroup } from "motion/react";
 import { useState } from "react";
 
 const plans = [
   {
     id: "free",
     name: "Free",
-    description: "starter",
+    description: "getting started",
     monthlyPrice: 0,
     yearlyPrice: 0,
     features: [
-      "1 ad account connection",
-      "100 orders tracked/month",
+      "1 ad account",
+      "100 orders/month",
       "30 days data history",
+      "Basic ROAS dashboard",
     ],
   },
   {
     id: "pro",
     name: "Pro",
-    description: "growth",
-    monthlyPrice: 99.99,
-    yearlyPrice: 79.99,
+    description: "scaling stores",
+    monthlyPrice: 99,
+    yearlyPrice: 79,
     features: [
       "Unlimited ad accounts",
-      "Unlimited orders tracked",
+      "Unlimited orders",
+      "Full data history",
       "AI-powered insights",
+      "Email reports & alerts",
     ],
   },
 ];
@@ -50,7 +55,7 @@ function PricingCard() {
     "monthly"
   );
   const [selectedPlan, setSelectedPlan] = useState("pro");
-  const [userCount, setUserCount] = useState(1);
+  const [storeCount, setStoreCount] = useState(1);
 
   return (
     <div className="w-full max-w-[450px] flex flex-col gap-6 p-5 px-4 sm:p-6 rounded-4xl sm:rounded-2xl border border-border bg-background shadow-sm transition-colors duration-300 not-prose">
@@ -62,7 +67,7 @@ function PricingCard() {
         <div className="bg-muted p-1 h-10 w-full rounded-xl ring-1 ring-border flex">
           <button
             onClick={() => setBillingCycle("monthly")}
-            className={`flex-1 h-full rounded-lg text-base font-medium relative transition-colors duration-300 ${
+            className={`flex-1 h-full rounded-lg text-base font-medium  relative transition-colors duration-300 ${
               billingCycle === "monthly"
                 ? "text-foreground"
                 : "text-muted-foreground hover:text-foreground"
@@ -93,7 +98,7 @@ function PricingCard() {
               />
             )}
             <span className="relative z-10">Yearly</span>
-            <span className="relative z-10 bg-primary text-xs font-black px-1.5 py-0.5 rounded-full uppercase text-primary-foreground tracking-tight whitespace-nowrap">
+            <span className="relative z-10 bg-primary text-xs font-black px-1.5 py-0.5 rounded-full uppercase text-primary-foreground tracking-tight whitespace-nowrap font-light">
               20% OFF
             </span>
           </button>
@@ -162,7 +167,7 @@ function PricingCard() {
                           format={{ style: "currency", currency: "USD" }}
                         />
                       </div>
-                      <div className="text-xs text-muted-foreground/60 flex items-center justify-end gap-1">
+                      <div className="text-xs text-muted-foreground/60 flex items-center justify-end gap-1 ">
                         {billingCycle === "monthly" ? "Month" : "Year"}
                       </div>
                     </div>
@@ -191,7 +196,7 @@ function PricingCard() {
                                   duration: 0.3,
                                 }}
                                 key={idx}
-                                className="flex items-center gap-3 text-sm text-foreground/80"
+                                className="flex items-center gap-3 text-sm text-foreground/80 "
                               >
                                 <HugeiconsIcon
                                   icon={Tick02Icon}
@@ -215,11 +220,11 @@ function PricingCard() {
                                 />
                               </div>
                               <div className="flex flex-col">
-                                <span className="text-base font-medium text-foreground leading-none">
+                                <span className="text-base font-medium  text-foreground leading-none">
                                   Stores
                                 </span>
                                 <span className="text-sm text-muted-foreground mt-0.5">
-                                  Starting at {userCount} store
+                                  Starting at {storeCount} store
                                 </span>
                               </div>
                             </div>
@@ -228,19 +233,19 @@ function PricingCard() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setUserCount(Math.max(1, userCount - 1));
+                                  setStoreCount(Math.max(1, storeCount - 1));
                                 }}
                                 className="p-1.5 rounded-lg hover:bg-background hover:shadow-sm transition-all text-muted-foreground/60 hover:text-foreground active:scale-95"
                               >
                                 <HugeiconsIcon icon={MinusSignIcon} size={14} />
                               </button>
-                              <span className="text-sm w-4 text-center tabular-nums text-foreground/80">
-                                <NumberFlow value={userCount} />
+                              <span className="text-sm  w-4 text-center tabular-nums text-foreground/80">
+                                <NumberFlow value={storeCount} />
                               </span>
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setUserCount(userCount + 1);
+                                  setStoreCount(storeCount + 1);
                                 }}
                                 className="p-1.5 rounded-lg hover:bg-background hover:shadow-sm transition-all text-muted-foreground/60 hover:text-foreground active:scale-95"
                               >
