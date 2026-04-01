@@ -77,6 +77,36 @@ function DashboardContent() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState(1);
+
+  // Calculate trial days left
+  const getTrialDaysLeft = () => {
+    const store = stores[0];
+    if (!store?.trial_ends_at) return null;
+    const trialEnd = new Date(store.trial_ends_at);
+    const now = new Date();
+    const daysLeft = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    return Math.max(0, daysLeft);
+  };
+
+  // DISABLED: Onboarding tutorial - was showing too frequently
+  // Keeping the state but never showing it
+  useEffect(() => {
+    // Always mark as seen to prevent any chance of showing
+    if (stores.length > 0) {
+      localStorage.setItem(`adwyse_onboarding_${stores[0].id}`, 'true');
+    }
+    // Never show onboarding - setShowOnboarding(false) is the default
+  }, [stores]);
+
+  const completeOnboarding = () => {
+    if (stores[0]) {
+      localStorage.setItem(`adwyse_onboarding_${stores[0].id}`, 'true');
+    }
+    setShowOnboarding(false);
+    setOnboardingStep(1);
+  };
 
   const router = useRouter();
 
@@ -599,7 +629,7 @@ function DashboardContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-solid border-orange-500 border-r-transparent mb-4"></div>
           <div className="text-white text-xl">{loadingMessage}</div>
@@ -611,7 +641,7 @@ function DashboardContent() {
   // Show error if failed to load merchant data
   if (loadError) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-6">
         <div className="max-w-lg w-full bg-red-500/10 border-2 border-red-500/50 rounded-xl p-8 text-center">
           <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -678,7 +708,119 @@ function DashboardContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900">
+    <div className="min-h-screen bg-zinc-950">
+      {/* Onboarding Modal */}
+      {showOnboarding && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl">
+            {/* Progress dots */}
+            <div className="flex justify-center gap-2 mb-6">
+              {[1, 2, 3, 4].map((step) => (
+                <div
+                  key={step}
+                  className={`w-2 h-2 rounded-full transition-all ${
+                    step === onboardingStep ? 'bg-orange-500 w-6' : step < onboardingStep ? 'bg-orange-500' : 'bg-zinc-700'
+                  }`}
+                />
+              ))}
+            </div>
+
+            {onboardingStep === 1 && (
+              <div className="text-center">
+                <div className="w-16 h-16 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-bold text-white mb-2">Welcome to AdWyse!</h2>
+                <p className="text-zinc-400 mb-6">
+                  Track your ad performance and see exactly which campaigns are driving sales.
+                </p>
+              </div>
+            )}
+
+            {onboardingStep === 2 && (
+              <div className="text-center">
+                <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-bold text-white mb-2">Automatic Tracking</h2>
+                <p className="text-zinc-400 mb-6">
+                  AdWyse automatically tracks every order and attributes it to the right ad source. No setup required.
+                </p>
+              </div>
+            )}
+
+            {onboardingStep === 3 && (
+              <div className="text-center">
+                <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-bold text-white mb-2">AI-Powered Insights</h2>
+                <p className="text-zinc-400 mb-6">
+                  Get weekly AI insights that analyze your campaigns and recommend optimizations to improve ROAS.
+                </p>
+              </div>
+            )}
+
+            {onboardingStep === 4 && (
+              <div className="text-center">
+                <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-bold text-white mb-2">You're All Set!</h2>
+                <p className="text-zinc-400 mb-6">
+                  Orders will appear automatically as customers make purchases. Connect ad accounts in Settings for full ROAS tracking.
+                </p>
+              </div>
+            )}
+
+            {/* Navigation buttons */}
+            <div className="flex gap-3">
+              {onboardingStep > 1 && (
+                <button
+                  onClick={() => setOnboardingStep(onboardingStep - 1)}
+                  className="flex-1 px-4 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-medium transition"
+                >
+                  Back
+                </button>
+              )}
+              {onboardingStep < 4 ? (
+                <button
+                  onClick={() => setOnboardingStep(onboardingStep + 1)}
+                  className="flex-1 px-4 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-medium transition"
+                >
+                  Next
+                </button>
+              ) : (
+                <button
+                  onClick={completeOnboarding}
+                  className="flex-1 px-4 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-medium transition"
+                >
+                  Get Started
+                </button>
+              )}
+            </div>
+
+            {/* Skip button */}
+            {onboardingStep < 4 && (
+              <button
+                onClick={completeOnboarding}
+                className="w-full mt-3 text-zinc-500 hover:text-zinc-400 text-sm transition"
+              >
+                Skip tutorial
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
@@ -688,10 +830,10 @@ function DashboardContent() {
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed top-0 left-0 z-50 h-screen w-64 bg-slate-900/90 backdrop-blur border-r border-white/10 transform transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`fixed top-0 left-0 z-50 h-screen w-64 bg-zinc-900 border-r border-zinc-800 transform transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="p-6 border-b border-white/10">
+          <div className="p-6 border-b border-zinc-800">
             <Link href="/" className="flex items-center gap-3">
               <img src="/logo.png" alt="AdWyse" className="w-10 h-10" />
               <span className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
@@ -714,7 +856,7 @@ function DashboardContent() {
 
             <button
               onClick={() => navigateInApp('/dashboard/orders')}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-white/60 hover:bg-white/5 hover:text-white transition cursor-pointer"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-white/60 hover:bg-zinc-900/50 hover:text-white transition cursor-pointer"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
@@ -724,7 +866,7 @@ function DashboardContent() {
 
             <button
               onClick={() => navigateInApp('/dashboard/campaigns')}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-white/60 hover:bg-white/5 hover:text-white transition cursor-pointer"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-white/60 hover:bg-zinc-900/50 hover:text-white transition cursor-pointer"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -734,7 +876,7 @@ function DashboardContent() {
 
             <button
               onClick={() => navigateInApp('/dashboard/settings')}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-white/60 hover:bg-white/5 hover:text-white transition cursor-pointer"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-white/60 hover:bg-zinc-900/50 hover:text-white transition cursor-pointer"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -745,7 +887,7 @@ function DashboardContent() {
           </nav>
 
           {/* User Profile */}
-          <div className="p-4 border-t border-white/10">
+          <div className="p-4 border-t border-zinc-800">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-full bg-orange-600 flex items-center justify-center text-white font-bold">
                 {merchant.full_name?.charAt(0) || merchant.email.charAt(0).toUpperCase()}
@@ -757,7 +899,7 @@ function DashboardContent() {
             </div>
             <button
               onClick={handleLogout}
-              className="w-full px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm font-medium transition"
+              className="w-full px-4 py-2 bg-zinc-800 hover:bg-white/20 rounded-lg text-white text-sm font-medium transition"
             >
               Sign Out
             </button>
@@ -768,7 +910,7 @@ function DashboardContent() {
       {/* Main Content */}
       <main className="lg:ml-64 min-h-screen">
         {/* Top Header */}
-        <header className="bg-slate-900/50 backdrop-blur border-b border-white/10 sticky top-0 z-30">
+        <header className="bg-zinc-900 border-b border-zinc-800 sticky top-0 z-30">
           <div className="px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
@@ -786,7 +928,7 @@ function DashboardContent() {
               <div className="relative">
                 <button
                   onClick={() => setShowDatePicker(!showDatePicker)}
-                  className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-white text-sm font-medium transition"
+                  className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-white/20 border border-white/20 rounded-lg text-white text-sm font-medium transition"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -804,7 +946,7 @@ function DashboardContent() {
                       className="fixed inset-0 z-40"
                       onClick={() => setShowDatePicker(false)}
                     />
-                    <div className="absolute right-0 mt-2 w-64 bg-slate-800 border border-white/20 rounded-xl shadow-xl z-50 overflow-hidden">
+                    <div className="absolute right-0 mt-2 w-64 bg-zinc-800 border border-zinc-700 rounded-xl shadow-xl z-50 overflow-hidden">
                       <div className="p-2">
                         {[
                           { value: '7d', label: 'Last 7 days' },
@@ -822,27 +964,27 @@ function DashboardContent() {
                             className={`w-full text-left px-4 py-2 rounded-lg text-sm transition ${
                               dateRangeOption === option.value
                                 ? 'bg-orange-600 text-white'
-                                : 'text-white/80 hover:bg-white/10'
+                                : 'text-white/80 hover:bg-zinc-800'
                             }`}
                           >
                             {option.label}
                           </button>
                         ))}
                       </div>
-                      <div className="border-t border-white/10 p-3">
+                      <div className="border-t border-zinc-800 p-3">
                         <div className="text-white/60 text-xs mb-2">Custom range</div>
                         <div className="flex gap-2 mb-2">
                           <input
                             type="date"
                             value={customStartDate}
                             onChange={(e) => setCustomStartDate(e.target.value)}
-                            className="flex-1 px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
+                            className="flex-1 px-2 py-1 bg-zinc-800 border border-white/20 rounded text-white text-sm"
                           />
                           <input
                             type="date"
                             value={customEndDate}
                             onChange={(e) => setCustomEndDate(e.target.value)}
-                            className="flex-1 px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
+                            className="flex-1 px-2 py-1 bg-zinc-800 border border-white/20 rounded text-white text-sm"
                           />
                         </div>
                         <button
@@ -853,7 +995,7 @@ function DashboardContent() {
                             }
                           }}
                           disabled={!customStartDate || !customEndDate}
-                          className="w-full px-3 py-1.5 bg-orange-600 hover:bg-orange-700 disabled:bg-white/10 disabled:text-white/40 rounded text-white text-sm font-medium transition"
+                          className="w-full px-3 py-1.5 bg-orange-600 hover:bg-orange-700 disabled:bg-zinc-800 disabled:text-white/40 rounded text-white text-sm font-medium transition"
                         >
                           Apply
                         </button>
@@ -867,7 +1009,7 @@ function DashboardContent() {
               {filteredOrders.length > 0 && (
                 <button
                   onClick={handleExportCSV}
-                  className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-white text-sm font-medium transition"
+                  className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-white/20 border border-white/20 rounded-lg text-white text-sm font-medium transition"
                   title="Export to CSV"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -877,8 +1019,21 @@ function DashboardContent() {
                 </button>
               )}
 
+              {/* Help Button */}
+              <button
+                onClick={() => setShowOnboarding(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg text-zinc-300 text-sm font-medium transition"
+                title="Quick Start Guide"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Help
+              </button>
+
               {(() => {
                 const store = stores[0];
+                const trialDays = getTrialDaysLeft();
 
                 if (subscriptionTier === 'free') {
                   return (
@@ -888,14 +1043,14 @@ function DashboardContent() {
                   );
                 }
 
-                if (subscriptionTier === 'trial' && store?.trial_ends_at) {
-                  const trialEnd = new Date(store.trial_ends_at);
-                  const now = new Date();
-                  const daysLeft = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
+                if (subscriptionTier === 'trial' && trialDays !== null) {
                   return (
-                    <span className="px-3 py-1 bg-green-600/20 border border-green-500/30 rounded-full text-green-300 text-sm font-medium">
-                      Pro Trial <span className="text-yellow-300">({daysLeft} day{daysLeft !== 1 ? 's' : ''} left)</span>
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      trialDays <= 3
+                        ? 'bg-red-500/20 border border-red-500/30 text-red-300'
+                        : 'bg-orange-500/20 border border-orange-500/30 text-orange-300'
+                    }`}>
+                      {trialDays} day{trialDays !== 1 ? 's' : ''} left
                     </span>
                   );
                 }
@@ -1028,7 +1183,7 @@ function DashboardContent() {
           {!hasStores ? (
             // Empty State: No Stores Connected
             <div className="max-w-2xl mx-auto mt-20">
-              <div className="bg-white/5 backdrop-blur border border-white/10 rounded-2xl p-12 text-center">
+              <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-2xl p-12 text-center">
                 <div className="w-20 h-20 bg-orange-600/20 rounded-full flex items-center justify-center mx-auto mb-6">
                   <svg className="w-10 h-10 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
@@ -1058,7 +1213,7 @@ function DashboardContent() {
             // Dashboard with Stats
             <div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6">
+                <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-xl p-6">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-white/60 text-sm font-medium">Total Orders</h3>
                     <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1071,7 +1226,7 @@ function DashboardContent() {
                   </div>
                 </div>
 
-                <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6">
+                <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-xl p-6">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-white/60 text-sm font-medium">Total Revenue</h3>
                     <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1084,7 +1239,7 @@ function DashboardContent() {
                   </div>
                 </div>
 
-                <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6">
+                <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-xl p-6">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-white/60 text-sm font-medium">Ad Spend</h3>
                     <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1097,7 +1252,7 @@ function DashboardContent() {
                   </div>
                 </div>
 
-                <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6">
+                <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-xl p-6">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-white/60 text-sm font-medium">Average ROAS</h3>
                     <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1113,7 +1268,7 @@ function DashboardContent() {
 
               {/* Revenue Chart */}
               {chartData.length > 0 && (
-                <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6 mb-8">
+                <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-xl p-6 mb-8">
                   <div className="flex items-center justify-between mb-6">
                     <div>
                       <h2 className="text-xl font-bold text-white">Revenue Over Time</h2>
@@ -1234,7 +1389,7 @@ function DashboardContent() {
                     </button>
                   </div>
                   <div
-                    className="bg-white/5 rounded-lg p-4 text-white/80 text-sm leading-relaxed prose prose-invert prose-sm max-w-none
+                    className="bg-zinc-900/50 rounded-lg p-4 text-white/80 text-sm leading-relaxed prose prose-invert prose-sm max-w-none
                       [&>h1]:text-lg [&>h1]:font-bold [&>h1]:text-white [&>h1]:mb-3 [&>h1]:mt-4 [&>h1]:first:mt-0
                       [&>h2]:text-base [&>h2]:font-semibold [&>h2]:text-purple-300 [&>h2]:mb-2 [&>h2]:mt-4 [&>h2]:first:mt-0
                       [&>h3]:text-sm [&>h3]:font-semibold [&>h3]:text-white/90 [&>h3]:mb-2 [&>h3]:mt-3
@@ -1319,11 +1474,11 @@ function DashboardContent() {
               )}
 
               {/* Connected Stores */}
-              <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6 mb-8">
+              <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-xl p-6 mb-8">
                 <h2 className="text-xl font-bold text-white mb-4">Connected Stores</h2>
                 <div className="space-y-3">
                   {stores.map((store) => (
-                    <div key={store.id} className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10">
+                    <div key={store.id} className="flex items-center justify-between p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-orange-600/20 rounded-lg flex items-center justify-center">
                           <svg className="w-6 h-6 text-orange-400" fill="currentColor" viewBox="0 0 24 24">
@@ -1361,7 +1516,7 @@ function DashboardContent() {
                       <p className="text-white/70 text-sm mb-3">
                         AdWyse automatically tracks every order and shows you exactly which ads are driving sales. 100% automatic, no setup required.
                       </p>
-                      <div className="bg-white/5 rounded-lg p-4 text-sm text-white/60">
+                      <div className="bg-zinc-900/50 rounded-lg p-4 text-sm text-white/60">
                         <p className="mb-2"><strong className="text-white/80">How it works:</strong></p>
                         <ol className="list-decimal list-inside space-y-1 ml-2">
                           <li>Customers click on your Facebook, Google, or TikTok ads</li>
@@ -1380,7 +1535,7 @@ function DashboardContent() {
 
               {/* Recent Orders */}
               {filteredOrders.length > 0 && (
-                <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6">
+                <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-xl p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xl font-bold text-white">Recent Orders</h2>
                     <div className="text-white/60 text-sm">
@@ -1397,7 +1552,7 @@ function DashboardContent() {
                       });
 
                       return (
-                        <div key={order.id} className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10">
+                        <div key={order.id} className="flex items-center justify-between p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
                           <div className="flex items-center gap-4 flex-1">
                             <div className="w-12 h-12 bg-orange-600/20 rounded-full flex items-center justify-center">
                               <span className="text-orange-300 font-bold text-lg">
@@ -1441,8 +1596,8 @@ function DashboardContent() {
                         disabled={currentPage === 1}
                         className={`px-4 py-2 rounded-lg font-medium transition-all ${
                           currentPage === 1
-                            ? 'bg-white/5 text-white/30 cursor-not-allowed'
-                            : 'bg-white/10 text-white hover:bg-white/20'
+                            ? 'bg-zinc-900/50 text-white/30 cursor-not-allowed'
+                            : 'bg-zinc-800 text-white hover:bg-white/20'
                         }`}
                       >
                         ← Previous
@@ -1455,8 +1610,8 @@ function DashboardContent() {
                         disabled={currentPage === Math.ceil(filteredOrders.length / itemsPerPage)}
                         className={`px-4 py-2 rounded-lg font-medium transition-all ${
                           currentPage === Math.ceil(filteredOrders.length / itemsPerPage)
-                            ? 'bg-white/5 text-white/30 cursor-not-allowed'
-                            : 'bg-white/10 text-white hover:bg-white/20'
+                            ? 'bg-zinc-900/50 text-white/30 cursor-not-allowed'
+                            : 'bg-zinc-800 text-white hover:bg-white/20'
                         }`}
                       >
                         Next →
@@ -1476,7 +1631,7 @@ function DashboardContent() {
 export default function DashboardPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-solid border-orange-500 border-r-transparent mb-4"></div>
           <div className="text-white text-xl">Loading dashboard...</div>
