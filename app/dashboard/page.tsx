@@ -90,15 +90,18 @@ function DashboardContent() {
     return Math.max(0, daysLeft);
   };
 
-  // DISABLED: Onboarding tutorial - was showing too frequently
-  // Keeping the state but never showing it
+  // Show onboarding only ONCE for new users
   useEffect(() => {
-    // Always mark as seen to prevent any chance of showing
-    if (stores.length > 0) {
-      localStorage.setItem(`adwyse_onboarding_${stores[0].id}`, 'true');
+    if (stores.length > 0 && !loading) {
+      const storageKey = `adwyse_onboarding_${stores[0].id}`;
+      const hasSeenOnboarding = localStorage.getItem(storageKey);
+      if (hasSeenOnboarding !== 'true') {
+        setShowOnboarding(true);
+        // Immediately mark as seen to prevent re-showing on refresh
+        localStorage.setItem(storageKey, 'true');
+      }
     }
-    // Never show onboarding - setShowOnboarding(false) is the default
-  }, [stores]);
+  }, [stores, loading]);
 
   const completeOnboarding = () => {
     if (stores[0]) {
