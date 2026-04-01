@@ -578,8 +578,7 @@ export async function GET(request: NextRequest) {
     const shopParam = request.nextUrl.searchParams.get('shop');
     if (shopParam) {
       const shopName = shopParam.replace('.myshopify.com', '');
-      const appHandle = 'adwyse';
-      const shopifyAdminUrl = `https://admin.shopify.com/store/${shopName}/apps/${appHandle}?shop=${shopParam}`;
+      const shopifyAdminUrl = `https://admin.shopify.com/store/${shopName}/apps/${process.env.SHOPIFY_API_KEY}?error=oauth_failed`;
       return NextResponse.redirect(shopifyAdminUrl);
     }
     return NextResponse.redirect(new URL('/dashboard?error=oauth_failed', request.url));

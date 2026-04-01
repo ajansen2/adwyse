@@ -170,6 +170,20 @@ export function navigateInApp(path: string) {
   }
 }
 
+// Redirect to Shopify admin if app is opened standalone (not embedded)
+export function redirectToShopifyAdmin(shop: string): boolean {
+  const isEmbedded = window.self !== window.top;
+  if (isEmbedded) return false;
+
+  const apiKey = process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || '';
+  const storeName = shop.replace('.myshopify.com', '');
+  const adminUrl = `https://admin.shopify.com/store/${storeName}/apps/${apiKey}`;
+
+  console.log('🔄 Redirecting to Shopify admin:', adminUrl);
+  window.location.href = adminUrl;
+  return true;
+}
+
 // Redirect to external URL (like OAuth or billing) - breaks out of iframe as required
 export function redirectToOAuth(url: string) {
   const isEmbedded = window.self !== window.top;

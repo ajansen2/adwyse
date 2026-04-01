@@ -1,6 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+// Helper to build Shopify admin URL for embedded app redirect
+function buildShopifyAdminUrl(shop: string, params?: Record<string, string>): string {
+  const shopName = shop.replace('.myshopify.com', '');
+  // Use SHOPIFY_API_KEY with fallback to hardcoded key for Adwyse
+  const apiKey = process.env.SHOPIFY_API_KEY || '08fa8bc27e0e3ac857912c7e7ee289d0';
+  const baseUrl = `https://admin.shopify.com/store/${shopName}/apps/${apiKey}`;
+  if (params && Object.keys(params).length > 0) {
+    const searchParams = new URLSearchParams(params);
+    return `${baseUrl}?${searchParams.toString()}`;
+  }
+  return baseUrl;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -9,6 +22,9 @@ export async function GET(request: NextRequest) {
     const storeId = searchParams.get('store_id');
 
     if (!shop || !chargeId || !storeId) {
+      if (shop) {
+        return NextResponse.redirect(buildShopifyAdminUrl(shop, { error: 'billing_invalid' }));
+      }
       return NextResponse.redirect(new URL('/dashboard?error=billing_invalid', request.url));
     }
 
@@ -26,7 +42,7 @@ export async function GET(request: NextRequest) {
 
     if (storeError || !store) {
       console.error('Store not found:', storeError);
-      return NextResponse.redirect(new URL('/dashboard?error=store_not_found', request.url));
+      return NextResponse.redirect(buildShopifyAdminUrl(shop, { error: 'store_not_found' }));
     }
 
     // Verify and activate the charge
@@ -41,7 +57,7 @@ export async function GET(request: NextRequest) {
 
     if (!chargeResponse.ok) {
       console.error('Failed to fetch charge details');
-      return NextResponse.redirect(new URL('/dashboard?error=billing_fetch_failed', request.url));
+      return NextResponse.redirect(buildShopifyAdminUrl(shop, { error: 'billing_fetch_failed' }));
     }
 
     const chargeData = await chargeResponse.json();
@@ -69,7 +85,7 @@ export async function GET(request: NextRequest) {
 
       if (!activateResponse.ok) {
         console.error('❌ Failed to activate charge');
-        return NextResponse.redirect(new URL('/dashboard?error=billing_activation_failed', request.url));
+        return NextResponse.redirect(buildShopifyAdminUrl(shop, { error: 'billing_activation_failed' }));
       }
 
       console.log('✅ Billing charge activated');
@@ -89,10 +105,10 @@ export async function GET(request: NextRequest) {
         })
         .eq('id', storeId);
 
-      return NextResponse.redirect(new URL('/dashboard?billing=declined', request.url));
+      return NextResponse.redirect(buildShopifyAdminUrl(shop, { billing: 'declined' }));
     } else {
       // Pending or other status
-      return NextResponse.redirect(new URL('/dashboard?billing=pending', request.url));
+      return NextResponse.redirect(buildShopifyAdminUrl(shop, { billing: 'pending' }));
     }
 
     // Update store with billing info (for both accepted and active statuses)
@@ -127,7 +143,8 @@ export async function GET(request: NextRequest) {
       if (merchant) {
         // For embedded apps, construct the proper Shopify admin URL
         const shopName = shop!.replace('.myshopify.com', '');
-        const shopifyAdminUrl = `https://admin.shopify.com/store/${shopName}/apps/adwyse/dashboard?billing=success`;
+        const apiKey = process.env.SHOPIFY_API_KEY || '08fa8bc27e0e3ac857912c7e7ee289d0';
+        const shopifyAdminUrl = `https://admin.shopify.com/store/${shopName}/apps/${apiKey}`;
 
         console.log('🔄 Redirecting to:', shopifyAdminUrl);
         console.log('📍 Shop:', shop);
@@ -156,10 +173,14 @@ export async function GET(request: NextRequest) {
         return response;
       }
 
-      return NextResponse.redirect(new URL('/dashboard?billing=success', request.url));
+      return NextResponse.redirect(buildShopifyAdminUrl(shop, { billing: 'success' }));
     }
   } catch (error) {
     console.error('Billing callback error:', error);
+    const shop = request.nextUrl.searchParams.get('shop');
+    if (shop) {
+      return NextResponse.redirect(buildShopifyAdminUrl(shop, { error: 'billing_callback_failed' }));
+    }
     return NextResponse.redirect(new URL('/dashboard?error=billing_callback_failed', request.url));
   }
 }
