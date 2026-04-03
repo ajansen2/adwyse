@@ -238,16 +238,16 @@ function DashboardContent() {
     setSubscribing(true);
     const shop = searchParams.get('shop') || store.shopify_domain;
     try {
-      const response = await fetch('/api/billing/check', {
+      const response = await fetch('/api/billing/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shop })
+        body: JSON.stringify({ storeId: store.id, shop })
       });
       const data = await response.json();
       if (data.confirmationUrl) {
         redirectToOAuth(data.confirmationUrl);
-      } else if (data.oauthUrl) {
-        redirectToOAuth(data.oauthUrl);
+      } else if (data.needsOAuth) {
+        redirectToOAuth(`/api/auth/shopify/install?shop=${shop}`);
       }
     } catch (error) {
       console.error('Error creating billing charge:', error);
