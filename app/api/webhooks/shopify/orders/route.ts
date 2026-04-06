@@ -56,8 +56,24 @@ export async function POST(request: NextRequest) {
     const gclid = extractParameterFromURL(landingSite, 'gclid') ||
                   extractParameterFromURL(landingSiteReferrer, 'gclid');
 
+    // Extract creative-level IDs for detailed attribution
+    const fbAdId = extractParameterFromURL(landingSite, 'fb_ad_id') ||
+                   extractParameterFromURL(landingSiteReferrer, 'fb_ad_id');
+    const fbAdsetId = extractParameterFromURL(landingSite, 'fb_adset_id') ||
+                      extractParameterFromURL(landingSiteReferrer, 'fb_adset_id');
+    const googleCreativeId = extractParameterFromURL(landingSite, 'creative') ||
+                             extractParameterFromURL(landingSiteReferrer, 'creative');
+    const googleAdgroupId = extractParameterFromURL(landingSite, 'adgroupid') ||
+                            extractParameterFromURL(landingSiteReferrer, 'adgroupid');
+    const ttclid = extractParameterFromURL(landingSite, 'ttclid') ||
+                   extractParameterFromURL(landingSiteReferrer, 'ttclid');
+    const ttAdId = extractParameterFromURL(landingSite, 'tt_ad_id') ||
+                   extractParameterFromURL(landingSiteReferrer, 'tt_ad_id');
+    const ttAdgroupId = extractParameterFromURL(landingSite, 'tt_adgroup_id') ||
+                        extractParameterFromURL(landingSiteReferrer, 'tt_adgroup_id');
+
     // Determine ad source
-    const adSource = determineAdSource(utmParams, fbclid, gclid, landingSiteReferrer);
+    const adSource = determineAdSource(utmParams, fbclid, gclid, landingSiteReferrer, ttclid);
     const campaignName = utmParams.utm_campaign || extractCampaignFromReferrer(landingSiteReferrer);
 
     // Calculate order total
@@ -69,6 +85,8 @@ export async function POST(request: NextRequest) {
       campaignName,
       fbclid: fbclid ? 'present' : 'none',
       gclid: gclid ? 'present' : 'none',
+      ttclid: ttclid ? 'present' : 'none',
+      fbAdId: fbAdId || 'none',
       utmSource: utmParams.utm_source,
       utmMedium: utmParams.utm_medium,
       orderTotal,
@@ -94,6 +112,15 @@ export async function POST(request: NextRequest) {
         utm_term: utmParams.utm_term,
         fbclid: fbclid,
         gclid: gclid,
+        ttclid: ttclid,
+
+        // Creative-level attribution
+        fb_ad_id: fbAdId,
+        fb_adset_id: fbAdsetId,
+        google_creative_id: googleCreativeId,
+        google_adgroup_id: googleAdgroupId,
+        tt_ad_id: ttAdId,
+        tt_adgroup_id: ttAdgroupId,
 
         order_created_at: orderData.created_at || new Date().toISOString(),
       })
@@ -173,7 +200,8 @@ function determineAdSource(
   utmParams: { utm_source: string | null; utm_medium: string | null },
   fbclid: string | null,
   gclid: string | null,
-  referrer: string
+  referrer: string,
+  ttclid?: string | null
 ): string {
   // Facebook
   if (fbclid || utmParams.utm_source?.toLowerCase().includes('facebook') ||
@@ -189,7 +217,8 @@ function determineAdSource(
   }
 
   // TikTok
-  if (utmParams.utm_source?.toLowerCase().includes('tiktok') ||
+  if (ttclid ||
+      utmParams.utm_source?.toLowerCase().includes('tiktok') ||
       utmParams.utm_source?.toLowerCase().includes('ttad')) {
     return 'tiktok';
   }

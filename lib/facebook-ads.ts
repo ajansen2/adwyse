@@ -174,3 +174,288 @@ export async function testFacebookToken(accessToken: string): Promise<boolean> {
     return false;
   }
 }
+
+// =============================================================================
+// Ad-Level (Creative) Data Fetching
+// =============================================================================
+
+export interface FacebookAd {
+  id: string;
+  name: string;
+  status: string;
+  adset_id: string;
+  adset_name: string;
+  campaign_id: string;
+  campaign_name: string;
+  creative_type: string;
+  thumbnail_url?: string;
+  spend: number;
+  impressions: number;
+  clicks: number;
+  conversions: number;
+}
+
+export interface FacebookAdSet {
+  id: string;
+  name: string;
+  status: string;
+  campaign_id: string;
+  campaign_name: string;
+  spend: number;
+  impressions: number;
+  clicks: number;
+  conversions: number;
+}
+
+/**
+ * Fetch all ads (creatives) for an ad account
+ */
+export async function fetchFacebookAds(
+  accessToken: string,
+  adAccountId: string,
+  datePreset: 'today' | 'yesterday' | 'last_7d' | 'last_30d' = 'last_30d'
+): Promise<FacebookAd[]> {
+  console.log(`🔵 [FB API] fetchFacebookAds called for account: ${adAccountId}`);
+
+  try {
+    const fields = [
+      'id',
+      'name',
+      'status',
+      'adset_id',
+      'campaign_id',
+      'creative{thumbnail_url,object_type}',
+      `insights.date_preset(${datePreset}){spend,impressions,clicks,actions}`
+    ].join(',');
+
+    const fullUrl = `https://graph.facebook.com/v18.0/act_${adAccountId}/ads?fields=${fields}&limit=500&access_token=${accessToken}`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    const response = await fetch(fullUrl, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('❌ [FB API] Error fetching ads:', error);
+      return [];
+    }
+
+    const data = await response.json();
+    if (!data.data) return [];
+
+    // We need to fetch adset and campaign names separately
+    const adsetIds = [...new Set(data.data.map((ad: any) => ad.adset_id))];
+    const campaignIds = [...new Set(data.data.map((ad: any) => ad.campaign_id))];
+
+    // Fetch adset names
+    const adsetNames = await fetchAdSetNames(accessToken, adsetIds as string[]);
+    // Fetch campaign names
+    const campaignNames = await fetchCampaignNames(accessToken, campaignIds as string[]);
+
+    return data.data.map((ad: any) => {
+      const insights = ad.insights?.data?.[0];
+      const conversions = insights?.actions?.find(
+        (a: any) => a.action_type === 'purchase' || a.action_type === 'offsite_conversion.fb_pixel_purchase'
+      )?.value || 0;
+
+      return {
+        id: ad.id,
+        name: ad.name,
+        status: ad.status,
+        adset_id: ad.adset_id,
+        adset_name: adsetNames[ad.adset_id] || '',
+        campaign_id: ad.campaign_id,
+        campaign_name: campaignNames[ad.campaign_id] || '',
+        creative_type: ad.creative?.object_type || 'unknown',
+        thumbnail_url: ad.creative?.thumbnail_url,
+        spend: parseFloat(insights?.spend || '0'),
+        impressions: parseInt(insights?.impressions || '0', 10),
+        clicks: parseInt(insights?.clicks || '0', 10),
+        conversions: parseInt(conversions, 10)
+      };
+    });
+  } catch (error) {
+    console.error('❌ Error fetching Facebook ads:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch all ad sets for an ad account
+ */
+export async function fetchFacebookAdSets(
+  accessToken: string,
+  adAccountId: string,
+  datePreset: 'today' | 'yesterday' | 'last_7d' | 'last_30d' = 'last_30d'
+): Promise<FacebookAdSet[]> {
+  console.log(`🔵 [FB API] fetchFacebookAdSets called for account: ${adAccountId}`);
+
+  try {
+    const fields = [
+      'id',
+      'name',
+      'status',
+      'campaign_id',
+      `insights.date_preset(${datePreset}){spend,impressions,clicks,actions}`
+    ].join(',');
+
+    const fullUrl = `https://graph.facebook.com/v18.0/act_${adAccountId}/adsets?fields=${fields}&limit=500&access_token=${accessToken}`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    const response = await fetch(fullUrl, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const data = await response.json();
+    if (!data.data) return [];
+
+    const campaignIds = [...new Set(data.data.map((adset: any) => adset.campaign_id))];
+    const campaignNames = await fetchCampaignNames(accessToken, campaignIds as string[]);
+
+    return data.data.map((adset: any) => {
+      const insights = adset.insights?.data?.[0];
+      const conversions = insights?.actions?.find(
+        (a: any) => a.action_type === 'purchase' || a.action_type === 'offsite_conversion.fb_pixel_purchase'
+      )?.value || 0;
+
+      return {
+        id: adset.id,
+        name: adset.name,
+        status: adset.status,
+        campaign_id: adset.campaign_id,
+        campaign_name: campaignNames[adset.campaign_id] || '',
+        spend: parseFloat(insights?.spend || '0'),
+        impressions: parseInt(insights?.impressions || '0', 10),
+        clicks: parseInt(insights?.clicks || '0', 10),
+        conversions: parseInt(conversions, 10)
+      };
+    });
+  } catch (error) {
+    console.error('❌ Error fetching Facebook ad sets:', error);
+    return [];
+  }
+}
+
+/**
+ * Helper: Fetch adset names by IDs
+ */
+async function fetchAdSetNames(
+  accessToken: string,
+  adsetIds: string[]
+): Promise<Record<string, string>> {
+  if (adsetIds.length === 0) return {};
+
+  try {
+    const url = `https://graph.facebook.com/v18.0/?ids=${adsetIds.join(',')}&fields=name&access_token=${accessToken}`;
+    const response = await fetch(url);
+    if (!response.ok) return {};
+
+    const data = await response.json();
+    const names: Record<string, string> = {};
+    for (const id of adsetIds) {
+      if (data[id]?.name) {
+        names[id] = data[id].name;
+      }
+    }
+    return names;
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Helper: Fetch campaign names by IDs
+ */
+async function fetchCampaignNames(
+  accessToken: string,
+  campaignIds: string[]
+): Promise<Record<string, string>> {
+  if (campaignIds.length === 0) return {};
+
+  try {
+    const url = `https://graph.facebook.com/v18.0/?ids=${campaignIds.join(',')}&fields=name&access_token=${accessToken}`;
+    const response = await fetch(url);
+    if (!response.ok) return {};
+
+    const data = await response.json();
+    const names: Record<string, string> = {};
+    for (const id of campaignIds) {
+      if (data[id]?.name) {
+        names[id] = data[id].name;
+      }
+    }
+    return names;
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Fetch ad-level insights with daily breakdown
+ */
+export async function fetchAdInsightsDaily(
+  accessToken: string,
+  adAccountId: string,
+  dateStart: string,
+  dateEnd: string
+): Promise<Array<{
+  ad_id: string;
+  ad_name: string;
+  adset_id: string;
+  campaign_id: string;
+  date: string;
+  spend: number;
+  impressions: number;
+  clicks: number;
+  conversions: number;
+}>> {
+  try {
+    const fields = [
+      'ad_id',
+      'ad_name',
+      'adset_id',
+      'campaign_id',
+      'spend',
+      'impressions',
+      'clicks',
+      'actions'
+    ].join(',');
+
+    const timeRange = encodeURIComponent(JSON.stringify({ since: dateStart, until: dateEnd }));
+    const url = `https://graph.facebook.com/v18.0/act_${adAccountId}/insights?fields=${fields}&level=ad&time_increment=1&time_range=${timeRange}&limit=500&access_token=${accessToken}`;
+
+    const response = await fetch(url);
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    if (!data.data) return [];
+
+    return data.data.map((row: any) => {
+      const conversions = row.actions?.find(
+        (a: any) => a.action_type === 'purchase' || a.action_type === 'offsite_conversion.fb_pixel_purchase'
+      )?.value || 0;
+
+      return {
+        ad_id: row.ad_id,
+        ad_name: row.ad_name,
+        adset_id: row.adset_id,
+        campaign_id: row.campaign_id,
+        date: row.date_start,
+        spend: parseFloat(row.spend || '0'),
+        impressions: parseInt(row.impressions || '0', 10),
+        clicks: parseInt(row.clicks || '0', 10),
+        conversions: parseInt(conversions, 10)
+      };
+    });
+  } catch (error) {
+    console.error('Error fetching daily ad insights:', error);
+    return [];
+  }
+}

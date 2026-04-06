@@ -62,9 +62,15 @@ export async function POST(request: NextRequest) {
 
     const store = stores[0];
 
+    // Extract email from various possible locations in the webhook payload
+    // Checkouts use customer.email, carts use email directly, some use billing_address.email
+    const email = webhookData.email ||
+                  webhookData.customer?.email ||
+                  webhookData.billing_address?.email;
+
     // Check if cart has customer email (required for cart recovery)
-    if (!webhookData.email) {
-      console.log('⏭️  Skipping cart without email');
+    if (!email) {
+      console.log('⏭️  Skipping cart/checkout without email');
       return NextResponse.json({ message: 'No email provided' }, { status: 200 });
     }
 
@@ -97,49 +103,90 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (existingCart) {
-      // Update existing cart
-      await supabase
-        .from('abandoned_carts')
-        .update({
-          cart_value: cartValue,
-          line_items: cartItems,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', existingCart.id);
+      // Update existing cart - non-critical, don't fail webhook on error
+      try {
+        await supabase
+          .from('abandoned_carts')
+          .update({
+            cart_value: cartValue,
+            line_items: cartItems,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existingCart.id);
 
-      console.log('✅ Updated existing cart:', existingCart.id);
+        console.log('✅ Updated existing cart:', existingCart.id);
+      } catch (updateError) {
+        console.error('⚠️ Non-critical: Failed to update cart:', updateError);
+        // Don't fail the webhook - Shopify will retry and cause duplicate issues
+      }
     } else {
       // Create new abandoned cart
-      const { data: newCart, error: cartError} = await supabase
-        .from('abandoned_carts')
-        .insert({
-          store_id: store.id,
-          checkout_id: cartId,
-          shopify_checkout_id: cartId,
-          customer_email: webhookData.email,
-          customer_first_name: webhookData.customer?.first_name || null,
-          customer_last_name: webhookData.customer?.last_name || null,
-          cart_value: cartValue,
-          line_items: cartItems,
-          abandoned_checkout_url: webhookData.abandoned_checkout_url || null,
-          status: 'abandoned',
-          abandoned_at: webhookData.updated_at || new Date().toISOString(),
-        })
-        .select()
-        .single();
+      try {
+        const { data: newCart, error: cartError} = await supabase
+          .from('abandoned_carts')
+          .insert({
+            store_id: store.id,
+            checkout_id: cartId,
+            shopify_checkout_id: cartId,
+            customer_email: email,
+            customer_first_name: webhookData.customer?.first_name || null,
+            customer_last_name: webhookData.customer?.last_name || null,
+            cart_value: cartValue,
+            line_items: cartItems,
+            abandoned_checkout_url: webhookData.abandoned_checkout_url || null,
+            status: 'abandoned',
+            abandoned_at: webhookData.updated_at || new Date().toISOString(),
+          })
+          .select()
+          .single();
 
-      if (cartError) {
-        console.error('❌ Error saving cart:', cartError);
-        return NextResponse.json({ error: 'Failed to save cart' }, { status: 500 });
+        if (cartError) {
+          // Log but don't fail - returning 500 causes Shopify to mark webhook as failing
+          console.error('⚠️ Error saving cart (non-critical):', cartError);
+          await logWebhookError(supabase, topic!, shop!, 'cart_insert_error', cartError.message);
+        } else {
+          console.log('✅ New abandoned cart saved:', newCart.id);
+        }
+      } catch (insertError) {
+        console.error('⚠️ Non-critical: Failed to insert cart:', insertError);
+        await logWebhookError(supabase, topic!, shop!, 'cart_insert_exception', String(insertError));
       }
-
-      console.log('✅ New abandoned cart saved:', newCart.id);
     }
 
+    // Always return 200 to acknowledge receipt - Shopify will mark webhook as failing on 500
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
     console.error('❌ Webhook processing error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    // Still return 200 to prevent Shopify from marking webhook as failing
+    // Critical errors should be monitored via logging/metrics
+    return NextResponse.json({
+      received: true,
+      error: 'Processing error logged'
+    }, { status: 200 });
+  }
+}
+
+// Log webhook errors to database for monitoring
+async function logWebhookError(
+  supabase: any,
+  topic: string,
+  shop: string,
+  errorType: string,
+  errorMessage: string
+) {
+  try {
+    await supabase
+      .from('webhook_metrics')
+      .insert({
+        shop_domain: shop,
+        webhook_topic: topic,
+        error_type: errorType,
+        error_message: errorMessage.substring(0, 1000), // Truncate long messages
+        created_at: new Date().toISOString()
+      });
+  } catch (logError) {
+    // Silently fail - don't let logging errors affect webhook
+    console.error('Failed to log webhook error:', logError);
   }
 }
 
