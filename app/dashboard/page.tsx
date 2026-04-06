@@ -5,8 +5,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { initializeAppBridge, isEmbeddedInShopify, navigateInApp, getShopifySessionToken, redirectToOAuth } from '@/lib/shopify-app-bridge';
 import Link from 'next/link';
-import { Sidebar } from '@/components/dashboard/Sidebar';
+import { Sidebar, ProfitSummary, AlertsWidget } from '@/components/dashboard';
 import { MetricCard, DashboardSkeleton } from '@/components/ui';
+import { RevenueChart } from '@/components/charts';
 
 type DateRangeOption = '7d' | '14d' | '30d' | '90d' | 'all' | 'custom';
 
@@ -1288,87 +1289,30 @@ function DashboardContent() {
               {/* Revenue Chart */}
               {chartData.length > 0 && (
                 <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-xl p-6 mb-8">
-                  <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center justify-between mb-4">
                     <div>
                       <h2 className="text-xl font-bold text-white">Revenue Over Time</h2>
                       <p className="text-white/60 text-sm">{dateRange.label}</p>
                     </div>
-                    <div className="flex items-center gap-4 text-sm">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                        <span className="text-white/60">Total Revenue</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                        <span className="text-white/60">Ad Revenue</span>
-                      </div>
-                    </div>
                   </div>
+                  <RevenueChart data={chartData.slice(-30)} dateRangeLabel={dateRange.label} />
+                </div>
+              )}
 
-                  {/* Simple Bar Chart */}
-                  <div className="relative h-64">
-                    {/* Y-axis labels */}
-                    <div className="absolute left-0 top-0 bottom-8 w-16 flex flex-col justify-between text-white/40 text-xs">
-                      <span>${maxRevenue.toFixed(0)}</span>
-                      <span>${(maxRevenue * 0.75).toFixed(0)}</span>
-                      <span>${(maxRevenue * 0.5).toFixed(0)}</span>
-                      <span>${(maxRevenue * 0.25).toFixed(0)}</span>
-                      <span>$0</span>
-                    </div>
+              {/* Profit Summary */}
+              {(totalRevenue > 0 || totalSpend > 0) && (
+                <div className="mb-8">
+                  <ProfitSummary
+                    revenue={attributedRevenue}
+                    adSpend={totalSpend}
+                  />
+                </div>
+              )}
 
-                    {/* Chart area */}
-                    <div className="ml-16 flex items-end gap-1" style={{ height: '200px' }}>
-                      {chartData.slice(-30).map((day, index) => {
-                        const barHeight = Math.max((day.revenue / maxRevenue) * 200, 4);
-                        const adBarHeight = day.revenue > 0 ? (day.adRevenue / day.revenue) * barHeight : 0;
-                        const displayDate = new Date(day.date);
-
-                        return (
-                          <div
-                            key={day.date}
-                            className="flex-1 min-w-0 flex items-end group relative"
-                            style={{ height: '200px' }}
-                          >
-                            {/* Tooltip */}
-                            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:block z-10">
-                              <div className="bg-slate-800 border border-white/20 rounded-lg px-3 py-2 text-xs whitespace-nowrap shadow-xl">
-                                <div className="text-white font-medium mb-1">
-                                  {displayDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                </div>
-                                <div className="text-green-400">${day.revenue.toFixed(2)} revenue</div>
-                                <div className="text-orange-400">${day.adRevenue.toFixed(2)} from ads</div>
-                                <div className="text-white/60">{day.orders} orders</div>
-                              </div>
-                            </div>
-
-                            {/* Bar */}
-                            <div
-                              className="w-full relative rounded-t overflow-hidden"
-                              style={{ height: `${barHeight}px` }}
-                            >
-                              <div
-                                className="absolute inset-0 bg-green-500/60 transition-all group-hover:bg-green-500"
-                              />
-                              <div
-                                className="absolute inset-x-0 bottom-0 bg-orange-500 transition-all group-hover:bg-orange-400"
-                                style={{ height: `${adBarHeight}px` }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* X-axis labels */}
-                    <div className="ml-16 flex justify-between text-white/40 text-xs mt-2">
-                      {chartData.length > 0 && (
-                        <>
-                          <span>{new Date(chartData[Math.max(0, chartData.length - 30)].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                          <span>{new Date(chartData[chartData.length - 1].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
+              {/* Alerts Widget */}
+              {stores[0] && (
+                <div className="mb-8">
+                  <AlertsWidget storeId={stores[0].id} />
                 </div>
               )}
 

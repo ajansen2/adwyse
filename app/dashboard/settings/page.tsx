@@ -37,6 +37,11 @@ function SettingsContent() {
   const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'trial' | 'pro'>('pro');
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgrading, setUpgrading] = useState(false);
+  const [pixelCopied, setPixelCopied] = useState(false);
+  const [pixelVerifying, setPixelVerifying] = useState(false);
+  const [pixelVerified, setPixelVerified] = useState<boolean | null>(null);
+  const [attributionModel, setAttributionModel] = useState<'last_click' | 'first_click' | 'linear' | 'time_decay' | 'position_based'>('last_click');
+  const [savingAttributionModel, setSavingAttributionModel] = useState(false);
   const supabase = getSupabaseClient();
 
   // Get URL params directly from window.location (more reliable in iframes)
@@ -169,6 +174,21 @@ function SettingsContent() {
             }
           } catch (err) {
             console.error('Error loading subscription tier:', err);
+          }
+
+          // Load attribution model
+          try {
+            console.log('🔧 Settings: Loading attribution model via XHR...');
+            const attrXhr = new XMLHttpRequest();
+            attrXhr.open('GET', `/api/settings/attribution?store_id=${data.store.id}`, false);
+            attrXhr.send();
+            if (attrXhr.status === 200) {
+              const attrData = JSON.parse(attrXhr.responseText);
+              setAttributionModel(attrData.attribution_model || 'last_click');
+              console.log('🔧 Settings: Attribution model:', attrData.attribution_model);
+            }
+          } catch (err) {
+            console.error('Error loading attribution model:', err);
           }
         } else {
           console.log('🔧 Settings: No store in response data');
@@ -350,6 +370,59 @@ function SettingsContent() {
       setTimeout(() => setErrorMessage(''), 5000);
     } finally {
       setUpgrading(false);
+    }
+  };
+
+  const handleCopyPixelCode = () => {
+    if (!store) return;
+    const pixelCode = `<script src="${window.location.origin}/api/pixel/script/${store.id}" async></script>`;
+    navigator.clipboard.writeText(pixelCode);
+    setPixelCopied(true);
+    setTimeout(() => setPixelCopied(false), 3000);
+  };
+
+  const handleVerifyPixel = async () => {
+    if (!store) return;
+    setPixelVerifying(true);
+    setPixelVerified(null);
+
+    try {
+      const response = await fetch(`/api/pixel/verify?store_id=${store.id}`);
+      const data = await response.json();
+      setPixelVerified(data.verified || false);
+    } catch {
+      setPixelVerified(false);
+    } finally {
+      setPixelVerifying(false);
+    }
+  };
+
+  const handleSaveAttributionModel = () => {
+    if (!store) return;
+
+    setSavingAttributionModel(true);
+    try {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/settings/attribution', false);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.send(JSON.stringify({
+        storeId: store.id,
+        attribution_model: attributionModel,
+      }));
+
+      if (xhr.status === 200) {
+        setSuccessMessage('Attribution model saved');
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } else {
+        setErrorMessage('Failed to save attribution model');
+        setTimeout(() => setErrorMessage(''), 3000);
+      }
+    } catch (error) {
+      console.error('Error saving attribution model:', error);
+      setErrorMessage('Failed to save attribution model');
+      setTimeout(() => setErrorMessage(''), 3000);
+    } finally {
+      setSavingAttributionModel(false);
     }
   };
 
@@ -1028,6 +1101,179 @@ function SettingsContent() {
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Tracking Pixel Installation */}
+          <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6 mb-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-cyan-500/20 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">Tracking Pixel</h2>
+                <p className="text-white/60 text-sm">First-party tracking that bypasses ad blockers</p>
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-900/50 rounded-lg border border-white/10 mb-4">
+              <p className="text-white/70 text-sm mb-3">
+                Add this code to your Shopify theme&apos;s <code className="px-1.5 py-0.5 bg-white/10 rounded text-cyan-300">theme.liquid</code> file,
+                just before the closing <code className="px-1.5 py-0.5 bg-white/10 rounded text-cyan-300">&lt;/head&gt;</code> tag:
+              </p>
+              <div className="relative">
+                <pre className="p-4 bg-black/50 rounded-lg text-green-400 text-sm font-mono overflow-x-auto">
+{`<script src="${typeof window !== 'undefined' ? window.location.origin : 'https://your-domain.com'}/api/pixel/script/${store?.id || 'YOUR_STORE_ID'}" async></script>`}
+                </pre>
+                <button
+                  onClick={handleCopyPixelCode}
+                  className="absolute top-2 right-2 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg transition flex items-center gap-2"
+                >
+                  {pixelCopied ? (
+                    <>
+                      <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      Copy
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <button
+                onClick={handleVerifyPixel}
+                disabled={pixelVerifying}
+                className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 disabled:bg-cyan-800 disabled:cursor-not-allowed text-white rounded-lg font-medium transition flex items-center gap-2"
+              >
+                {pixelVerifying ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Verifying...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Verify Installation
+                  </>
+                )}
+              </button>
+
+              {pixelVerified !== null && (
+                <div className={`flex items-center gap-2 text-sm ${pixelVerified ? 'text-green-400' : 'text-red-400'}`}>
+                  {pixelVerified ? (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Pixel is active and tracking!
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      Pixel not detected. Make sure it&apos;s installed correctly.
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-white/10">
+              <h3 className="text-white font-medium mb-2">What this pixel tracks:</h3>
+              <ul className="grid grid-cols-2 gap-2 text-white/60 text-sm">
+                <li className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full"></span>
+                  Page views
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full"></span>
+                  Add to cart events
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full"></span>
+                  UTM parameters
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full"></span>
+                  Click IDs (fbclid, gclid, ttclid)
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Attribution Model */}
+          <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6 mb-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-indigo-500/20 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">Attribution Model</h2>
+                <p className="text-white/60 text-sm">Choose how conversion credit is distributed across touchpoints</p>
+              </div>
+            </div>
+
+            <div className="grid gap-3">
+              {[
+                { id: 'last_click', name: 'Last Click', desc: '100% credit to the final touchpoint before conversion' },
+                { id: 'first_click', name: 'First Click', desc: '100% credit to the first touchpoint that started the journey' },
+                { id: 'linear', name: 'Linear', desc: 'Equal credit distributed across all touchpoints' },
+                { id: 'time_decay', name: 'Time Decay', desc: 'More credit to touchpoints closer to conversion' },
+                { id: 'position_based', name: 'Position Based', desc: '40% first, 40% last, 20% distributed to middle' },
+              ].map((model) => (
+                <button
+                  key={model.id}
+                  onClick={() => setAttributionModel(model.id as typeof attributionModel)}
+                  className={`p-4 rounded-lg border-2 text-left transition ${
+                    attributionModel === model.id
+                      ? 'bg-indigo-600/20 border-indigo-500'
+                      : 'bg-white/5 border-white/10 hover:bg-white/10'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-white font-medium">{model.name}</div>
+                      <div className="text-white/50 text-sm">{model.desc}</div>
+                    </div>
+                    {attributionModel === model.id && (
+                      <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={handleSaveAttributionModel}
+              disabled={savingAttributionModel}
+              className="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-800 disabled:cursor-not-allowed text-white rounded-lg font-medium transition flex items-center gap-2"
+            >
+              {savingAttributionModel ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Saving...
+                </>
+              ) : (
+                'Save Attribution Model'
+              )}
+            </button>
           </div>
 
           {/* Email Reports */}

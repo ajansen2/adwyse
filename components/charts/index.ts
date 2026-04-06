@@ -6,3 +6,4 @@ export { ProfitWaterfall } from './ProfitWaterfall';
 export { AttributionChart } from './AttributionChart';
 export { CreativeGrid } from './CreativeGrid';
 export { TrendChart } from './TrendChart';
+export { RevenueChart } from './RevenueChart';

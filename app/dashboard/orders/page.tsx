@@ -1,9 +1,17 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Sidebar } from '@/components/dashboard/Sidebar';
 import { MetricCard, DataTable, PlatformBadge, DashboardSkeleton, type Column } from '@/components/ui';
+
+type DateRangeOption = '7d' | '14d' | '30d' | '90d' | 'all' | 'custom';
+
+interface DateRange {
+  start: Date | null;
+  end: Date | null;
+  label: string;
+}
 
 interface Order {
   id: string;
@@ -28,7 +36,48 @@ interface Order {
 function OrdersContent() {
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [dateRangeOption, setDateRangeOption] = useState<DateRangeOption>('30d');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
   const searchParams = useSearchParams();
+
+  // Calculate date range based on selection
+  const dateRange = useMemo((): DateRange => {
+    const now = new Date();
+    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+
+    switch (dateRangeOption) {
+      case '7d':
+        return { start: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000), end, label: 'Last 7 days' };
+      case '14d':
+        return { start: new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000), end, label: 'Last 14 days' };
+      case '30d':
+        return { start: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000), end, label: 'Last 30 days' };
+      case '90d':
+        return { start: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), end, label: 'Last 90 days' };
+      case 'custom':
+        return {
+          start: customStartDate ? new Date(customStartDate) : null,
+          end: customEndDate ? new Date(customEndDate + 'T23:59:59') : end,
+          label: customStartDate && customEndDate
+            ? `${new Date(customStartDate).toLocaleDateString()} - ${new Date(customEndDate).toLocaleDateString()}`
+            : 'Custom range'
+        };
+      case 'all':
+      default:
+        return { start: null, end: null, label: 'All time' };
+    }
+  }, [dateRangeOption, customStartDate, customEndDate]);
+
+  // Filter orders by date range
+  const filteredOrders = useMemo(() => {
+    if (!dateRange.start) return orders;
+    return orders.filter(order => {
+      const orderDate = new Date(order.order_created_at);
+      return orderDate >= dateRange.start! && (!dateRange.end || orderDate <= dateRange.end);
+    });
+  }, [orders, dateRange]);
 
   useEffect(() => {
     const loadOrders = async () => {
@@ -68,10 +117,10 @@ function OrdersContent() {
     loadOrders();
   }, [searchParams]);
 
-  // Calculate totals
-  const totalRevenue = orders.reduce((sum, order) => sum + order.total_price, 0);
-  const averageOrderValue = orders.length > 0 ? totalRevenue / orders.length : 0;
-  const adAttributedOrders = orders.filter(o => o.attributed_platform && o.attributed_platform !== 'direct');
+  // Calculate totals from filtered orders
+  const totalRevenue = filteredOrders.reduce((sum, order) => sum + order.total_price, 0);
+  const averageOrderValue = filteredOrders.length > 0 ? totalRevenue / filteredOrders.length : 0;
+  const adAttributedOrders = filteredOrders.filter(o => o.attributed_platform && o.attributed_platform !== 'direct');
   const adAttributedRevenue = adAttributedOrders.reduce((sum, o) => sum + o.total_price, 0);
 
   // Define table columns
@@ -172,8 +221,85 @@ function OrdersContent() {
 
       <main className="lg:ml-64 min-h-screen">
         <header className="bg-slate-900/50 backdrop-blur border-b border-white/10 sticky top-0 z-30">
-          <div className="px-6 py-4">
+          <div className="px-6 py-4 flex items-center justify-between">
             <h1 className="text-2xl font-bold text-white">Orders</h1>
+
+            {/* Date Range Picker */}
+            <div className="relative">
+              <button
+                onClick={() => setShowDatePicker(!showDatePicker)}
+                className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-white text-sm font-medium transition"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                {dateRange.label}
+                <svg className={`w-4 h-4 transition-transform ${showDatePicker ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {showDatePicker && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowDatePicker(false)} />
+                  <div className="absolute right-0 mt-2 w-64 bg-slate-800 border border-white/20 rounded-xl shadow-xl z-50 overflow-hidden">
+                    <div className="p-2">
+                      {[
+                        { value: '7d', label: 'Last 7 days' },
+                        { value: '14d', label: 'Last 14 days' },
+                        { value: '30d', label: 'Last 30 days' },
+                        { value: '90d', label: 'Last 90 days' },
+                        { value: 'all', label: 'All time' },
+                      ].map((option) => (
+                        <button
+                          key={option.value}
+                          onClick={() => {
+                            setDateRangeOption(option.value as DateRangeOption);
+                            setShowDatePicker(false);
+                          }}
+                          className={`w-full text-left px-4 py-2 rounded-lg text-sm transition ${
+                            dateRangeOption === option.value
+                              ? 'bg-orange-600 text-white'
+                              : 'text-white/80 hover:bg-white/10'
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="border-t border-white/10 p-3">
+                      <div className="text-white/60 text-xs mb-2">Custom range</div>
+                      <div className="flex gap-2 mb-2">
+                        <input
+                          type="date"
+                          value={customStartDate}
+                          onChange={(e) => setCustomStartDate(e.target.value)}
+                          className="flex-1 px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
+                        />
+                        <input
+                          type="date"
+                          value={customEndDate}
+                          onChange={(e) => setCustomEndDate(e.target.value)}
+                          className="flex-1 px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
+                        />
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (customStartDate && customEndDate) {
+                            setDateRangeOption('custom');
+                            setShowDatePicker(false);
+                          }
+                        }}
+                        disabled={!customStartDate || !customEndDate}
+                        className="w-full px-3 py-1.5 bg-orange-600 hover:bg-orange-700 disabled:bg-white/10 disabled:text-white/40 rounded text-white text-sm font-medium transition"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </header>
 
@@ -182,7 +308,7 @@ function OrdersContent() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <MetricCard
               title="Total Orders"
-              value={orders.length}
+              value={filteredOrders.length}
               icon={
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
@@ -228,7 +354,7 @@ function OrdersContent() {
           {/* Orders Table */}
           <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl overflow-hidden">
             <DataTable
-              data={orders}
+              data={filteredOrders}
               columns={columns}
               keyExtractor={(row) => row.id}
               searchable={true}
