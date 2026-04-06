@@ -176,9 +176,10 @@ export function CommandPalette({
   const flatFilteredCommands = filteredCommands;
 
   // Handle keyboard shortcuts to open/close
+  // Use Cmd+/ (or Ctrl+/) to avoid conflict with Shopify's Cmd+K search
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      if ((e.metaKey || e.ctrlKey) && e.key === '/') {
         e.preventDefault();
         setIsOpen((prev) => !prev);
       }
@@ -354,7 +355,7 @@ export function CommandPalette({
             <span className="flex items-center gap-1">
               <kbd className="px-1.5 py-0.5 bg-white/10 rounded text-[10px]">CMD</kbd>
               +
-              <kbd className="px-1.5 py-0.5 bg-white/10 rounded text-[10px]">K</kbd>
+              <kbd className="px-1.5 py-0.5 bg-white/10 rounded text-[10px]">/</kbd>
             </span>
           </div>
         </div>
