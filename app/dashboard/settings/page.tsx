@@ -48,6 +48,8 @@ function SettingsContent() {
   const [slackDailySummary, setSlackDailySummary] = useState(false);
   const [savingSlackSettings, setSavingSlackSettings] = useState(false);
   const [testingSlack, setTestingSlack] = useState(false);
+  const [sendingTestPixel, setSendingTestPixel] = useState(false);
+  const [testPixelSent, setTestPixelSent] = useState(false);
   const supabase = getSupabaseClient();
 
   // Get URL params directly from window.location (more reliable in iframes)
@@ -489,6 +491,50 @@ function SettingsContent() {
       setPixelVerified(false);
     } finally {
       setPixelVerifying(false);
+    }
+  };
+
+  const handleSendTestPixel = async () => {
+    if (!store) return;
+    setSendingTestPixel(true);
+    setTestPixelSent(false);
+
+    try {
+      const testPayload = {
+        storeId: store.id,
+        eventType: 'test_event',
+        visitorId: 'test_' + Date.now().toString(36),
+        sessionId: 'test_session_' + Date.now().toString(36),
+        pageUrl: window.location.href,
+        pageTitle: 'AdWyse Settings - Test Event',
+        userAgent: navigator.userAgent,
+        deviceType: /Mobile|Android|iPhone/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
+        clientTimestamp: new Date().toISOString()
+      };
+
+      const response = await fetch('/api/pixel/event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(testPayload)
+      });
+
+      if (response.ok) {
+        setTestPixelSent(true);
+        setSuccessMessage('Test event sent! Click "Verify Installation" to confirm.');
+        setTimeout(() => {
+          setSuccessMessage('');
+          setTestPixelSent(false);
+        }, 5000);
+      } else {
+        setErrorMessage('Failed to send test event');
+        setTimeout(() => setErrorMessage(''), 3000);
+      }
+    } catch (error) {
+      console.error('Error sending test pixel:', error);
+      setErrorMessage('Failed to send test event');
+      setTimeout(() => setErrorMessage(''), 3000);
+    } finally {
+      setSendingTestPixel(false);
     }
   };
 
@@ -1265,26 +1311,53 @@ function SettingsContent() {
                 )}
               </button>
 
-              {pixelVerified !== null && (
-                <div className={`flex items-center gap-2 text-sm ${pixelVerified ? 'text-green-400' : 'text-red-400'}`}>
-                  {pixelVerified ? (
-                    <>
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      Pixel is active and tracking!
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                      Pixel not detected. Make sure it&apos;s installed correctly.
-                    </>
-                  )}
-                </div>
-              )}
+              <button
+                onClick={handleSendTestPixel}
+                disabled={sendingTestPixel}
+                className="px-4 py-2 bg-white/10 hover:bg-white/20 disabled:bg-white/5 disabled:cursor-not-allowed text-white rounded-lg font-medium transition flex items-center gap-2"
+              >
+                {sendingTestPixel ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Sending...
+                  </>
+                ) : testPixelSent ? (
+                  <>
+                    <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Test Sent!
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Send Test Event
+                  </>
+                )}
+              </button>
             </div>
+
+            {pixelVerified !== null && (
+              <div className={`mt-3 flex items-center gap-2 text-sm ${pixelVerified ? 'text-green-400' : 'text-red-400'}`}>
+                {pixelVerified ? (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Pixel is active and tracking!
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Pixel not detected. Send a test event or install the pixel on your store.
+                  </>
+                )}
+              </div>
+            )}
 
             <div className="mt-4 pt-4 border-t border-white/10">
               <h3 className="text-white font-medium mb-2">What this pixel tracks:</h3>
