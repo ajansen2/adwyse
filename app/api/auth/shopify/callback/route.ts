@@ -420,158 +420,160 @@ export async function GET(request: NextRequest) {
     console.log('✅ Webhook registration process completed for', shop);
 
     // Create recurring application charge for billing ($99.99/month with 7-day trial)
+    // Using GraphQL API (REST API is deprecated)
     console.log('='.repeat(50));
-    console.log('💰 BILLING SECTION START');
+    console.log('💰 BILLING SECTION START (GraphQL)');
     console.log('='.repeat(50));
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || `https://${request.headers.get('host')}`;
 
     // Use test mode only for explicitly marked development/test stores
-    // DO NOT use pattern matching - real stores could accidentally match
-    const hasTestInName = shop.includes('-test');
-    const hasDevelopment = shop.includes('development');
-    const hasDevPrefix = shop.includes('dev-');
+    const isTestStore = shop.includes('-test') || shop.includes('development') || shop.includes('dev-');
+    console.log('💰 Test store:', isTestStore);
 
-    console.log('💰 Test store detection:', { hasTestInName, hasDevelopment, hasDevPrefix });
-
-    const isTestCharge = hasTestInName || hasDevelopment || hasDevPrefix;
-
-    // Return URL goes to billing callback to properly update subscription status
     const shopName = shop.replace('.myshopify.com', '');
     const returnUrl = `${appUrl}/api/billing/callback?shop=${shop}&store_id=${store.id}`;
+    const clientId = process.env.SHOPIFY_API_KEY;
 
-    console.log('💰 Creating billing charge with return_url:', returnUrl);
-    console.log('💰 Shop:', shop);
-    console.log('💰 Store ID:', store.id);
-    console.log('💰 Test charge:', isTestCharge);
+    console.log('💰 Return URL:', returnUrl);
 
-    // First check for existing pending charges
-    const existingChargesResponse = await fetch(`https://${shop}/admin/api/2024-01/recurring_application_charges.json`, {
-      headers: {
-        'X-Shopify-Access-Token': accessToken,
-      },
-    });
+    // Check for existing subscriptions using GraphQL
+    console.log('💰 Checking existing subscriptions via GraphQL...');
+    const existingResponse = await fetch(
+      `https://${shop}/admin/api/2024-01/graphql.json`,
+      {
+        method: 'POST',
+        headers: {
+          'X-Shopify-Access-Token': accessToken,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: `
+            query {
+              currentAppInstallation {
+                activeSubscriptions {
+                  id
+                  name
+                  status
+                }
+              }
+            }
+          `,
+        }),
+      }
+    );
 
-    console.log('💰 Checking existing charges...');
+    if (existingResponse.ok) {
+      const existingData = await existingResponse.json();
+      const activeSubscriptions = existingData.data?.currentAppInstallation?.activeSubscriptions || [];
+      console.log('💰 Found subscriptions:', activeSubscriptions.length);
 
-    if (existingChargesResponse.ok) {
-      const existingCharges = await existingChargesResponse.json();
-      console.log('💰 Existing charges:', JSON.stringify(existingCharges.recurring_application_charges?.map((c: any) => ({
-        id: c.id,
-        status: c.status,
-        name: c.name
-      }))));
+      // Already has active subscription
+      const active = activeSubscriptions.find((s: any) => s.status === 'ACTIVE');
+      if (active) {
+        console.log('✅ Found active subscription, updating store and redirecting to app');
+        await supabase
+          .from('stores')
+          .update({ subscription_status: 'active', billing_charge_id: active.id })
+          .eq('id', store.id);
 
-      const pendingCharge = existingCharges.recurring_application_charges?.find(
-        (c: any) => c.status === 'pending'
-      );
-
-      if (pendingCharge) {
-        console.log('💰 Found existing pending charge, redirecting to confirmation');
-        const response = NextResponse.redirect(pendingCharge.confirmation_url);
+        const response = NextResponse.redirect(`https://admin.shopify.com/store/${shopName}/apps/${clientId}`);
         response.cookies.delete('shopify_oauth_state');
         response.cookies.delete('shopify_oauth_merchant_id');
         response.cookies.delete('shopify_oauth_shop');
         return response;
       }
-
-      // Note: Don't skip for active charges - always create new charge on fresh install
-      // The old charge may be from a cancelled subscription
-      console.log('💰 No pending charge found, will create new charge');
-    } else {
-      const errorText = await existingChargesResponse.text();
-      console.log('⚠️ Could not fetch existing charges:', existingChargesResponse.status, errorText);
     }
 
-    // Create new charge
-    const chargeResponse = await fetch(`https://${shop}/admin/api/2024-01/recurring_application_charges.json`, {
+    // Create new subscription using GraphQL
+    console.log('💰 Creating subscription via GraphQL...');
+
+    const chargeResponse = await fetch(`https://${shop}/admin/api/2024-01/graphql.json`, {
       method: 'POST',
       headers: {
         'X-Shopify-Access-Token': accessToken,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        recurring_application_charge: {
-          name: 'AdWyse - Pro Plan',
-          price: 99.99,
-          trial_days: 7,
-          return_url: returnUrl,
-          // Only include test flag for dev/test stores - real stores should NOT have this flag
-          ...(isTestCharge && { test: true }),
-        }
-      })
+        query: `
+          mutation AppSubscriptionCreate($name: String!, $returnUrl: URL!, $trialDays: Int, $test: Boolean, $lineItems: [AppSubscriptionLineItemInput!]!) {
+            appSubscriptionCreate(
+              name: $name
+              returnUrl: $returnUrl
+              trialDays: $trialDays
+              test: $test
+              lineItems: $lineItems
+            ) {
+              appSubscription {
+                id
+                status
+              }
+              confirmationUrl
+              userErrors {
+                field
+                message
+              }
+            }
+          }
+        `,
+        variables: {
+          name: 'AdWyse Pro',
+          returnUrl: returnUrl,
+          trialDays: 7,
+          test: isTestStore,
+          lineItems: [
+            {
+              plan: {
+                appRecurringPricingDetails: {
+                  price: { amount: 99.99, currencyCode: 'USD' },
+                  interval: 'EVERY_30_DAYS',
+                },
+              },
+            },
+          ],
+        },
+      }),
     });
 
-    console.log(`💰 Creating ${isTestCharge ? 'TEST' : 'LIVE'} billing charge for ${shop}`);
+    const chargeData = await chargeResponse.json();
+    console.log('💰 GraphQL billing response:', JSON.stringify(chargeData, null, 2));
 
-    if (chargeResponse.ok) {
-      const chargeData = await chargeResponse.json();
-      const confirmationUrl = chargeData.recurring_application_charge.confirmation_url;
+    const confirmationUrl = chargeData.data?.appSubscriptionCreate?.confirmationUrl;
+    const userErrors = chargeData.data?.appSubscriptionCreate?.userErrors;
 
-      console.log('✅ Billing charge created, redirecting to confirmation');
+    if (userErrors && userErrors.length > 0) {
+      console.error('❌ Billing user errors:', userErrors);
 
-      // Clear OAuth cookies
+      // Check if this is a Managed Pricing App
+      const isManagedPricing = userErrors.some((e: any) =>
+        e.message?.includes('Managed Pricing')
+      );
+
+      if (isManagedPricing) {
+        console.log('💰 Managed Pricing App - billing handled by Shopify, redirecting to app');
+        const response = NextResponse.redirect(`https://admin.shopify.com/store/${shopName}/apps/${clientId}`);
+        response.cookies.delete('shopify_oauth_state');
+        response.cookies.delete('shopify_oauth_merchant_id');
+        response.cookies.delete('shopify_oauth_shop');
+        return response;
+      }
+    }
+
+    if (confirmationUrl) {
+      console.log('✅ Subscription created, redirecting to approval');
       const response = NextResponse.redirect(confirmationUrl);
       response.cookies.delete('shopify_oauth_state');
       response.cookies.delete('shopify_oauth_merchant_id');
       response.cookies.delete('shopify_oauth_shop');
-
-      return response;
-    } else {
-      const errorData = await chargeResponse.json().catch(() => null);
-      console.error('❌ Failed to create billing charge:', chargeResponse.status, errorData);
-
-      // Only retry with test mode for development stores - real stores should fail if billing fails
-      if (isTestCharge) {
-        console.log('💰 Retrying with test: true for dev store...');
-        const retryResponse = await fetch(`https://${shop}/admin/api/2024-01/recurring_application_charges.json`, {
-          method: 'POST',
-          headers: {
-            'X-Shopify-Access-Token': accessToken,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            recurring_application_charge: {
-              name: 'AdWyse - Pro Plan',
-              price: 99.99,
-              trial_days: 7,
-              return_url: returnUrl,
-              test: true, // Test mode for dev stores only
-            }
-          })
-        });
-
-        if (retryResponse.ok) {
-          const retryData = await retryResponse.json();
-          const confirmationUrl = retryData.recurring_application_charge.confirmation_url;
-          console.log('✅ Test billing charge created on retry, redirecting to confirmation');
-
-          const response = NextResponse.redirect(confirmationUrl);
-          response.cookies.delete('shopify_oauth_state');
-          response.cookies.delete('shopify_oauth_merchant_id');
-          response.cookies.delete('shopify_oauth_shop');
-          return response;
-        }
-
-        const retryError = await retryResponse.json().catch(() => null);
-        console.error('❌ Retry also failed:', retryResponse.status, retryError);
-      } else {
-        console.error('❌ Billing failed for real store - not retrying with test mode');
-      }
-
-      // Redirect to dashboard if billing fails
-      const shopName = shop.replace('.myshopify.com', '');
-      const appHandle = 'adwyse';
-      const shopifyAdminUrl = `https://admin.shopify.com/store/${shopName}/apps/${appHandle}?shop=${shop}&billing_error=true`;
-
-      console.log('⚠️ All billing attempts failed, redirecting to dashboard with error flag');
-
-      const response = NextResponse.redirect(shopifyAdminUrl);
-      response.cookies.delete('shopify_oauth_state');
-      response.cookies.delete('shopify_oauth_merchant_id');
-      response.cookies.delete('shopify_oauth_shop');
-
       return response;
     }
+
+    // Billing failed - redirect to app anyway
+    console.error('❌ Billing creation failed - no confirmation URL');
+    const response = NextResponse.redirect(`https://admin.shopify.com/store/${shopName}/apps/${clientId}?billing_error=true`);
+    response.cookies.delete('shopify_oauth_state');
+    response.cookies.delete('shopify_oauth_merchant_id');
+    response.cookies.delete('shopify_oauth_shop');
+    return response;
   } catch (error) {
     console.error('Shopify OAuth callback error:', error);
     // Redirect to Shopify admin app page on error
