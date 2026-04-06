@@ -771,6 +771,49 @@ function DashboardContent() {
   const totalSpend = campaigns.reduce((sum, campaign) => sum + campaign.total_spend, 0);
   const avgROAS = totalSpend > 0 ? (attributedRevenue / totalSpend) : 0;
 
+  // Calculate previous period metrics for comparison
+  const previousPeriodMetrics = useMemo(() => {
+    if (!dateRange.start || dateRangeOption === 'all') return null;
+
+    const periodLength = dateRange.end
+      ? dateRange.end.getTime() - dateRange.start.getTime()
+      : 30 * 24 * 60 * 60 * 1000; // Default 30 days
+
+    const prevStart = new Date(dateRange.start.getTime() - periodLength);
+    const prevEnd = new Date(dateRange.start.getTime() - 1);
+
+    const prevOrders = orders.filter(order => {
+      const orderDate = new Date(order.order_created_at);
+      return orderDate >= prevStart && orderDate <= prevEnd;
+    });
+
+    const prevTotalOrders = prevOrders.length;
+    const prevTotalRevenue = prevOrders.reduce((sum, order) => sum + order.total_price, 0);
+    const prevAttributedRevenue = prevOrders
+      .filter(order => order.attributed_platform && order.attributed_platform !== 'direct')
+      .reduce((sum, order) => sum + order.total_price, 0);
+
+    return {
+      totalOrders: prevTotalOrders,
+      totalRevenue: prevTotalRevenue,
+      attributedRevenue: prevAttributedRevenue,
+      // For spend/ROAS we'd need historical campaign data, use 0 for now
+      totalSpend: 0,
+      avgROAS: 0
+    };
+  }, [orders, dateRange, dateRangeOption]);
+
+  // Generate sparkline data from chart data (last 7 days of revenue)
+  const revenueSparkline = useMemo(() => {
+    if (chartData.length === 0) return [];
+    return chartData.slice(-7).map(d => d.revenue);
+  }, [chartData]);
+
+  const ordersSparkline = useMemo(() => {
+    if (chartData.length === 0) return [];
+    return chartData.slice(-7).map(d => d.orders);
+  }, [chartData]);
+
   // Get max value for chart scaling
   const maxRevenue = Math.max(...chartData.map(d => d.revenue), 1);
 
@@ -1233,57 +1276,57 @@ function DashboardContent() {
             // Dashboard with Stats
             <div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-xl p-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-white/60 text-sm font-medium">Total Orders</h3>
+                <MetricCard
+                  title="Total Orders"
+                  value={totalOrders}
+                  previousValue={previousPeriodMetrics?.totalOrders}
+                  sparklineData={ordersSparkline}
+                  icon={
                     <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                     </svg>
-                  </div>
-                  <div className="text-3xl font-bold text-white mb-1">{totalOrders}</div>
-                  <div className="text-white/40 text-sm">
-                    {attributedOrders} from ads
-                  </div>
-                </div>
+                  }
+                  className="bg-zinc-900/50 backdrop-blur border-zinc-800"
+                />
 
-                <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-xl p-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-white/60 text-sm font-medium">Total Revenue</h3>
+                <MetricCard
+                  title="Total Revenue"
+                  value={totalRevenue}
+                  previousValue={previousPeriodMetrics?.totalRevenue}
+                  format="currency"
+                  sparklineData={revenueSparkline}
+                  icon={
                     <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                  </div>
-                  <div className="text-3xl font-bold text-white mb-1">${totalRevenue.toFixed(2)}</div>
-                  <div className="text-white/40 text-sm">
-                    ${attributedRevenue.toFixed(2)} attributed
-                  </div>
-                </div>
+                  }
+                  className="bg-zinc-900/50 backdrop-blur border-zinc-800"
+                />
 
-                <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-xl p-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-white/60 text-sm font-medium">Ad Spend</h3>
+                <MetricCard
+                  title="Ad Spend"
+                  value={totalSpend}
+                  format="currency"
+                  icon={
                     <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
-                  </div>
-                  <div className="text-3xl font-bold text-white mb-1">${totalSpend.toFixed(2)}</div>
-                  <div className="text-white/40 text-sm">
-                    {campaigns.length} active campaigns
-                  </div>
-                </div>
+                  }
+                  className="bg-zinc-900/50 backdrop-blur border-zinc-800"
+                />
 
-                <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-xl p-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-white/60 text-sm font-medium">Average ROAS</h3>
+                <MetricCard
+                  title="Average ROAS"
+                  value={avgROAS}
+                  format="multiplier"
+                  decimals={2}
+                  icon={
                     <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                     </svg>
-                  </div>
-                  <div className="text-3xl font-bold text-white mb-1">{avgROAS.toFixed(2)}x</div>
-                  <div className="text-white/40 text-sm">
-                    {totalSpend === 0 ? 'No spend data yet' : 'Return on ad spend'}
-                  </div>
-                </div>
+                  }
+                  className="bg-zinc-900/50 backdrop-blur border-zinc-800"
+                />
               </div>
 
               {/* Revenue Chart */}
