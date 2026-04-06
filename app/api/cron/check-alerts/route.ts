@@ -7,6 +7,7 @@ import {
   markAlertEmailSent,
   logNotification
 } from '@/lib/alerts';
+import { getSlackWebhook, sendSlackAlert } from '@/lib/slack-notifications';
 
 /**
  * Cron job to check alerts for all stores
@@ -35,6 +36,7 @@ export async function GET(request: NextRequest) {
     storesChecked: 0,
     alertsCreated: 0,
     emailsSent: 0,
+    slackSent: 0,
     errors: [] as string[]
   };
 
@@ -76,6 +78,11 @@ export async function GET(request: NextRequest) {
       results.emailsSent = emailResults.sent;
       results.errors.push(...emailResults.errors);
     }
+
+    // Send Slack notifications for high/critical alerts
+    const slackResults = await sendSlackAlerts(supabase);
+    results.slackSent = slackResults.sent;
+    results.errors.push(...slackResults.errors);
 
     return NextResponse.json({
       success: true,
@@ -262,5 +269,106 @@ function formatThreshold(alert: any): string {
       return `${alert.threshold}%`;
     default:
       return alert.threshold.toString();
+  }
+}
+
+/**
+ * Send Slack notifications for pending alerts
+ */
+async function sendSlackAlerts(supabase: any): Promise<{ sent: number; errors: string[] }> {
+  const results = { sent: 0, errors: [] as string[] };
+
+  try {
+    // Get alerts that need Slack notification
+    const { data: alertsNeedingSlack } = await supabase
+      .from('alerts')
+      .select(`
+        *,
+        adwyse_stores!inner(store_name, shop_domain)
+      `)
+      .eq('slack_sent', false)
+      .in('severity', ['high', 'critical'])
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (!alertsNeedingSlack || alertsNeedingSlack.length === 0) {
+      return results;
+    }
+
+    for (const alert of alertsNeedingSlack) {
+      try {
+        // Get Slack webhook for this store
+        const webhookUrl = await getSlackWebhook(alert.store_id);
+        if (!webhookUrl) {
+          continue; // Slack not configured for this store
+        }
+
+        const storeName = (alert.adwyse_stores as any)?.store_name || 'Your Store';
+        const shopDomain = (alert.adwyse_stores as any)?.shop_domain;
+
+        const sent = await sendSlackAlert(webhookUrl, {
+          type: alert.type,
+          severity: alert.severity,
+          title: getAlertTitle(alert),
+          message: alert.message,
+          value: alert.value,
+          threshold: alert.threshold,
+          campaignName: alert.campaign_name,
+          platform: alert.metadata?.platform,
+          storeName,
+          shopDomain,
+        });
+
+        if (sent) {
+          results.sent++;
+          // Mark alert as Slack sent
+          await supabase
+            .from('alerts')
+            .update({
+              slack_sent: true,
+              slack_sent_at: new Date().toISOString()
+            })
+            .eq('id', alert.id);
+
+          // Log notification
+          await logNotification(alert.store_id, alert.id, {
+            notification_type: 'webhook',
+            recipient: 'slack',
+            subject: getAlertTitle(alert),
+            status: 'sent'
+          });
+        }
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        results.errors.push(`Slack alert ${alert.id}: ${errorMsg}`);
+      }
+    }
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    results.errors.push(`Slack send error: ${errorMsg}`);
+  }
+
+  return results;
+}
+
+/**
+ * Get a human-readable title for an alert
+ */
+function getAlertTitle(alert: any): string {
+  switch (alert.type) {
+    case 'roas_low':
+      return 'Low ROAS Alert';
+    case 'spend_high':
+      return 'High Spend Alert';
+    case 'conversion_drop':
+      return 'Conversion Drop Alert';
+    case 'creative_fatigue':
+      return 'Creative Fatigue Alert';
+    case 'cpc_spike':
+      return 'CPC Spike Alert';
+    case 'impression_drop':
+      return 'Impression Drop Alert';
+    default:
+      return 'Performance Alert';
   }
 }
