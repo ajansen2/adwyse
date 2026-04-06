@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Sidebar } from '@/components/dashboard/Sidebar';
+import { Sidebar, MobileNav } from '@/components/dashboard';
 import { MetricCard, DataTable, PlatformBadge, EmptyState, EmptyStateIcons, DashboardSkeleton, type Column } from '@/components/ui';
 import { navigateInApp } from '@/lib/shopify-app-bridge';
 
@@ -124,6 +124,7 @@ function CampaignsContent() {
       header: 'Campaign',
       sortable: true,
       sortValue: (row) => row.name,
+      exportValue: (row) => row.name,
       accessor: (row) => (
         <div>
           <div className="font-medium text-white">{row.name}</div>
@@ -142,6 +143,7 @@ function CampaignsContent() {
       header: 'Platform',
       sortable: true,
       sortValue: (row) => row.platform,
+      exportValue: (row) => row.platform,
       accessor: (row) => (
         <PlatformBadge platform={(row.platform as any) || 'direct'} />
       )
@@ -151,6 +153,7 @@ function CampaignsContent() {
       header: 'Spend',
       sortable: true,
       sortValue: (row) => row.total_spend,
+      exportValue: (row) => row.total_spend,
       align: 'right',
       accessor: (row) => (
         <span className="text-white font-medium">${row.total_spend.toFixed(2)}</span>
@@ -161,6 +164,7 @@ function CampaignsContent() {
       header: 'Revenue',
       sortable: true,
       sortValue: (row) => row.total_revenue,
+      exportValue: (row) => row.total_revenue,
       align: 'right',
       accessor: (row) => (
         <span className="text-white font-bold">${row.total_revenue.toFixed(2)}</span>
@@ -171,6 +175,7 @@ function CampaignsContent() {
       header: 'Orders',
       sortable: true,
       sortValue: (row) => row.total_orders,
+      exportValue: (row) => row.total_orders,
       align: 'center',
       accessor: (row) => (
         <span className="text-white/80">{row.total_orders}</span>
@@ -181,6 +186,7 @@ function CampaignsContent() {
       header: 'ROAS',
       sortable: true,
       sortValue: (row) => row.roas || 0,
+      exportValue: (row) => row.roas || 0,
       align: 'right',
       accessor: (row) => {
         const roas = row.roas || 0;
@@ -195,6 +201,10 @@ function CampaignsContent() {
       header: 'Performance',
       sortable: true,
       sortValue: (row) => row.roas || 0,
+      exportValue: (row) => {
+        const roas = row.roas || 0;
+        return roas >= 2 ? 'Excellent' : roas >= 1 ? 'Profitable' : 'Needs Work';
+      },
       accessor: (row) => {
         const roas = row.roas || 0;
         if (roas >= 2) {
@@ -395,7 +405,7 @@ function CampaignsContent() {
                 pageSize={20}
                 striped={false}
                 hoverable={true}
-                className="dark-table"
+                variant="dark"
               />
             </div>
           ) : (
@@ -450,6 +460,7 @@ function CampaignsContent() {
           )}
         </div>
       </main>
+      <MobileNav activePage="campaigns" />
     </div>
   );
 }

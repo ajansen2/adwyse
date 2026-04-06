@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { getSupabaseClient } from '@/lib/supabase-client';
-import { Sidebar } from '@/components/dashboard/Sidebar';
+import { Sidebar, MobileNav } from '@/components/dashboard';
 
 interface Store {
   id: string;
@@ -1786,6 +1786,7 @@ function SettingsContent() {
           </div>
         </div>
       </main>
+      <MobileNav activePage="settings" />
     </div>
   );
 }

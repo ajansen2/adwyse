@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { initializeAppBridge, isEmbeddedInShopify, navigateInApp, getShopifySessionToken, redirectToOAuth } from '@/lib/shopify-app-bridge';
 import Link from 'next/link';
-import { Sidebar, ProfitSummary, AlertsWidget } from '@/components/dashboard';
+import { Sidebar, MobileNav, GettingStarted, ProfitSummary, AlertsWidget } from '@/components/dashboard';
 import { MetricCard, DashboardSkeleton } from '@/components/ui';
 import { RevenueChart } from '@/components/charts';
 
@@ -84,6 +84,10 @@ function DashboardContent() {
   const [onboardingStep, setOnboardingStep] = useState(1);
   const [showBillingRequired, setShowBillingRequired] = useState(false);
   const [subscribing, setSubscribing] = useState(false);
+  // Getting Started checklist state
+  const [hasAdAccounts, setHasAdAccounts] = useState(false);
+  const [hasPixelEvents, setHasPixelEvents] = useState(false);
+  const [hasAlerts, setHasAlerts] = useState(false);
 
   // Calculate trial days left
   const getTrialDaysLeft = () => {
@@ -615,6 +619,34 @@ function DashboardContent() {
               }).catch(() => {
                 // Non-critical, ignore errors
               });
+
+              // Check for Getting Started checklist items
+              // Check ad accounts
+              const adAccountsXhr = new XMLHttpRequest();
+              adAccountsXhr.open('GET', `/api/ad-accounts/list?store_id=${storeId}`, false);
+              adAccountsXhr.send();
+              if (adAccountsXhr.status === 200) {
+                const adAccountsJson = JSON.parse(adAccountsXhr.responseText);
+                setHasAdAccounts(adAccountsJson.accounts && adAccountsJson.accounts.length > 0);
+              }
+
+              // Check pixel events
+              const pixelXhr = new XMLHttpRequest();
+              pixelXhr.open('GET', `/api/pixel/verify?store_id=${storeId}`, false);
+              pixelXhr.send();
+              if (pixelXhr.status === 200) {
+                const pixelJson = JSON.parse(pixelXhr.responseText);
+                setHasPixelEvents(pixelJson.verified === true);
+              }
+
+              // Check alerts configuration
+              const settingsXhr = new XMLHttpRequest();
+              settingsXhr.open('GET', `/api/settings/alerts?store_id=${storeId}`, false);
+              settingsXhr.send();
+              if (settingsXhr.status === 200) {
+                const settingsJson = JSON.parse(settingsXhr.responseText);
+                setHasAlerts(settingsJson.roas_alert_enabled || settingsJson.spend_alert_enabled);
+              }
             }
           }
         } catch (error) {
@@ -1275,6 +1307,17 @@ function DashboardContent() {
           ) : (
             // Dashboard with Stats
             <div>
+              {/* Getting Started Checklist */}
+              {stores[0]?.id && (
+                <GettingStarted
+                  storeId={stores[0].id}
+                  hasAdAccounts={hasAdAccounts}
+                  hasPixelEvents={hasPixelEvents}
+                  hasAttributedOrders={attributedOrders > 0}
+                  hasAlerts={hasAlerts}
+                />
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <MetricCard
                   title="Total Orders"
@@ -1630,6 +1673,9 @@ function DashboardContent() {
           )}
         </div>
       </main>
+
+      {/* Mobile Bottom Navigation */}
+      <MobileNav activePage="dashboard" />
     </div>
   );
 }

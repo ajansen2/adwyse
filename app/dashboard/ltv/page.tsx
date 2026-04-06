@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Sidebar } from '@/components/dashboard/Sidebar';
+import { Sidebar, MobileNav } from '@/components/dashboard';
 import { MetricCard } from '@/components/ui';
 import {
   BarChart,
@@ -368,6 +368,7 @@ function LTVContent() {
           </div>
         </div>
       </main>
+      <MobileNav activePage="ltv" />
     </div>
   );
 }

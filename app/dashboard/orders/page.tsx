@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Sidebar } from '@/components/dashboard/Sidebar';
+import { Sidebar, MobileNav } from '@/components/dashboard';
 import { MetricCard, DataTable, PlatformBadge, DashboardSkeleton, type Column } from '@/components/ui';
 
 type DateRangeOption = '7d' | '14d' | '30d' | '90d' | 'all' | 'custom';
@@ -130,6 +130,7 @@ function OrdersContent() {
       header: 'Order',
       sortable: true,
       sortValue: (row) => row.order_number,
+      exportValue: (row) => row.order_number,
       accessor: (row) => (
         <span className="font-medium text-white">#{row.order_number}</span>
       )
@@ -139,6 +140,7 @@ function OrdersContent() {
       header: 'Customer',
       sortable: true,
       sortValue: (row) => row.customer_email || '',
+      exportValue: (row) => row.customer_email || '',
       accessor: (row) => (
         <span className="text-white/80">{row.customer_email || 'No email'}</span>
       )
@@ -148,6 +150,7 @@ function OrdersContent() {
       header: 'Total',
       sortable: true,
       sortValue: (row) => row.total_price,
+      exportValue: (row) => row.total_price,
       align: 'right',
       accessor: (row) => (
         <div>
@@ -161,6 +164,7 @@ function OrdersContent() {
       header: 'Source',
       sortable: true,
       sortValue: (row) => row.attributed_platform || 'direct',
+      exportValue: (row) => row.attributed_platform || 'direct',
       accessor: (row) => (
         <PlatformBadge platform={(row.attributed_platform as any) || 'direct'} />
       )
@@ -170,6 +174,7 @@ function OrdersContent() {
       header: 'Campaign',
       sortable: true,
       sortValue: (row) => row.utm_campaign || '',
+      exportValue: (row) => row.utm_campaign || '',
       accessor: (row) => (
         <div>
           <div className="text-white/80">{row.utm_campaign || '-'}</div>
@@ -184,6 +189,7 @@ function OrdersContent() {
       header: 'Date',
       sortable: true,
       sortValue: (row) => new Date(row.created_at).getTime(),
+      exportValue: (row) => new Date(row.created_at).toISOString(),
       accessor: (row) => (
         <div>
           <div className="text-white/80">
@@ -374,11 +380,12 @@ function OrdersContent() {
               pageSize={20}
               striped={false}
               hoverable={true}
-              className="dark-table"
+              variant="dark"
             />
           </div>
         </div>
       </main>
+      <MobileNav activePage="orders" />
     </div>
   );
 }

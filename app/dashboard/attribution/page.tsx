@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Sidebar } from '@/components/dashboard/Sidebar';
+import { Sidebar, MobileNav } from '@/components/dashboard';
 import { MetricCard, DashboardSkeleton, PlatformBadge } from '@/components/ui';
 
 type AttributionModel = 'last_click' | 'first_click' | 'linear' | 'time_decay' | 'position_based';
@@ -367,6 +367,7 @@ function AttributionContent() {
           )}
         </div>
       </main>
+      <MobileNav activePage="attribution" />
     </div>
   );
 }

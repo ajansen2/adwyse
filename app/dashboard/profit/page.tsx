@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Sidebar } from '@/components/dashboard/Sidebar';
+import { Sidebar, MobileNav } from '@/components/dashboard';
 import { MetricCard, DashboardSkeleton } from '@/components/ui';
 
 type DateRangeOption = '7d' | '14d' | '30d' | '90d' | 'all';
@@ -807,6 +807,7 @@ function ProfitContent() {
           )}
         </div>
       </main>
+      <MobileNav activePage="profit" />
     </div>
   );
 }

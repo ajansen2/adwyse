@@ -8,6 +8,7 @@ export interface Column<T> {
   accessor: (row: T) => React.ReactNode;
   sortable?: boolean;
   sortValue?: (row: T) => string | number | Date;
+  exportValue?: (row: T) => string | number;  // Raw value for CSV export
   width?: string;
   align?: 'left' | 'center' | 'right';
   className?: string;
@@ -32,6 +33,7 @@ interface DataTableProps<T> {
   compact?: boolean;
   className?: string;
   onRowClick?: (row: T) => void;
+  variant?: 'light' | 'dark';
 }
 
 type SortDirection = 'asc' | 'desc';
@@ -53,8 +55,10 @@ export function DataTable<T>({
   hoverable = true,
   compact = false,
   className = '',
-  onRowClick
+  onRowClick,
+  variant = 'light'
 }: DataTableProps<T>) {
+  const isDark = variant === 'dark';
   const [searchQuery, setSearchQuery] = useState('');
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
@@ -124,10 +128,23 @@ export function DataTable<T>({
     const headers = columns.map(c => c.header);
     const rows = sortedData.map(row =>
       columns.map(col => {
+        // Priority: exportValue > sortValue > accessor (stringified)
+        if (col.exportValue) {
+          return col.exportValue(row);
+        }
+        if (col.sortValue) {
+          const val = col.sortValue(row);
+          // Format dates nicely for export
+          if (val instanceof Date) {
+            return val.toISOString();
+          }
+          return val;
+        }
+        // Fallback to accessor - try to extract text content
         const val = col.accessor(row);
-        // Convert React nodes to string for export
         if (typeof val === 'object' && val !== null) {
-          return String(val);
+          // Can't reliably extract text from React nodes, return empty
+          return '';
         }
         return String(val ?? '');
       })
@@ -154,13 +171,13 @@ export function DataTable<T>({
 
   if (loading) {
     return (
-      <div className={`bg-white rounded-xl border border-gray-200 overflow-hidden ${className}`}>
-        <div className="p-4 border-b border-gray-200">
-          <div className="animate-pulse h-10 bg-gray-200 rounded w-64"></div>
+      <div className={`${isDark ? 'bg-transparent' : 'bg-white'} rounded-xl border ${isDark ? 'border-white/10' : 'border-gray-200'} overflow-hidden ${className}`}>
+        <div className={`p-4 border-b ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
+          <div className={`animate-pulse h-10 ${isDark ? 'bg-white/10' : 'bg-gray-200'} rounded w-64`}></div>
         </div>
         <div className="p-4 space-y-3">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="animate-pulse h-12 bg-gray-100 rounded"></div>
+            <div key={i} className={`animate-pulse h-12 ${isDark ? 'bg-white/5' : 'bg-gray-100'} rounded`}></div>
           ))}
         </div>
       </div>
@@ -168,14 +185,14 @@ export function DataTable<T>({
   }
 
   return (
-    <div className={`bg-white rounded-xl border border-gray-200 overflow-hidden ${className}`}>
+    <div className={`${isDark ? 'bg-transparent' : 'bg-white'} rounded-xl border ${isDark ? 'border-white/10' : 'border-gray-200'} overflow-hidden ${className}`}>
       {/* Toolbar */}
       {(searchable || exportable) && (
-        <div className="p-4 border-b border-gray-200 flex items-center justify-between gap-4">
+        <div className={`p-4 border-b ${isDark ? 'border-white/10' : 'border-gray-200'} flex items-center justify-between gap-4`}>
           {searchable && (
             <div className="relative flex-1 max-w-md">
               <svg
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+                className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${isDark ? 'text-white/40' : 'text-gray-400'}`}
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -187,12 +204,16 @@ export function DataTable<T>({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={searchPlaceholder}
-                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className={`w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
+                  isDark
+                    ? 'bg-white/5 border-white/20 text-white placeholder-white/40'
+                    : 'border-gray-200 text-gray-900 placeholder-gray-400'
+                }`}
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className={`absolute right-3 top-1/2 -translate-y-1/2 ${isDark ? 'text-white/40 hover:text-white/60' : 'text-gray-400 hover:text-gray-600'}`}
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -203,18 +224,22 @@ export function DataTable<T>({
           )}
 
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500">
+            <span className={`text-sm ${isDark ? 'text-white/50' : 'text-gray-500'}`}>
               {sortedData.length} {sortedData.length === 1 ? 'item' : 'items'}
             </span>
             {exportable && sortedData.length > 0 && (
               <button
                 onClick={exportCSV}
-                className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                className={`flex items-center gap-1 px-3 py-1.5 text-sm border rounded-lg transition-colors ${
+                  isDark
+                    ? 'text-white/70 hover:text-white border-white/20 hover:bg-white/10'
+                    : 'text-gray-600 hover:text-gray-900 border-gray-200 hover:bg-gray-50'
+                }`}
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
-                Export
+                Export CSV
               </button>
             )}
           </div>
@@ -224,14 +249,15 @@ export function DataTable<T>({
       {/* Table */}
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className={`bg-gray-50 ${stickyHeader ? 'sticky top-0 z-10' : ''}`}>
+          <thead className={`${isDark ? 'bg-white/5' : 'bg-gray-50'} ${stickyHeader ? 'sticky top-0 z-10' : ''}`}>
             <tr>
               {columns.map((column) => (
                 <th
                   key={column.key}
                   className={`
-                    ${cellPadding} text-left text-xs font-medium text-gray-500 uppercase tracking-wider
-                    ${column.sortable ? 'cursor-pointer hover:bg-gray-100 select-none' : ''}
+                    ${cellPadding} text-left text-xs font-medium uppercase tracking-wider
+                    ${isDark ? 'text-white/50' : 'text-gray-500'}
+                    ${column.sortable ? `cursor-pointer select-none ${isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'}` : ''}
                     ${column.align === 'center' ? 'text-center' : column.align === 'right' ? 'text-right' : ''}
                     ${column.className || ''}
                   `}
@@ -241,7 +267,7 @@ export function DataTable<T>({
                   <div className="flex items-center gap-1">
                     <span>{column.header}</span>
                     {column.sortable && (
-                      <span className="text-gray-400">
+                      <span className={isDark ? 'text-white/40' : 'text-gray-400'}>
                         {sortColumn === column.key ? (
                           sortDirection === 'asc' ? (
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -264,10 +290,10 @@ export function DataTable<T>({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className={`divide-y ${isDark ? 'divide-white/10' : 'divide-gray-200'}`}>
             {paginatedData.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="px-4 py-12 text-center text-gray-500">
+                <td colSpan={columns.length} className={`px-4 py-12 text-center ${isDark ? 'text-white/50' : 'text-gray-500'}`}>
                   {emptyMessage}
                 </td>
               </tr>
@@ -276,8 +302,8 @@ export function DataTable<T>({
                 <tr
                   key={keyExtractor(row)}
                   className={`
-                    ${striped && index % 2 === 1 ? 'bg-gray-50' : ''}
-                    ${hoverable ? 'hover:bg-gray-100' : ''}
+                    ${striped && index % 2 === 1 ? (isDark ? 'bg-white/5' : 'bg-gray-50') : ''}
+                    ${hoverable ? (isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100') : ''}
                     ${onRowClick ? 'cursor-pointer' : ''}
                     transition-colors
                   `}
@@ -287,7 +313,7 @@ export function DataTable<T>({
                     <td
                       key={column.key}
                       className={`
-                        ${cellPadding} text-sm text-gray-900
+                        ${cellPadding} text-sm ${isDark ? 'text-white' : 'text-gray-900'}
                         ${column.align === 'center' ? 'text-center' : column.align === 'right' ? 'text-right' : ''}
                         ${column.className || ''}
                       `}
@@ -304,15 +330,15 @@ export function DataTable<T>({
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between">
-          <div className="text-sm text-gray-500">
+        <div className={`px-4 py-3 border-t ${isDark ? 'border-white/10' : 'border-gray-200'} flex items-center justify-between`}>
+          <div className={`text-sm ${isDark ? 'text-white/50' : 'text-gray-500'}`}>
             Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, sortedData.length)} of {sortedData.length}
           </div>
           <div className="flex items-center gap-1">
             <button
               onClick={() => setCurrentPage(1)}
               disabled={currentPage === 1}
-              className="p-1 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`p-1 rounded disabled:opacity-50 disabled:cursor-not-allowed ${isDark ? 'hover:bg-white/10 text-white' : 'hover:bg-gray-100'}`}
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
@@ -321,7 +347,7 @@ export function DataTable<T>({
             <button
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="p-1 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`p-1 rounded disabled:opacity-50 disabled:cursor-not-allowed ${isDark ? 'hover:bg-white/10 text-white' : 'hover:bg-gray-100'}`}
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -348,8 +374,8 @@ export function DataTable<T>({
                   className={`
                     w-8 h-8 rounded text-sm font-medium
                     ${currentPage === pageNum
-                      ? 'bg-indigo-600 text-white'
-                      : 'text-gray-600 hover:bg-gray-100'}
+                      ? 'bg-orange-600 text-white'
+                      : isDark ? 'text-white/70 hover:bg-white/10' : 'text-gray-600 hover:bg-gray-100'}
                   `}
                 >
                   {pageNum}
@@ -360,7 +386,7 @@ export function DataTable<T>({
             <button
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="p-1 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`p-1 rounded disabled:opacity-50 disabled:cursor-not-allowed ${isDark ? 'hover:bg-white/10 text-white' : 'hover:bg-gray-100'}`}
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -369,7 +395,7 @@ export function DataTable<T>({
             <button
               onClick={() => setCurrentPage(totalPages)}
               disabled={currentPage === totalPages}
-              className="p-1 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`p-1 rounded disabled:opacity-50 disabled:cursor-not-allowed ${isDark ? 'hover:bg-white/10 text-white' : 'hover:bg-gray-100'}`}
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />

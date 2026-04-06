@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Sidebar } from '@/components/dashboard/Sidebar';
+import { Sidebar, MobileNav } from '@/components/dashboard';
 import { MetricCard } from '@/components/ui';
 
 interface WebhookEvent {
@@ -328,6 +328,7 @@ function WebhooksContent() {
           </div>
         </div>
       </main>
+      <MobileNav activePage="webhooks" />
     </div>
   );
 }
