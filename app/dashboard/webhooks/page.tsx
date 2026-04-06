@@ -178,7 +178,7 @@ function WebhooksContent() {
             />
             <MetricCard
               title="Success Rate"
-              value={summary?.successRate || 100}
+              value={summary?.totalEvents === 0 ? 1 : (summary?.successRate || 0) / 100}
               format="percent"
               icon={
                 <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
