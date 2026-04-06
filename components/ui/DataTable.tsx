@@ -89,9 +89,9 @@ export function DataTable<T>({
       const aVal = getSortValue(a);
       const bVal = getSortValue(b);
 
-      // Handle React nodes - convert to string
-      const aStr = typeof aVal === 'object' ? String(aVal) : aVal;
-      const bStr = typeof bVal === 'object' ? String(bVal) : bVal;
+      // Handle React nodes - convert to string, with null safety
+      const aStr = aVal == null ? '' : typeof aVal === 'object' ? String(aVal) : aVal;
+      const bStr = bVal == null ? '' : typeof bVal === 'object' ? String(bVal) : bVal;
 
       let comparison = 0;
       if (aStr < bStr) comparison = -1;

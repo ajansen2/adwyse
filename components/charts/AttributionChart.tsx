@@ -91,8 +91,8 @@ export function AttributionChart({
             paddingAngle={2}
             dataKey="revenue"
             nameKey="channel"
-            label={({ channel, percentage }) =>
-              percentage > 5 ? `${channel} ${percentage.toFixed(0)}%` : ''
+            label={(props: any) =>
+              props.percent > 0.05 ? `${props.name} ${(props.percent * 100).toFixed(0)}%` : ''
             }
             labelLine={false}
           >

@@ -23,9 +23,9 @@ export { ToastProvider, useToast, type ToastType } from './Toast';
 export { CommandPalette, CommandIcons, useCommandPalette } from './CommandPalette';
 
 // Landing page components (existing)
-export { default as InteractiveGlobe } from './interactive-globe';
-export { default as StatsMarquee } from './stats-marquee';
+export { InteractiveGlobe } from './interactive-globe';
+export { StatsMarquee } from './stats-marquee';
 export { default as HeroSection } from './hero-section';
-export { default as Navigation } from './navigation';
-export { default as Footer } from './footer';
+export { Navigation } from './navigation';
+export { Footer } from './footer';
 export { default as PricingCard } from './pricing-card';
