@@ -728,7 +728,7 @@ function DashboardContent() {
             </p>
             <div className="bg-zinc-900/50 rounded-xl p-4 mb-6">
               <div className="text-white/60 text-sm mb-1">Adwyse Pro</div>
-              <div className="text-3xl font-bold text-white">$29.99<span className="text-lg font-normal text-white/60">/month</span></div>
+              <div className="text-3xl font-bold text-white">$99.99<span className="text-lg font-normal text-white/60">/month</span></div>
               <div className="text-orange-400 text-sm mt-1">Unlimited attribution & AI insights</div>
             </div>
             <button
