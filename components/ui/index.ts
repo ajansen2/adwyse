@@ -20,7 +20,7 @@ export { Dropdown, SelectDropdown } from './Dropdown';
 
 // Feedback Components
 export { ToastProvider, useToast, type ToastType } from './Toast';
-export { CommandPalette, CommandIcons, useCommandPalette } from './CommandPalette';
+export { CommandPalette, useCommandPalette } from './CommandPalette';
 
 // Landing page components (existing)
 export { InteractiveGlobe } from './interactive-globe';
