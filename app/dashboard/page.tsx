@@ -1295,7 +1295,7 @@ function DashboardContent() {
                       <p className="text-white/60 text-sm">{dateRange.label}</p>
                     </div>
                   </div>
-                  <RevenueChart data={chartData.slice(-30)} dateRangeLabel={dateRange.label} />
+                  <RevenueChart data={dateRangeOption === 'all' ? chartData.filter(d => d.revenue > 0 || d.adRevenue > 0) : chartData.slice(-30)} dateRangeLabel={dateRange.label} />
                 </div>
               )}
 
@@ -1303,7 +1303,7 @@ function DashboardContent() {
               {(totalRevenue > 0 || totalSpend > 0) && (
                 <div className="mb-8">
                   <ProfitSummary
-                    revenue={attributedRevenue}
+                    revenue={totalRevenue}
                     adSpend={totalSpend}
                   />
                 </div>
