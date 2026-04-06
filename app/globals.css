@@ -27,55 +27,103 @@ body {
 
 /* Dark theme for DataTable component */
 .dark-table {
-  color: white;
+  color: white !important;
 }
 
-.dark-table .bg-white {
-  background-color: transparent;
+/* Override wrapper backgrounds */
+.dark-table,
+.dark-table > div {
+  background-color: transparent !important;
 }
 
-.dark-table .border-gray-200 {
-  border-color: rgba(255, 255, 255, 0.1);
+/* Override all gray borders */
+.dark-table [class*="border-gray"] {
+  border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
-.dark-table .bg-gray-50 {
-  background-color: rgba(255, 255, 255, 0.05);
+/* Override gray backgrounds */
+.dark-table [class*="bg-gray-50"],
+.dark-table thead {
+  background-color: rgba(255, 255, 255, 0.05) !important;
 }
 
-.dark-table .hover\:bg-gray-100:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+.dark-table [class*="bg-gray-100"],
+.dark-table tr:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
 }
 
-.dark-table .text-gray-500 {
-  color: rgba(255, 255, 255, 0.6);
+.dark-table [class*="bg-white"] {
+  background-color: transparent !important;
 }
 
-.dark-table .text-gray-600 {
-  color: rgba(255, 255, 255, 0.7);
+/* Override all text colors */
+.dark-table [class*="text-gray-400"] {
+  color: rgba(255, 255, 255, 0.4) !important;
 }
 
-.dark-table .text-gray-900 {
-  color: white;
+.dark-table [class*="text-gray-500"] {
+  color: rgba(255, 255, 255, 0.6) !important;
 }
 
+.dark-table [class*="text-gray-600"] {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.dark-table [class*="text-gray-900"] {
+  color: white !important;
+}
+
+/* Table header */
+.dark-table th {
+  color: rgba(255, 255, 255, 0.6) !important;
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Table cells - ensure content is visible */
+.dark-table td {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Ensure table cell children are visible */
+.dark-table td span,
+.dark-table td div,
+.dark-table td p {
+  color: inherit;
+}
+
+/* Form inputs */
 .dark-table input {
-  background-color: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.2);
-  color: white;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
 }
 
 .dark-table input::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.4) !important;
 }
 
+.dark-table input:focus {
+  outline-color: rgba(249, 115, 22, 0.5) !important;
+  border-color: rgba(249, 115, 22, 0.5) !important;
+}
+
+/* Buttons */
 .dark-table button {
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.7) !important;
 }
 
-.dark-table th {
-  color: rgba(255, 255, 255, 0.6);
+.dark-table button:hover {
+  color: white !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
 }
 
-.dark-table td {
-  color: rgba(255, 255, 255, 0.8);
+/* Pagination */
+.dark-table button[class*="bg-indigo"] {
+  background-color: rgb(249, 115, 22) !important;
+  color: white !important;
+}
+
+/* Divider lines */
+.dark-table [class*="divide-gray"] > * {
+  border-color: rgba(255, 255, 255, 0.1) !important;
 }

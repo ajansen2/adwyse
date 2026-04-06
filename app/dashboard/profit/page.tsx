@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { useEffect, useState, useMemo, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Sidebar } from '@/components/dashboard/Sidebar';
+import { MetricCard, DashboardSkeleton } from '@/components/ui';
 
 type DateRangeOption = '7d' | '14d' | '30d' | '90d' | 'all';
 
@@ -39,8 +40,8 @@ interface ProductProfitability {
   avgMargin: number;
 }
 
-export default function ProfitDashboard() {
-  const router = useRouter();
+function ProfitContent() {
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [storeId, setStoreId] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<DateRangeOption>('30d');
@@ -94,15 +95,36 @@ export default function ProfitDashboard() {
     };
   }, [dateRange]);
 
-  // Load store ID from localStorage
+  // Load store ID from shop parameter
   useEffect(() => {
-    const savedStoreId = localStorage.getItem('adwyse_store_id');
-    if (savedStoreId) {
-      setStoreId(savedStoreId);
-    } else {
-      setLoading(false);
-    }
-  }, []);
+    const loadStore = async () => {
+      try {
+        const shop = searchParams.get('shop');
+        if (!shop) {
+          setLoading(false);
+          return;
+        }
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', `/api/stores/lookup?shop=${encodeURIComponent(shop)}`, false);
+        xhr.send();
+
+        if (xhr.status === 200) {
+          const data = JSON.parse(xhr.responseText);
+          const storeData = data.store || data.merchant;
+          if (storeData) {
+            setStoreId(storeData.id);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading store:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadStore();
+  }, [searchParams]);
 
   // Load profit data
   useEffect(() => {
@@ -281,38 +303,41 @@ export default function ProfitDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading profit data...</p>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900">
+        <Sidebar activePage="profit" />
+        <main className="lg:ml-64 min-h-screen p-6">
+          <DashboardSkeleton />
+        </main>
       </div>
     );
   }
 
   if (!storeId) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-900">No Store Connected</h2>
-          <p className="mt-2 text-gray-600">Please connect your Shopify store first.</p>
-          <Link href="/dashboard" className="mt-4 inline-block text-indigo-600 hover:text-indigo-500">
-            Go to Dashboard
-          </Link>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900">
+        <Sidebar activePage="profit" />
+        <main className="lg:ml-64 min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-xl font-semibold text-white">No Store Connected</h2>
+            <p className="mt-2 text-white/60">Please connect your Shopify store first.</p>
+            <p className="mt-1 text-white/40 text-sm">Make sure the shop parameter is in the URL.</p>
+          </div>
+        </main>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900">
+      <Sidebar activePage="profit" />
+
+      <main className="lg:ml-64 min-h-screen">
+        {/* Header */}
+        <header className="bg-slate-900/50 backdrop-blur border-b border-white/10 sticky top-0 z-30">
+          <div className="px-6 py-4 flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Profit Tracking</h1>
-              <p className="text-gray-500">Track COGS and calculate true profitability</p>
+              <h1 className="text-2xl font-bold text-white">Profit Tracking</h1>
+              <p className="text-white/60 text-sm">Track COGS and calculate true profitability</p>
             </div>
 
             {/* Date Range Selector */}
@@ -321,10 +346,10 @@ export default function ProfitDashboard() {
                 <button
                   key={range}
                   onClick={() => setDateRange(range)}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-md ${
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                     dateRange === range
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                      ? 'bg-orange-500 text-white'
+                      : 'bg-white/10 text-white/70 hover:bg-white/20 border border-white/20'
                   }`}
                 >
                   {range === 'all' ? 'All Time' : range.replace('d', ' days')}
@@ -332,302 +357,184 @@ export default function ProfitDashboard() {
               ))}
             </div>
           </div>
-        </div>
-      </div>
+        </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Tabs */}
-        <div className="border-b border-gray-200 mb-6">
-          <nav className="-mb-px flex space-x-8">
-            {[
-              { id: 'overview', label: 'Overview' },
-              { id: 'products', label: 'Product Profitability' },
-              { id: 'costs', label: 'Manage Costs' }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === tab.id
-                    ? 'border-indigo-500 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </nav>
-        </div>
+        <div className="p-6">
+          {/* Tabs */}
+          <div className="border-b border-white/10 mb-6">
+            <nav className="-mb-px flex space-x-8">
+              {[
+                { id: 'overview', label: 'Overview' },
+                { id: 'products', label: 'Product Profitability' },
+                { id: 'costs', label: 'Manage Costs' }
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                    activeTab === tab.id
+                      ? 'border-orange-500 text-orange-400'
+                      : 'border-transparent text-white/60 hover:text-white hover:border-white/30'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+          </div>
 
-        {/* Overview Tab */}
-        {activeTab === 'overview' && profitSummary && (
-          <div className="space-y-6">
-            {/* Profit Waterfall */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Profit Waterfall</h2>
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                <div className="bg-blue-50 rounded-lg p-4 text-center">
-                  <p className="text-sm text-blue-600 font-medium">Revenue</p>
-                  <p className="text-2xl font-bold text-blue-700">{formatCurrency(profitSummary.totalRevenue)}</p>
+          {/* Overview Tab */}
+          {activeTab === 'overview' && profitSummary && (
+            <div className="space-y-6">
+              {/* Profit Waterfall */}
+              <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6">
+                <h2 className="text-lg font-semibold text-white mb-4">Profit Waterfall</h2>
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                  <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-4 text-center">
+                    <p className="text-sm text-blue-300 font-medium">Revenue</p>
+                    <p className="text-2xl font-bold text-blue-400">{formatCurrency(profitSummary.totalRevenue)}</p>
+                  </div>
+                  <div className="flex items-center justify-center text-white/40">
+                    <span className="text-2xl">−</span>
+                  </div>
+                  <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-4 text-center">
+                    <p className="text-sm text-red-300 font-medium">COGS</p>
+                    <p className="text-2xl font-bold text-red-400">{formatCurrency(profitSummary.totalCogs)}</p>
+                  </div>
+                  <div className="flex items-center justify-center text-white/40">
+                    <span className="text-2xl">=</span>
+                  </div>
+                  <div className="bg-green-500/20 border border-green-500/30 rounded-lg p-4 text-center">
+                    <p className="text-sm text-green-300 font-medium">Gross Profit</p>
+                    <p className="text-2xl font-bold text-green-400">{formatCurrency(profitSummary.grossProfit)}</p>
+                  </div>
                 </div>
-                <div className="flex items-center justify-center text-gray-400">
-                  <span className="text-2xl">−</span>
-                </div>
-                <div className="bg-red-50 rounded-lg p-4 text-center">
-                  <p className="text-sm text-red-600 font-medium">COGS</p>
-                  <p className="text-2xl font-bold text-red-700">{formatCurrency(profitSummary.totalCogs)}</p>
-                </div>
-                <div className="flex items-center justify-center text-gray-400">
-                  <span className="text-2xl">=</span>
-                </div>
-                <div className="bg-green-50 rounded-lg p-4 text-center">
-                  <p className="text-sm text-green-600 font-medium">Gross Profit</p>
-                  <p className="text-2xl font-bold text-green-700">{formatCurrency(profitSummary.grossProfit)}</p>
-                </div>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-4">
-                <div className="bg-green-50 rounded-lg p-4 text-center">
-                  <p className="text-sm text-green-600 font-medium">Gross Profit</p>
-                  <p className="text-2xl font-bold text-green-700">{formatCurrency(profitSummary.grossProfit)}</p>
-                </div>
-                <div className="flex items-center justify-center text-gray-400">
-                  <span className="text-2xl">−</span>
-                </div>
-                <div className="bg-orange-50 rounded-lg p-4 text-center">
-                  <p className="text-sm text-orange-600 font-medium">Ad Spend</p>
-                  <p className="text-2xl font-bold text-orange-700">{formatCurrency(profitSummary.totalAdSpend)}</p>
-                </div>
-                <div className="flex items-center justify-center text-gray-400">
-                  <span className="text-2xl">=</span>
-                </div>
-                <div className={`rounded-lg p-4 text-center ${profitSummary.netProfit >= 0 ? 'bg-emerald-50' : 'bg-red-50'}`}>
-                  <p className={`text-sm font-medium ${profitSummary.netProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>Net Profit</p>
-                  <p className={`text-2xl font-bold ${profitSummary.netProfit >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
-                    {formatCurrency(profitSummary.netProfit)}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Key Metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <div className="bg-white rounded-lg shadow p-6">
-                <p className="text-sm text-gray-500">Gross Margin</p>
-                <p className="text-3xl font-bold text-gray-900">{profitSummary.grossMarginPercent.toFixed(1)}%</p>
-                <p className="text-sm text-gray-500 mt-1">
-                  {productCosts.length === 0 && <span className="text-amber-600">⚠ Add product costs for accuracy</span>}
-                </p>
-              </div>
-
-              <div className="bg-white rounded-lg shadow p-6">
-                <p className="text-sm text-gray-500">True ROAS</p>
-                <p className={`text-3xl font-bold ${profitSummary.trueRoas >= 1 ? 'text-green-600' : 'text-red-600'}`}>
-                  {profitSummary.trueRoas.toFixed(2)}x
-                </p>
-                <p className="text-sm text-gray-500 mt-1">Net Profit / Ad Spend</p>
-              </div>
-
-              <div className="bg-white rounded-lg shadow p-6">
-                <p className="text-sm text-gray-500">Total Orders</p>
-                <p className="text-3xl font-bold text-gray-900">{profitSummary.orderCount.toLocaleString()}</p>
-                <p className="text-sm text-gray-500 mt-1">
-                  Avg: {formatCurrency(profitSummary.orderCount > 0 ? profitSummary.totalRevenue / profitSummary.orderCount : 0)}
-                </p>
-              </div>
-
-              <div className="bg-white rounded-lg shadow p-6">
-                <p className="text-sm text-gray-500">Profit per Order</p>
-                <p className={`text-3xl font-bold ${profitSummary.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatCurrency(profitSummary.orderCount > 0 ? profitSummary.netProfit / profitSummary.orderCount : 0)}
-                </p>
-                <p className="text-sm text-gray-500 mt-1">After COGS & ads</p>
-              </div>
-            </div>
-
-            {/* COGS Coverage Warning */}
-            {productCosts.length === 0 && (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                <div className="flex items-start">
-                  <span className="text-2xl mr-3">⚠️</span>
-                  <div>
-                    <h3 className="font-semibold text-amber-800">No Product Costs Set</h3>
-                    <p className="text-amber-700 mt-1">
-                      Add your product costs to see accurate profit calculations. You can manually enter costs,
-                      import from CSV, or sync from Shopify inventory.
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-4">
+                  <div className="bg-green-500/20 border border-green-500/30 rounded-lg p-4 text-center">
+                    <p className="text-sm text-green-300 font-medium">Gross Profit</p>
+                    <p className="text-2xl font-bold text-green-400">{formatCurrency(profitSummary.grossProfit)}</p>
+                  </div>
+                  <div className="flex items-center justify-center text-white/40">
+                    <span className="text-2xl">−</span>
+                  </div>
+                  <div className="bg-orange-500/20 border border-orange-500/30 rounded-lg p-4 text-center">
+                    <p className="text-sm text-orange-300 font-medium">Ad Spend</p>
+                    <p className="text-2xl font-bold text-orange-400">{formatCurrency(profitSummary.totalAdSpend)}</p>
+                  </div>
+                  <div className="flex items-center justify-center text-white/40">
+                    <span className="text-2xl">=</span>
+                  </div>
+                  <div className={`rounded-lg p-4 text-center border ${profitSummary.netProfit >= 0 ? 'bg-emerald-500/20 border-emerald-500/30' : 'bg-red-500/20 border-red-500/30'}`}>
+                    <p className={`text-sm font-medium ${profitSummary.netProfit >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>Net Profit</p>
+                    <p className={`text-2xl font-bold ${profitSummary.netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {formatCurrency(profitSummary.netProfit)}
                     </p>
-                    <button
-                      onClick={() => setActiveTab('costs')}
-                      className="mt-3 px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700"
-                    >
-                      Add Product Costs
-                    </button>
                   </div>
                 </div>
               </div>
-            )}
-          </div>
-        )}
 
-        {/* Products Tab */}
-        {activeTab === 'products' && (
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">Product Profitability</h2>
-              <p className="text-sm text-gray-500">See which products are most profitable</p>
+              {/* Key Metrics */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6">
+                  <p className="text-sm text-white/60">Gross Margin</p>
+                  <p className="text-3xl font-bold text-white">{profitSummary.grossMarginPercent.toFixed(1)}%</p>
+                  <p className="text-sm text-white/40 mt-1">
+                    {productCosts.length === 0 && <span className="text-amber-400">Add product costs for accuracy</span>}
+                  </p>
+                </div>
+
+                <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6">
+                  <p className="text-sm text-white/60">True ROAS</p>
+                  <p className={`text-3xl font-bold ${profitSummary.trueRoas >= 1 ? 'text-green-400' : 'text-red-400'}`}>
+                    {profitSummary.trueRoas.toFixed(2)}x
+                  </p>
+                  <p className="text-sm text-white/40 mt-1">Net Profit / Ad Spend</p>
+                </div>
+
+                <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6">
+                  <p className="text-sm text-white/60">Total Orders</p>
+                  <p className="text-3xl font-bold text-white">{profitSummary.orderCount.toLocaleString()}</p>
+                  <p className="text-sm text-white/40 mt-1">
+                    Avg: {formatCurrency(profitSummary.orderCount > 0 ? profitSummary.totalRevenue / profitSummary.orderCount : 0)}
+                  </p>
+                </div>
+
+                <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6">
+                  <p className="text-sm text-white/60">Profit per Order</p>
+                  <p className={`text-3xl font-bold ${profitSummary.netProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {formatCurrency(profitSummary.orderCount > 0 ? profitSummary.netProfit / profitSummary.orderCount : 0)}
+                  </p>
+                  <p className="text-sm text-white/40 mt-1">After COGS & ads</p>
+                </div>
+              </div>
+
+              {/* COGS Coverage Warning */}
+              {productCosts.length === 0 && (
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
+                  <div className="flex items-start">
+                    <span className="text-2xl mr-3">⚠️</span>
+                    <div>
+                      <h3 className="font-semibold text-amber-300">No Product Costs Set</h3>
+                      <p className="text-amber-200/80 mt-1">
+                        Add your product costs to see accurate profit calculations. You can manually enter costs,
+                        import from CSV, or sync from Shopify inventory.
+                      </p>
+                      <button
+                        onClick={() => setActiveTab('costs')}
+                        className="mt-3 px-4 py-2 bg-amber-500 text-white rounded-md hover:bg-amber-600 transition-colors"
+                      >
+                        Add Product Costs
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
+          )}
 
-            {productProfitability.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Units Sold</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Revenue</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">COGS</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Gross Profit</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Margin</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {productProfitability.map((product) => (
-                      <tr key={product.productId} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{product.productTitle}</div>
-                          <div className="text-xs text-gray-500">ID: {product.productId}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                          {product.unitsSold.toLocaleString()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                          {formatCurrency(product.totalRevenue)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-500">
-                          {formatCurrency(product.totalCogs)}
-                        </td>
-                        <td className={`px-6 py-4 whitespace-nowrap text-right text-sm font-medium ${product.grossProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {formatCurrency(product.grossProfit)}
-                        </td>
-                        <td className={`px-6 py-4 whitespace-nowrap text-right text-sm font-medium ${product.avgMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {product.avgMargin.toFixed(1)}%
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="px-6 py-12 text-center">
-                <p className="text-gray-500">No product data available for the selected period.</p>
-                <p className="text-sm text-gray-400 mt-1">Make sure you have orders and product costs set up.</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Costs Tab */}
-        {activeTab === 'costs' && (
-          <div className="space-y-6">
-            {/* Actions */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <button
-                  onClick={() => setShowCostModal(true)}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-                >
-                  + Add Cost
-                </button>
-                <button
-                  onClick={() => setShowImportModal(true)}
-                  className="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
-                >
-                  Import CSV
-                </button>
-                <button
-                  onClick={syncFromShopify}
-                  disabled={syncing}
-                  className="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
-                >
-                  {syncing ? 'Syncing...' : 'Sync from Shopify'}
-                </button>
-              </div>
-              <a
-                href="/api/products/costs/import"
-                className="text-sm text-indigo-600 hover:text-indigo-500"
-              >
-                Download CSV Template
-              </a>
-            </div>
-
-            {/* Costs Table */}
-            <div className="bg-white rounded-lg shadow">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">Product Costs ({productCosts.length})</h2>
+          {/* Products Tab */}
+          {activeTab === 'products' && (
+            <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl">
+              <div className="px-6 py-4 border-b border-white/10">
+                <h2 className="text-lg font-semibold text-white">Product Profitability</h2>
+                <p className="text-sm text-white/60">See which products are most profitable</p>
               </div>
 
-              {productCosts.length > 0 ? (
+              {productProfitability.length > 0 ? (
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+                  <table className="min-w-full divide-y divide-white/10">
+                    <thead className="bg-white/5">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Cost</th>
-                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Source</th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-white/60 uppercase">Product</th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-white/60 uppercase">Units Sold</th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-white/60 uppercase">Revenue</th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-white/60 uppercase">COGS</th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-white/60 uppercase">Gross Profit</th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-white/60 uppercase">Margin</th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {productCosts.map((cost) => (
-                        <tr key={cost.id} className="hover:bg-gray-50">
+                    <tbody className="divide-y divide-white/10">
+                      {productProfitability.map((product) => (
+                        <tr key={product.productId} className="hover:bg-white/5">
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">
-                              {cost.product_title || `Product ${cost.shopify_product_id}`}
-                            </div>
-                            {cost.variant_title && (
-                              <div className="text-xs text-gray-500">{cost.variant_title}</div>
-                            )}
+                            <div className="text-sm font-medium text-white">{product.productTitle}</div>
+                            <div className="text-xs text-white/40">ID: {product.productId}</div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {cost.sku || '-'}
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-white">
+                            {product.unitsSold.toLocaleString()}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">
-                            {formatCurrency(cost.cost_per_unit)}
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-white">
+                            {formatCurrency(product.totalRevenue)}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-center">
-                            <span className={`px-2 py-1 text-xs rounded-full ${
-                              cost.source === 'manual' ? 'bg-blue-100 text-blue-800' :
-                              cost.source === 'csv_import' ? 'bg-green-100 text-green-800' :
-                              'bg-purple-100 text-purple-800'
-                            }`}>
-                              {cost.source}
-                            </span>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-white/60">
+                            {formatCurrency(product.totalCogs)}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                            <button
-                              onClick={() => {
-                                setEditingCost(cost);
-                                setCostForm({
-                                  productId: cost.shopify_product_id,
-                                  variantId: cost.shopify_variant_id || '',
-                                  sku: cost.sku || '',
-                                  productTitle: cost.product_title || '',
-                                  variantTitle: cost.variant_title || '',
-                                  costPerUnit: cost.cost_per_unit.toString()
-                                });
-                                setShowCostModal(true);
-                              }}
-                              className="text-indigo-600 hover:text-indigo-900 mr-3"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => deleteCost(cost.id)}
-                              className="text-red-600 hover:text-red-900"
-                            >
-                              Delete
-                            </button>
+                          <td className={`px-6 py-4 whitespace-nowrap text-right text-sm font-medium ${product.grossProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            {formatCurrency(product.grossProfit)}
+                          </td>
+                          <td className={`px-6 py-4 whitespace-nowrap text-right text-sm font-medium ${product.avgMargin >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            {product.avgMargin.toFixed(1)}%
                           </td>
                         </tr>
                       ))}
@@ -636,152 +543,285 @@ export default function ProfitDashboard() {
                 </div>
               ) : (
                 <div className="px-6 py-12 text-center">
-                  <p className="text-gray-500">No product costs set up yet.</p>
-                  <p className="text-sm text-gray-400 mt-1">
-                    Add costs manually, import from CSV, or sync from Shopify inventory.
-                  </p>
+                  <p className="text-white/60">No product data available for the selected period.</p>
+                  <p className="text-sm text-white/40 mt-1">Make sure you have orders and product costs set up.</p>
                 </div>
               )}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Add/Edit Cost Modal */}
-        {showCostModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                {editingCost ? 'Edit Product Cost' : 'Add Product Cost'}
-              </h3>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Product ID *</label>
-                  <input
-                    type="text"
-                    value={costForm.productId}
-                    onChange={(e) => setCostForm({ ...costForm, productId: e.target.value })}
-                    className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Shopify Product ID"
-                  />
+          {/* Costs Tab */}
+          {activeTab === 'costs' && (
+            <div className="space-y-6">
+              {/* Actions */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <button
+                    onClick={() => setShowCostModal(true)}
+                    className="px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors"
+                  >
+                    + Add Cost
+                  </button>
+                  <button
+                    onClick={() => setShowImportModal(true)}
+                    className="px-4 py-2 bg-white/10 text-white border border-white/20 rounded-md hover:bg-white/20 transition-colors"
+                  >
+                    Import CSV
+                  </button>
+                  <button
+                    onClick={syncFromShopify}
+                    disabled={syncing}
+                    className="px-4 py-2 bg-white/10 text-white border border-white/20 rounded-md hover:bg-white/20 disabled:opacity-50 transition-colors"
+                  >
+                    {syncing ? 'Syncing...' : 'Sync from Shopify'}
+                  </button>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Variant ID (optional)</label>
-                  <input
-                    type="text"
-                    value={costForm.variantId}
-                    onChange={(e) => setCostForm({ ...costForm, variantId: e.target.value })}
-                    className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Leave blank for all variants"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">SKU</label>
-                    <input
-                      type="text"
-                      value={costForm.sku}
-                      onChange={(e) => setCostForm({ ...costForm, sku: e.target.value })}
-                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Cost per Unit *</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={costForm.costPerUnit}
-                      onChange={(e) => setCostForm({ ...costForm, costPerUnit: e.target.value })}
-                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="0.00"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Product Title</label>
-                  <input
-                    type="text"
-                    value={costForm.productTitle}
-                    onChange={(e) => setCostForm({ ...costForm, productTitle: e.target.value })}
-                    className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                </div>
-              </div>
-
-              <div className="mt-6 flex justify-end space-x-3">
-                <button
-                  onClick={() => {
-                    setShowCostModal(false);
-                    setEditingCost(null);
-                    setCostForm({ productId: '', variantId: '', sku: '', productTitle: '', variantTitle: '', costPerUnit: '' });
-                  }}
-                  className="px-4 py-2 text-gray-700 hover:text-gray-900"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={saveCost}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-                >
-                  Save
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Import Modal */}
-        {showImportModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Import Product Costs</h3>
-
-              <p className="text-sm text-gray-600 mb-4">
-                Upload a CSV file with columns: product_id, variant_id (optional), sku (optional),
-                product_title (optional), cost_per_unit
-              </p>
-
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                <input
-                  type="file"
-                  accept=".csv"
-                  onChange={handleFileImport}
-                  className="hidden"
-                  id="csv-upload"
-                  disabled={importing}
-                />
-                <label
-                  htmlFor="csv-upload"
-                  className="cursor-pointer text-indigo-600 hover:text-indigo-500"
-                >
-                  {importing ? 'Importing...' : 'Click to select CSV file'}
-                </label>
-              </div>
-
-              <div className="mt-4 text-center">
                 <a
                   href="/api/products/costs/import"
-                  className="text-sm text-indigo-600 hover:text-indigo-500"
+                  className="text-sm text-orange-400 hover:text-orange-300"
                 >
-                  Download CSV template
+                  Download CSV Template
                 </a>
               </div>
 
-              <div className="mt-6 flex justify-end">
-                <button
-                  onClick={() => setShowImportModal(false)}
-                  className="px-4 py-2 text-gray-700 hover:text-gray-900"
-                >
-                  Cancel
-                </button>
+              {/* Costs Table */}
+              <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl">
+                <div className="px-6 py-4 border-b border-white/10">
+                  <h2 className="text-lg font-semibold text-white">Product Costs ({productCosts.length})</h2>
+                </div>
+
+                {productCosts.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-white/10">
+                      <thead className="bg-white/5">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-white/60 uppercase">Product</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-white/60 uppercase">SKU</th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-white/60 uppercase">Cost</th>
+                          <th className="px-6 py-3 text-center text-xs font-medium text-white/60 uppercase">Source</th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-white/60 uppercase">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/10">
+                        {productCosts.map((cost) => (
+                          <tr key={cost.id} className="hover:bg-white/5">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm font-medium text-white">
+                                {cost.product_title || `Product ${cost.shopify_product_id}`}
+                              </div>
+                              {cost.variant_title && (
+                                <div className="text-xs text-white/40">{cost.variant_title}</div>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-white/60">
+                              {cost.sku || '-'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-white">
+                              {formatCurrency(cost.cost_per_unit)}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-center">
+                              <span className={`px-2 py-1 text-xs rounded-full ${
+                                cost.source === 'manual' ? 'bg-blue-500/20 text-blue-300' :
+                                cost.source === 'csv_import' ? 'bg-green-500/20 text-green-300' :
+                                'bg-purple-500/20 text-purple-300'
+                              }`}>
+                                {cost.source}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                              <button
+                                onClick={() => {
+                                  setEditingCost(cost);
+                                  setCostForm({
+                                    productId: cost.shopify_product_id,
+                                    variantId: cost.shopify_variant_id || '',
+                                    sku: cost.sku || '',
+                                    productTitle: cost.product_title || '',
+                                    variantTitle: cost.variant_title || '',
+                                    costPerUnit: cost.cost_per_unit.toString()
+                                  });
+                                  setShowCostModal(true);
+                                }}
+                                className="text-orange-400 hover:text-orange-300 mr-3"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => deleteCost(cost.id)}
+                                className="text-red-400 hover:text-red-300"
+                              >
+                                Delete
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="px-6 py-12 text-center">
+                    <p className="text-white/60">No product costs set up yet.</p>
+                    <p className="text-sm text-white/40 mt-1">
+                      Add costs manually, import from CSV, or sync from Shopify inventory.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+
+          {/* Add/Edit Cost Modal */}
+          {showCostModal && (
+            <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+              <div className="bg-slate-800 border border-white/10 rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
+                <h3 className="text-lg font-semibold text-white mb-4">
+                  {editingCost ? 'Edit Product Cost' : 'Add Product Cost'}
+                </h3>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-white/70">Product ID *</label>
+                    <input
+                      type="text"
+                      value={costForm.productId}
+                      onChange={(e) => setCostForm({ ...costForm, productId: e.target.value })}
+                      className="mt-1 w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white placeholder-white/40 focus:ring-orange-500 focus:border-orange-500"
+                      placeholder="Shopify Product ID"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-white/70">Variant ID (optional)</label>
+                    <input
+                      type="text"
+                      value={costForm.variantId}
+                      onChange={(e) => setCostForm({ ...costForm, variantId: e.target.value })}
+                      className="mt-1 w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white placeholder-white/40 focus:ring-orange-500 focus:border-orange-500"
+                      placeholder="Leave blank for all variants"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-white/70">SKU</label>
+                      <input
+                        type="text"
+                        value={costForm.sku}
+                        onChange={(e) => setCostForm({ ...costForm, sku: e.target.value })}
+                        className="mt-1 w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white placeholder-white/40 focus:ring-orange-500 focus:border-orange-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-white/70">Cost per Unit *</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={costForm.costPerUnit}
+                        onChange={(e) => setCostForm({ ...costForm, costPerUnit: e.target.value })}
+                        className="mt-1 w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white placeholder-white/40 focus:ring-orange-500 focus:border-orange-500"
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-white/70">Product Title</label>
+                    <input
+                      type="text"
+                      value={costForm.productTitle}
+                      onChange={(e) => setCostForm({ ...costForm, productTitle: e.target.value })}
+                      className="mt-1 w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white placeholder-white/40 focus:ring-orange-500 focus:border-orange-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-6 flex justify-end space-x-3">
+                  <button
+                    onClick={() => {
+                      setShowCostModal(false);
+                      setEditingCost(null);
+                      setCostForm({ productId: '', variantId: '', sku: '', productTitle: '', variantTitle: '', costPerUnit: '' });
+                    }}
+                    className="px-4 py-2 text-white/70 hover:text-white"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={saveCost}
+                    className="px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Import Modal */}
+          {showImportModal && (
+            <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+              <div className="bg-slate-800 border border-white/10 rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
+                <h3 className="text-lg font-semibold text-white mb-4">Import Product Costs</h3>
+
+                <p className="text-sm text-white/60 mb-4">
+                  Upload a CSV file with columns: product_id, variant_id (optional), sku (optional),
+                  product_title (optional), cost_per_unit
+                </p>
+
+                <div className="border-2 border-dashed border-white/20 rounded-lg p-6 text-center hover:border-orange-500/50 transition-colors">
+                  <input
+                    type="file"
+                    accept=".csv"
+                    onChange={handleFileImport}
+                    className="hidden"
+                    id="csv-upload"
+                    disabled={importing}
+                  />
+                  <label
+                    htmlFor="csv-upload"
+                    className="cursor-pointer text-orange-400 hover:text-orange-300"
+                  >
+                    {importing ? 'Importing...' : 'Click to select CSV file'}
+                  </label>
+                </div>
+
+                <div className="mt-4 text-center">
+                  <a
+                    href="/api/products/costs/import"
+                    className="text-sm text-orange-400 hover:text-orange-300"
+                  >
+                    Download CSV template
+                  </a>
+                </div>
+
+                <div className="mt-6 flex justify-end">
+                  <button
+                    onClick={() => setShowImportModal(false)}
+                    className="px-4 py-2 text-white/70 hover:text-white"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
     </div>
+  );
+}
+
+export default function ProfitPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-solid border-orange-500 border-r-transparent mb-4"></div>
+          <div className="text-white text-xl">Loading profit tracking...</div>
+        </div>
+      </div>
+    }>
+      <ProfitContent />
+    </Suspense>
   );
 }
