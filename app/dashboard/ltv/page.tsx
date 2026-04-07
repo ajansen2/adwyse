@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Sidebar, MobileNav } from '@/components/dashboard';
 import { MetricCard } from '@/components/ui';
+import { CohortChart } from '@/components/charts/CohortChart';
 import { downloadCSV, ltvExportColumns } from '@/lib/export-utils';
 import {
   BarChart,
@@ -35,6 +36,12 @@ interface CustomerLTV {
   purchase_frequency: number;
 }
 
+interface RetentionCohort {
+  cohort: string;
+  totalCustomers: number;
+  retention: number[];
+}
+
 interface LTVMetrics {
   totalCustomers: number;
   avgLTV: number;
@@ -56,6 +63,7 @@ interface LTVMetrics {
     avgLTV: number;
     avgPredictedLTV: number;
   }[];
+  retentionCohorts: RetentionCohort[];
 }
 
 /**
@@ -138,6 +146,34 @@ function generateDemoLTVData(): LTVMetrics {
   const totalLTV = sourceBreakdown.reduce((sum, s) => sum + s.customers * s.avgLTV, 0);
   const totalPredictedLTV = sourceBreakdown.reduce((sum, s) => sum + s.customers * s.avgPredictedLTV, 0);
 
+  // Generate retention cohorts (realistic decay pattern)
+  const retentionCohorts: RetentionCohort[] = [];
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+  const currentYear = new Date().getFullYear();
+
+  for (let i = 0; i < 6; i++) {
+    const monthIndex = (new Date().getMonth() - 5 + i + 12) % 12;
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const cohortMonth = monthNames[monthIndex];
+    const customers = 80 + Math.floor(Math.random() * 50) + i * 8;
+
+    // Realistic retention decay: starts at 100%, decays over time
+    const retention: number[] = [100]; // Month 0 is always 100%
+    const maxPeriods = 6 - i; // Newer cohorts have fewer data points
+
+    for (let j = 1; j < maxPeriods; j++) {
+      // Realistic e-commerce retention: ~30-40% M1, ~20-25% M2, then slower decay
+      const baseRetention = j === 1 ? 32 + Math.random() * 12 : retention[j - 1] * (0.7 + Math.random() * 0.15);
+      retention.push(Math.max(5, Math.round(baseRetention)));
+    }
+
+    retentionCohorts.push({
+      cohort: `${cohortMonth} ${currentYear}`,
+      totalCustomers: customers,
+      retention,
+    });
+  }
+
   return {
     totalCustomers,
     avgLTV: totalLTV / totalCustomers,
@@ -149,6 +185,7 @@ function generateDemoLTVData(): LTVMetrics {
     topCustomers,
     cohortData,
     sourceBreakdown,
+    retentionCohorts,
   };
 }
 
@@ -500,6 +537,30 @@ function LTVContent() {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Retention Heatmap - Premium Feature */}
+          <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <h2 className="text-xl font-bold text-white">Customer Retention</h2>
+                <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 text-xs font-medium rounded-full">
+                  Premium
+                </span>
+              </div>
+              <p className="text-white/40 text-sm">% of customers who return each month</p>
+            </div>
+            {metrics?.retentionCohorts && metrics.retentionCohorts.length > 0 ? (
+              <CohortChart
+                data={metrics.retentionCohorts}
+                periods={['M0', 'M1', 'M2', 'M3', 'M4', 'M5']}
+                variant="dark"
+              />
+            ) : (
+              <div className="h-48 flex items-center justify-center text-white/40">
+                Need at least 2 months of data for retention analysis
+              </div>
+            )}
           </div>
 
           {/* Top Customers Table */}

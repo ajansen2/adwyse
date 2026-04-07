@@ -16,6 +16,12 @@ interface CustomerLTV {
   purchase_frequency: number; // orders per month
 }
 
+interface RetentionCohort {
+  cohort: string;
+  totalCustomers: number;
+  retention: number[];
+}
+
 interface LTVMetrics {
   totalCustomers: number;
   avgLTV: number;
@@ -37,6 +43,7 @@ interface LTVMetrics {
     avgLTV: number;
     avgPredictedLTV: number;
   }[];
+  retentionCohorts: RetentionCohort[];
 }
 
 /**
@@ -125,6 +132,7 @@ export async function GET(request: NextRequest) {
         topCustomers: [],
         cohortData: [],
         sourceBreakdown: [],
+        retentionCohorts: [],
       });
     }
 
@@ -287,6 +295,80 @@ export async function GET(request: NextRequest) {
       }))
       .sort((a, b) => b.avgPredictedLTV - a.avgPredictedLTV);
 
+    // Calculate retention cohorts
+    const retentionCohorts: RetentionCohort[] = [];
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    // Group customers by first order month
+    const customersByMonth = new Map<string, Set<string>>();
+    const customerOrderMonths = new Map<string, Set<string>>();
+
+    for (const customer of customerLTVs) {
+      const firstOrderDate = new Date(customer.first_order_date);
+      const cohortKey = `${firstOrderDate.getFullYear()}-${String(firstOrderDate.getMonth() + 1).padStart(2, '0')}`;
+
+      if (!customersByMonth.has(cohortKey)) {
+        customersByMonth.set(cohortKey, new Set());
+      }
+      customersByMonth.get(cohortKey)!.add(customer.customer_id);
+
+      // Track all months this customer ordered in
+      if (!customerOrderMonths.has(customer.customer_id)) {
+        customerOrderMonths.set(customer.customer_id, new Set());
+      }
+    }
+
+    // For each customer, find all months they ordered in
+    for (const order of orders) {
+      const customerId = order.customer_id || order.customer_email || 'unknown';
+      const orderDate = new Date(order.order_created_at);
+      const orderMonthKey = `${orderDate.getFullYear()}-${String(orderDate.getMonth() + 1).padStart(2, '0')}`;
+
+      if (!customerOrderMonths.has(customerId)) {
+        customerOrderMonths.set(customerId, new Set());
+      }
+      customerOrderMonths.get(customerId)!.add(orderMonthKey);
+    }
+
+    // Calculate retention for last 6 cohorts
+    const sortedCohorts = Array.from(customersByMonth.keys()).sort().slice(-6);
+
+    for (const cohortKey of sortedCohorts) {
+      const [year, month] = cohortKey.split('-').map(Number);
+      const cohortCustomers = customersByMonth.get(cohortKey)!;
+      const totalInCohort = cohortCustomers.size;
+
+      if (totalInCohort === 0) continue;
+
+      const retention: number[] = [100]; // M0 is always 100%
+
+      // Calculate retention for up to 6 periods
+      for (let period = 1; period <= 5; period++) {
+        const targetDate = new Date(year, month - 1 + period, 1);
+
+        // Don't calculate future months
+        if (targetDate > now) break;
+
+        const targetMonthKey = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}`;
+
+        let retained = 0;
+        for (const customerId of cohortCustomers) {
+          const orderMonths = customerOrderMonths.get(customerId);
+          if (orderMonths && orderMonths.has(targetMonthKey)) {
+            retained++;
+          }
+        }
+
+        retention.push(Math.round((retained / totalInCohort) * 100));
+      }
+
+      retentionCohorts.push({
+        cohort: `${monthNames[month - 1]} ${year}`,
+        totalCustomers: totalInCohort,
+        retention,
+      });
+    }
+
     const metrics: LTVMetrics = {
       totalCustomers,
       avgLTV,
@@ -298,6 +380,7 @@ export async function GET(request: NextRequest) {
       topCustomers,
       cohortData,
       sourceBreakdown,
+      retentionCohorts,
     };
 
     return NextResponse.json(metrics);

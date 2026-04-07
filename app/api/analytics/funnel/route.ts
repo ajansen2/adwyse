@@ -1,111 +1,113 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+// Demo store ID for Adam's store
+const DEMO_STORE_ID = '987c61dd-7696-47ca-bf05-37876953b0ca';
+
+interface FunnelStage {
+  name: string;
+  value: number;
+}
+
+/**
+ * Generate demo funnel data for Adam's store
+ */
+function generateDemoFunnelData(): FunnelStage[] {
+  return [
+    { name: 'Page Views', value: 12847 },
+    { name: 'Add to Cart', value: 2156 },
+    { name: 'Checkout', value: 987 },
+    { name: 'Purchase', value: 412 },
+  ];
+}
+
+/**
+ * Get conversion funnel data from pixel events
+ */
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const storeId = searchParams.get('store_id');
-    const days = parseInt(searchParams.get('days') || '0'); // 0 = all time
+    const storeId = request.nextUrl.searchParams.get('store_id');
+    const days = parseInt(request.nextUrl.searchParams.get('days') || '30');
 
     if (!storeId) {
       return NextResponse.json({ error: 'Store ID required' }, { status: 400 });
     }
 
+    // Return demo data for Adam's store
+    if (storeId === DEMO_STORE_ID) {
+      const funnel = generateDemoFunnelData();
+      return NextResponse.json({
+        funnel,
+        conversionRate: (funnel[3].value / funnel[0].value) * 100,
+        cartToCheckoutRate: (funnel[2].value / funnel[1].value) * 100,
+        checkoutToPurchaseRate: (funnel[3].value / funnel[2].value) * 100,
+      });
+    }
+
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
+      { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
     // Calculate date range (0 = all time)
-    const startDate = days > 0 ? new Date() : new Date('2020-01-01');
-    if (days > 0) {
-      startDate.setDate(startDate.getDate() - days);
-    }
-
-    // Get pixel events for funnel
-    const { data: events, error: eventsError } = await supabase
+    let query = supabase
       .from('pixel_events')
-      .select('event_type')
-      .eq('store_id', storeId)
-      .gte('created_at', startDate.toISOString());
+      .select('event_type, visitor_id')
+      .eq('store_id', storeId);
 
-    if (eventsError) {
-      console.error('Error fetching pixel events:', eventsError);
+    if (days > 0) {
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+      query = query.gte('created_at', startDate.toISOString());
     }
 
-    // Count events by type
-    const eventCounts: Record<string, number> = {
-      page_view: 0,
-      add_to_cart: 0,
-      begin_checkout: 0,
-      purchase: 0
+    const { data: events, error } = await query;
+
+    if (error) {
+      console.error('Error fetching pixel events:', error);
+      return NextResponse.json({ error: 'Failed to fetch funnel data' }, { status: 500 });
+    }
+
+    // Count unique visitors for each event type
+    const eventCounts: Record<string, Set<string>> = {
+      page_view: new Set(),
+      add_to_cart: new Set(),
+      checkout_started: new Set(),
+      purchase: new Set(),
     };
 
-    events?.forEach(event => {
-      if (eventCounts[event.event_type] !== undefined) {
-        eventCounts[event.event_type]++;
+    for (const event of events || []) {
+      const type = event.event_type;
+      if (eventCounts[type]) {
+        eventCounts[type].add(event.visitor_id);
       }
-    });
-
-    // Get orders for purchase count (more accurate than pixel)
-    const { data: orders, error: ordersError } = await supabase
-      .from('orders')
-      .select('id')
-      .eq('store_id', storeId)
-      .gte('created_at', startDate.toISOString());
-
-    if (!ordersError && orders) {
-      // Use actual order count for purchases
-      eventCounts.purchase = orders.length;
     }
 
-    // Get abandoned carts for checkout count
-    const { data: carts, error: cartsError } = await supabase
-      .from('abandoned_carts')
-      .select('id')
-      .eq('store_id', storeId)
-      .gte('created_at', startDate.toISOString());
+    const pageViews = eventCounts.page_view.size;
+    const addToCarts = eventCounts.add_to_cart.size;
+    const checkouts = eventCounts.checkout_started.size;
+    const purchases = eventCounts.purchase.size;
 
-    if (!cartsError && carts) {
-      // Add to checkout count (completed + abandoned)
-      eventCounts.begin_checkout = Math.max(
-        eventCounts.begin_checkout,
-        carts.length + eventCounts.purchase
-      );
-    }
-
-    // Build funnel data
-    const funnel = [
-      { name: 'Sessions', value: eventCounts.page_view || 0 },
-      { name: 'Add to Cart', value: eventCounts.add_to_cart || 0 },
-      { name: 'Checkout', value: eventCounts.begin_checkout || 0 },
-      { name: 'Purchase', value: eventCounts.purchase || 0 }
+    // Build funnel array in format dashboard expects
+    const funnel: FunnelStage[] = [
+      { name: 'Page Views', value: pageViews },
+      { name: 'Add to Cart', value: addToCarts },
+      { name: 'Checkout', value: checkouts },
+      { name: 'Purchase', value: purchases },
     ];
-
-    // If no pixel data, estimate from orders
-    if (funnel[0].value === 0 && funnel[3].value > 0) {
-      // Estimate based on typical conversion rates
-      funnel[0].value = Math.round(funnel[3].value / 0.02); // ~2% conversion
-      funnel[1].value = Math.round(funnel[0].value * 0.15); // ~15% add to cart
-      funnel[2].value = Math.round(funnel[1].value * 0.5);  // ~50% checkout
-    }
 
     return NextResponse.json({
       funnel,
-      dateRange: {
-        start: startDate.toISOString(),
-        end: new Date().toISOString(),
-        days
-      }
-    }, { status: 200 });
+      conversionRate: pageViews > 0 ? (purchases / pageViews) * 100 : 0,
+      cartToCheckoutRate: addToCarts > 0 ? (checkouts / addToCarts) * 100 : 0,
+      checkoutToPurchaseRate: checkouts > 0 ? (purchases / checkouts) * 100 : 0,
+    });
   } catch (error) {
-    console.error('Funnel API error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Error calculating funnel:', error);
+    return NextResponse.json(
+      { error: 'Failed to calculate funnel data' },
+      { status: 500 }
+    );
   }
 }
