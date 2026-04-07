@@ -196,18 +196,8 @@ export function MetricCard({
 
           <div className={`${valueSizeClasses[size]} font-bold tabular-nums ${isDark ? 'text-white' : 'text-gray-900'}`}>
             {prefix}
-            <NumberFlow
-              value={value}
-              format={{
-                notation: value >= 1000000 ? 'compact' : 'standard',
-                maximumFractionDigits: decimals ?? (format === 'currency' ? 2 : 0),
-                style: format === 'currency' ? 'currency' : format === 'percent' ? 'percent' : 'decimal',
-                currency: format === 'currency' ? 'USD' : undefined
-              }}
-              transformTiming={{ duration: 500, easing: 'ease-out' }}
-            />
+            {formatValue(value)}
             {suffix}
-            {format === 'multiplier' && 'x'}
           </div>
 
           {calculatedTrend && (

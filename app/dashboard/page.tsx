@@ -1377,15 +1377,15 @@ function DashboardContent() {
                 </div>
               )}
 
-              {/* Profit Summary */}
-              {(totalRevenue > 0 || totalSpend > 0) && (
+              {/* Profit Summary - temporarily disabled for debugging */}
+              {/* {(totalRevenue > 0 || totalSpend > 0) && (
                 <div className="mb-8">
                   <ProfitSummary
                     revenue={totalRevenue}
                     adSpend={totalSpend}
                   />
                 </div>
-              )}
+              )} */}
 
               {/* Alerts Widget - temporarily disabled for debugging */}
               {/* {stores[0] && (
@@ -1666,8 +1666,8 @@ function DashboardContent() {
         </div>
       </main>
 
-      {/* Mobile Bottom Navigation */}
-      <MobileNav activePage="dashboard" />
+      {/* Mobile Bottom Navigation - temporarily disabled for debugging */}
+      {/* <MobileNav activePage="dashboard" /> */}
     </div>
   );
 }
