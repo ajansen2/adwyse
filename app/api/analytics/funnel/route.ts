@@ -66,7 +66,15 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('Error fetching pixel events:', error);
-      return NextResponse.json({ error: 'Failed to fetch funnel data' }, { status: 500 });
+      // Return demo data on error so funnel still displays
+      const funnel = generateDemoFunnelData();
+      return NextResponse.json({
+        funnel,
+        conversionRate: (funnel[3].value / funnel[0].value) * 100,
+        cartToCheckoutRate: (funnel[2].value / funnel[1].value) * 100,
+        checkoutToPurchaseRate: (funnel[3].value / funnel[2].value) * 100,
+        isDemo: true,
+      });
     }
 
     // Count unique visitors for each event type
@@ -89,6 +97,18 @@ export async function GET(request: NextRequest) {
     const checkouts = eventCounts.checkout_started.size;
     const purchases = eventCounts.purchase.size;
 
+    // If no pixel events, return demo data so users can see the funnel visualization
+    if (pageViews === 0) {
+      const funnel = generateDemoFunnelData();
+      return NextResponse.json({
+        funnel,
+        conversionRate: (funnel[3].value / funnel[0].value) * 100,
+        cartToCheckoutRate: (funnel[2].value / funnel[1].value) * 100,
+        checkoutToPurchaseRate: (funnel[3].value / funnel[2].value) * 100,
+        isDemo: true,
+      });
+    }
+
     // Build funnel array in format dashboard expects
     const funnel: FunnelStage[] = [
       { name: 'Page Views', value: pageViews },
@@ -105,9 +125,14 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error calculating funnel:', error);
-    return NextResponse.json(
-      { error: 'Failed to calculate funnel data' },
-      { status: 500 }
-    );
+    // Return demo data on error so funnel still displays
+    const funnel = generateDemoFunnelData();
+    return NextResponse.json({
+      funnel,
+      conversionRate: (funnel[3].value / funnel[0].value) * 100,
+      cartToCheckoutRate: (funnel[2].value / funnel[1].value) * 100,
+      checkoutToPurchaseRate: (funnel[3].value / funnel[2].value) * 100,
+      isDemo: true,
+    });
   }
 }
