@@ -21,6 +21,8 @@ export { Dropdown, SelectDropdown } from './Dropdown';
 // Feedback Components
 export { ToastProvider, useToast, type ToastType } from './Toast';
 export { CommandPalette, useCommandPalette } from './CommandPalette';
+export { Tooltip, InfoTooltip } from './Tooltip';
+export { AnimatedCard, StaggerContainer, StaggerItem, FadeIn, SlideIn, Pulse, CountUp } from './AnimatedCard';
 
 // Landing page components (existing)
 export { InteractiveGlobe } from './interactive-globe';
