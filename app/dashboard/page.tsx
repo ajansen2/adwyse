@@ -9,6 +9,19 @@ import { Sidebar, MobileNav, GettingStarted, ProfitSummary, AlertsWidget, GoalPr
 import { MetricCard, DashboardSkeleton, StaggerContainer, StaggerItem } from '@/components/ui';
 import { RevenueChart, FunnelChart } from '@/components/charts';
 
+// Demo store ID for Adam's store
+const DEMO_STORE_ID = '987c61dd-7696-47ca-bf05-37876953b0ca';
+
+// Generate demo funnel data
+function generateDemoFunnelData() {
+  return [
+    { name: 'Page Views', value: 12847 },
+    { name: 'Add to Cart', value: 2156 },
+    { name: 'Checkout', value: 987 },
+    { name: 'Purchase', value: 412 },
+  ];
+}
+
 type DateRangeOption = '7d' | '14d' | '30d' | '90d' | 'all' | 'custom';
 
 interface DateRange {
@@ -658,14 +671,19 @@ function DashboardContent() {
               }
 
               // Fetch funnel data for conversion visualization
-              const funnelXhr = new XMLHttpRequest();
-              funnelXhr.open('GET', `/api/analytics/funnel?store_id=${storeId}&days=0`, false); // 0 = all time
-              funnelXhr.send();
+              // Use demo data for Adam's store, otherwise fetch from API
+              if (storeId === DEMO_STORE_ID) {
+                setFunnelData(generateDemoFunnelData());
+              } else {
+                const funnelXhr = new XMLHttpRequest();
+                funnelXhr.open('GET', `/api/analytics/funnel?store_id=${storeId}&days=0`, false); // 0 = all time
+                funnelXhr.send();
 
-              if (funnelXhr.status === 200) {
-                const funnelJson = JSON.parse(funnelXhr.responseText);
-                if (funnelJson.funnel) {
-                  setFunnelData(funnelJson.funnel);
+                if (funnelXhr.status === 200) {
+                  const funnelJson = JSON.parse(funnelXhr.responseText);
+                  if (funnelJson.funnel && funnelJson.funnel.length > 0) {
+                    setFunnelData(funnelJson.funnel);
+                  }
                 }
               }
 
