@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Sidebar, MobileNav } from '@/components/dashboard';
 import { MetricCard } from '@/components/ui';
+import { downloadCSV, ltvExportColumns } from '@/lib/export-utils';
 import {
   BarChart,
   Bar,
@@ -15,6 +16,9 @@ import {
   LineChart,
   Line,
 } from 'recharts';
+
+// Demo store ID for Adam's store
+const DEMO_STORE_ID = '987c61dd-7696-47ca-bf05-37876953b0ca';
 
 interface CustomerLTV {
   customer_id: string;
@@ -54,17 +58,113 @@ interface LTVMetrics {
   }[];
 }
 
+/**
+ * Generate realistic demo LTV data for Adam's store
+ */
+function generateDemoLTVData(): LTVMetrics {
+  const sources = ['facebook', 'google', 'tiktok', 'direct', 'organic'];
+  const domains = ['gmail.com', 'yahoo.com', 'outlook.com', 'icloud.com', 'hotmail.com'];
+  const firstNames = ['Emma', 'Liam', 'Olivia', 'Noah', 'Ava', 'James', 'Sophia', 'William', 'Isabella', 'Oliver', 'Mia', 'Benjamin', 'Charlotte', 'Elijah', 'Amelia'];
+  const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez'];
+
+  // Generate top customers
+  const topCustomers: CustomerLTV[] = [];
+  for (let i = 0; i < 10; i++) {
+    const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+    const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+    const domain = domains[Math.floor(Math.random() * domains.length)];
+    const source = sources[Math.floor(Math.random() * sources.length)];
+
+    const totalOrders = Math.floor(Math.random() * 12) + 3; // 3-15 orders
+    const avgOrderValue = 45 + Math.random() * 150; // $45-195 AOV
+    const totalRevenue = totalOrders * avgOrderValue;
+    const predictedLTV = totalRevenue * (1.2 + Math.random() * 0.8); // 20-100% growth predicted
+
+    const daysAgo = Math.floor(Math.random() * 365) + 30;
+    const firstOrderDate = new Date();
+    firstOrderDate.setDate(firstOrderDate.getDate() - daysAgo);
+
+    const lastOrderDaysAgo = Math.floor(Math.random() * 30);
+    const lastOrderDate = new Date();
+    lastOrderDate.setDate(lastOrderDate.getDate() - lastOrderDaysAgo);
+
+    topCustomers.push({
+      customer_id: `cust_${i + 1}`,
+      customer_email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}@${domain}`,
+      first_order_date: firstOrderDate.toISOString(),
+      last_order_date: lastOrderDate.toISOString(),
+      total_orders: totalOrders,
+      total_revenue: totalRevenue,
+      avg_order_value: avgOrderValue,
+      acquisition_source: source,
+      predicted_ltv: predictedLTV,
+      ltv_score: totalOrders >= 5 ? 'high' : totalOrders >= 3 ? 'medium' : 'low',
+      days_since_first_order: daysAgo,
+      purchase_frequency: totalOrders / (daysAgo / 30),
+    });
+  }
+
+  // Sort by predicted LTV
+  topCustomers.sort((a, b) => b.predicted_ltv - a.predicted_ltv);
+
+  // Generate cohort data (last 6 months)
+  const cohortData = [];
+  for (let i = 5; i >= 0; i--) {
+    const date = new Date();
+    date.setMonth(date.getMonth() - i);
+    const month = date.toISOString().substring(0, 7);
+
+    const customers = 80 + Math.floor(Math.random() * 60) + (5 - i) * 10; // Growing trend
+    const avgLTV = 120 + Math.random() * 80 + (5 - i) * 5; // Improving LTV over time
+
+    cohortData.push({
+      month,
+      customers,
+      revenue: customers * avgLTV,
+      avgLTV,
+    });
+  }
+
+  // Generate source breakdown
+  const sourceBreakdown = [
+    { source: 'facebook', customers: 245, avgLTV: 187.50, avgPredictedLTV: 267.30 },
+    { source: 'google', customers: 189, avgLTV: 165.20, avgPredictedLTV: 231.80 },
+    { source: 'tiktok', customers: 98, avgLTV: 142.80, avgPredictedLTV: 198.50 },
+    { source: 'organic', customers: 156, avgLTV: 195.40, avgPredictedLTV: 285.60 },
+    { source: 'direct', customers: 112, avgLTV: 178.90, avgPredictedLTV: 245.20 },
+  ];
+
+  const totalCustomers = sourceBreakdown.reduce((sum, s) => sum + s.customers, 0);
+  const totalLTV = sourceBreakdown.reduce((sum, s) => sum + s.customers * s.avgLTV, 0);
+  const totalPredictedLTV = sourceBreakdown.reduce((sum, s) => sum + s.customers * s.avgPredictedLTV, 0);
+
+  return {
+    totalCustomers,
+    avgLTV: totalLTV / totalCustomers,
+    avgOrderValue: 89.50,
+    avgOrdersPerCustomer: 2.3,
+    avgPredictedLTV: totalPredictedLTV / totalCustomers,
+    predictedTotalValue: totalPredictedLTV,
+    highValueCustomers: Math.floor(totalCustomers * 0.18),
+    topCustomers,
+    cohortData,
+    sourceBreakdown,
+  };
+}
+
 function LTVContent() {
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [metrics, setMetrics] = useState<LTVMetrics | null>(null);
+  const [storeId, setStoreId] = useState<string | null>(null);
   const searchParams = useSearchParams();
+  const isFirstLoad = useRef(true);
 
   useEffect(() => {
     const loadMetrics = async () => {
       try {
         const shop = searchParams.get('shop');
         if (!shop) {
-          setLoading(false);
+          setInitialLoading(false);
           return;
         }
 
@@ -74,17 +174,27 @@ function LTVContent() {
         storeXhr.send();
 
         if (storeXhr.status !== 200) {
-          setLoading(false);
+          setInitialLoading(false);
           return;
         }
 
         const storeData = JSON.parse(storeXhr.responseText);
         if (!storeData.store?.id) {
-          setLoading(false);
+          setInitialLoading(false);
           return;
         }
 
-        // Load LTV metrics
+        setStoreId(storeData.store.id);
+
+        // Use demo data for Adam's store
+        if (storeData.store.id === DEMO_STORE_ID) {
+          setMetrics(generateDemoLTVData());
+          setInitialLoading(false);
+          isFirstLoad.current = false;
+          return;
+        }
+
+        // Load LTV metrics from API
         const xhr = new XMLHttpRequest();
         xhr.open('GET', `/api/ltv?store_id=${storeData.store.id}`, false);
         xhr.send();
@@ -96,7 +206,8 @@ function LTVContent() {
       } catch (error) {
         console.error('Error loading LTV metrics:', error);
       } finally {
-        setLoading(false);
+        setInitialLoading(false);
+        isFirstLoad.current = false;
       }
     };
 
@@ -162,7 +273,14 @@ function LTVContent() {
     return null;
   };
 
-  if (loading) {
+  // Handle export
+  const handleExport = () => {
+    if (metrics?.topCustomers) {
+      downloadCSV(metrics.topCustomers, ltvExportColumns, 'ltv-customers');
+    }
+  };
+
+  if (initialLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
@@ -179,9 +297,20 @@ function LTVContent() {
 
       <main className="lg:ml-64 min-h-screen">
         <header className="bg-slate-900/50 backdrop-blur border-b border-white/10 sticky top-0 z-30">
-          <div className="px-6 py-4">
-            <h1 className="text-2xl font-bold text-white">Customer Lifetime Value</h1>
-            <p className="text-white/60 text-sm">Track and optimize customer value</p>
+          <div className="px-6 py-4 flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-white">Customer Lifetime Value</h1>
+              <p className="text-white/60 text-sm">Track and optimize customer value</p>
+            </div>
+            <button
+              onClick={handleExport}
+              className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-white text-sm transition"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Export CSV
+            </button>
           </div>
         </header>
 
