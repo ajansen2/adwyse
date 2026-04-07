@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
 
+// Demo store ID for Adam's store
+const DEMO_STORE_ID = '987c61dd-7696-47ca-bf05-37876953b0ca';
+
 interface CampaignPerformance {
   id: string;
   campaign_name: string;
@@ -39,6 +42,91 @@ interface BudgetOptimizationResult {
   };
   insights: string[];
   generated_at: string;
+}
+
+/**
+ * Generate demo budget optimization data for Adam's store
+ */
+function generateDemoBudgetOptimization(): BudgetOptimizationResult {
+  return {
+    recommendations: [
+      {
+        campaign_id: 'demo_1',
+        campaign_name: 'Summer Sale - Lookalike',
+        platform: 'facebook',
+        current_spend: 850,
+        recommended_spend: 1100,
+        change_amount: 250,
+        change_percent: 29.4,
+        reason: 'Excellent ROAS of 4.2x. Strong candidate for scaling with increased budget.',
+        expected_roas: 3.99,
+        confidence: 'high'
+      },
+      {
+        campaign_id: 'demo_2',
+        campaign_name: 'Brand Awareness',
+        platform: 'google',
+        current_spend: 420,
+        recommended_spend: 530,
+        change_amount: 110,
+        change_percent: 26.2,
+        reason: 'Strong ROAS of 3.1x and proven conversions. Increase budget to capture more revenue.',
+        expected_roas: 2.95,
+        confidence: 'high'
+      },
+      {
+        campaign_id: 'demo_3',
+        campaign_name: 'Retargeting - Cart Abandoners',
+        platform: 'facebook',
+        current_spend: 320,
+        recommended_spend: 400,
+        change_amount: 80,
+        change_percent: 25.0,
+        reason: 'Above-average performance with room for growth. Gradually increase budget while monitoring.',
+        expected_roas: 5.2,
+        confidence: 'medium'
+      },
+      {
+        campaign_id: 'demo_4',
+        campaign_name: 'Cold Traffic - Interest',
+        platform: 'facebook',
+        current_spend: 680,
+        recommended_spend: 476,
+        change_amount: -204,
+        change_percent: -30.0,
+        reason: 'ROAS of 0.8x is below breakeven. Reduce budget and test new creatives.',
+        expected_roas: 0.8,
+        confidence: 'high'
+      },
+      {
+        campaign_id: 'demo_5',
+        campaign_name: 'Display - GDN',
+        platform: 'google',
+        current_spend: 230,
+        recommended_spend: 161,
+        change_amount: -69,
+        change_percent: -30.0,
+        reason: 'Underperforming compared to other campaigns. Reallocate budget to better performers.',
+        expected_roas: 1.1,
+        confidence: 'medium'
+      }
+    ],
+    summary: {
+      current_total_spend: 2500,
+      optimized_total_spend: 2667,
+      current_roas: 2.45,
+      projected_roas: 2.82,
+      projected_revenue_increase: 925,
+      reallocation_percentage: 10.9
+    },
+    insights: [
+      'Reallocate $273 from 2 underperforming campaigns to 3 high-performing campaigns.',
+      'Facebook is outperforming Google by 38%. Consider shifting more budget to Facebook.',
+      '"Summer Sale - Lookalike" is your top performer with 4.2x ROAS. This campaign should be prioritized for budget increases.',
+      '2 campaigns show strong early performance. Test scaling these with incremental budget increases.'
+    ],
+    generated_at: new Date().toISOString()
+  };
 }
 
 /**
@@ -82,6 +170,11 @@ export async function GET(request: NextRequest) {
 
     if (!storeId) {
       return NextResponse.json({ error: 'Store ID required' }, { status: 400 });
+    }
+
+    // Return demo data for Adam's store
+    if (storeId === DEMO_STORE_ID) {
+      return NextResponse.json(generateDemoBudgetOptimization());
     }
 
     const supabase = createClient(
