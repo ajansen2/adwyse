@@ -49,8 +49,9 @@ export async function GET(request: NextRequest) {
     );
 
     // Get all orders for the store
+    // Use 'orders' view which is an alias for adwyse_orders
     const { data: orders, error } = await supabase
-      .from('adwyse_orders')
+      .from('orders')
       .select('*')
       .eq('store_id', storeId)
       .order('order_created_at', { ascending: true });
@@ -85,11 +86,18 @@ export async function GET(request: NextRequest) {
       const customerId = order.customer_id || order.customer_email || 'unknown';
 
       if (!customerMap.has(customerId)) {
+        // Ensure order_created_at is a string for date processing
+        const orderDate = order.order_created_at
+          ? (typeof order.order_created_at === 'string'
+              ? order.order_created_at
+              : new Date(order.order_created_at).toISOString())
+          : new Date().toISOString();
+
         customerMap.set(customerId, {
           customer_id: customerId,
           customer_email: order.customer_email || 'Unknown',
           orders: [],
-          first_order_date: order.order_created_at,
+          first_order_date: orderDate,
           acquisition_source: order.attributed_platform,
         });
       }
@@ -107,11 +115,18 @@ export async function GET(request: NextRequest) {
       const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
       const lastOrder = customer.orders[customer.orders.length - 1];
 
+      // Ensure last_order_date is a string
+      const lastOrderDate = lastOrder?.order_created_at
+        ? (typeof lastOrder.order_created_at === 'string'
+            ? lastOrder.order_created_at
+            : new Date(lastOrder.order_created_at).toISOString())
+        : customer.first_order_date;
+
       const ltv: CustomerLTV = {
         customer_id: customer.customer_id,
         customer_email: customer.customer_email,
         first_order_date: customer.first_order_date,
-        last_order_date: lastOrder.order_created_at,
+        last_order_date: lastOrderDate,
         total_orders: totalOrders,
         total_revenue: totalRevenue,
         avg_order_value: avgOrderValue,
@@ -138,7 +153,10 @@ export async function GET(request: NextRequest) {
     const cohortMap = new Map<string, { customers: Set<string>; revenue: number }>();
 
     for (const customer of customerLTVs) {
-      const cohortMonth = customer.first_order_date.substring(0, 7); // YYYY-MM
+      // Extract YYYY-MM from ISO date string
+      const cohortMonth = customer.first_order_date
+        ? customer.first_order_date.substring(0, 7) // YYYY-MM
+        : 'unknown';
 
       if (!cohortMap.has(cohortMonth)) {
         cohortMap.set(cohortMonth, { customers: new Set(), revenue: 0 });

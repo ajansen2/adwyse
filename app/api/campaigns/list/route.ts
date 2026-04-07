@@ -31,12 +31,15 @@ export async function GET(request: NextRequest) {
     const dateCutoff = new Date();
     dateCutoff.setDate(dateCutoff.getDate() - dataRetentionDays);
 
-    // Get campaigns for this store, aggregated by campaign name
+    // Get campaigns for this store with ad account info for platform
     // Since campaigns table stores daily data, we need to aggregate
     // Apply tier-based date filter
     const { data: campaigns, error: campaignsError } = await supabase
       .from('adwyse_campaigns')
-      .select('*')
+      .select(`
+        *,
+        adwyse_ad_accounts!inner(platform)
+      `)
       .eq('store_id', merchantId)
       .gte('date', dateCutoff.toISOString().split('T')[0])
       .order('date', { ascending: false });
@@ -51,6 +54,9 @@ export async function GET(request: NextRequest) {
 
     campaigns?.forEach(campaign => {
       const key = campaign.platform_campaign_id;
+      // Extract platform from the joined ad account
+      const platform = campaign.adwyse_ad_accounts?.platform || 'facebook';
+
       if (campaignMap.has(key)) {
         const existing = campaignMap.get(key);
         existing.spend += parseFloat(campaign.spend || 0);
@@ -64,6 +70,7 @@ export async function GET(request: NextRequest) {
           id: campaign.id,
           platform_campaign_id: campaign.platform_campaign_id,
           campaign_name: campaign.campaign_name,
+          platform: platform,
           status: campaign.status,
           spend: parseFloat(campaign.spend || 0),
           impressions: campaign.impressions || 0,
@@ -83,7 +90,7 @@ export async function GET(request: NextRequest) {
       return {
         id: typeof campaign.id === 'string' ? campaign.id : String(campaign.id || ''),
         name: typeof campaign.campaign_name === 'string' ? campaign.campaign_name : String(campaign.campaign_name || 'Unknown'),
-        platform: 'facebook', // TODO: store platform in campaigns table
+        platform: typeof campaign.platform === 'string' ? campaign.platform : 'facebook',
         status: typeof campaign.status === 'string' ? campaign.status : 'active',
         total_spend: Number(campaign.spend) || 0,
         total_revenue: Number(campaign.attributed_revenue) || 0,

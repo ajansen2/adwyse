@@ -50,6 +50,10 @@ function SettingsContent() {
   const [testingSlack, setTestingSlack] = useState(false);
   const [sendingTestPixel, setSendingTestPixel] = useState(false);
   const [testPixelSent, setTestPixelSent] = useState(false);
+  // Demo data state
+  const [seedingDemo, setSeedingDemo] = useState(false);
+  const [clearingDemo, setClearingDemo] = useState(false);
+  const [demoDataCounts, setDemoDataCounts] = useState<{ orders: number; campaigns: number; pixelEvents: number } | null>(null);
   const supabase = getSupabaseClient();
 
   // Get URL params directly from window.location (more reliable in iframes)
@@ -810,6 +814,76 @@ function SettingsContent() {
       setSyncing(false);
     }
   };
+
+  // Demo data handlers
+  const checkDemoData = async () => {
+    if (!store) return;
+    try {
+      const response = await fetch(`/api/demo/seed?store_id=${store.id}`);
+      const data = await response.json();
+      if (data.counts) {
+        setDemoDataCounts(data.counts);
+      }
+    } catch (error) {
+      console.error('Failed to check demo data:', error);
+    }
+  };
+
+  const handleSeedDemoData = async () => {
+    if (!store) return;
+    setSeedingDemo(true);
+    try {
+      const response = await fetch(`/api/demo/seed?store_id=${store.id}&days=60&orders=150`, {
+        method: 'POST',
+      });
+      const data = await response.json();
+      if (data.success) {
+        setSuccessMessage(`Demo data seeded: ${data.results.orders} orders, ${data.results.campaigns} campaign days, ${data.results.pixelEvents} pixel events`);
+        setTimeout(() => setSuccessMessage(''), 8000);
+        checkDemoData();
+      } else {
+        setErrorMessage(data.error || 'Failed to seed demo data');
+        setTimeout(() => setErrorMessage(''), 5000);
+      }
+    } catch (error: any) {
+      setErrorMessage(error?.message || 'Failed to seed demo data');
+      setTimeout(() => setErrorMessage(''), 5000);
+    } finally {
+      setSeedingDemo(false);
+    }
+  };
+
+  const handleClearDemoData = async () => {
+    if (!store) return;
+    if (!confirm('Are you sure you want to clear all demo data? This cannot be undone.')) return;
+    setClearingDemo(true);
+    try {
+      const response = await fetch(`/api/demo/seed?store_id=${store.id}`, {
+        method: 'DELETE',
+      });
+      const data = await response.json();
+      if (data.success) {
+        setSuccessMessage('Demo data cleared successfully');
+        setTimeout(() => setSuccessMessage(''), 5000);
+        setDemoDataCounts(null);
+      } else {
+        setErrorMessage(data.error || 'Failed to clear demo data');
+        setTimeout(() => setErrorMessage(''), 5000);
+      }
+    } catch (error: any) {
+      setErrorMessage(error?.message || 'Failed to clear demo data');
+      setTimeout(() => setErrorMessage(''), 5000);
+    } finally {
+      setClearingDemo(false);
+    }
+  };
+
+  // Check demo data on load
+  useEffect(() => {
+    if (store) {
+      checkDemoData();
+    }
+  }, [store]);
 
   if (loading) {
     return (
@@ -1762,6 +1836,99 @@ function SettingsContent() {
                   'Save Slack Settings'
                 )}
               </button>
+            </div>
+          </div>
+
+          {/* Developer Tools */}
+          <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-6">
+            <h2 className="text-xl font-bold text-purple-400 mb-2 flex items-center gap-2">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+              </svg>
+              Developer Tools
+            </h2>
+            <p className="text-white/60 mb-6 text-sm">
+              Testing and development utilities
+            </p>
+
+            <div className="space-y-4">
+              {/* Demo Data Section */}
+              <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                    <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="text-white font-medium">Demo Data</div>
+                    <div className="text-white/40 text-sm">
+                      Populate dashboard with realistic sample data
+                    </div>
+                  </div>
+                </div>
+
+                {demoDataCounts && (demoDataCounts.orders > 0 || demoDataCounts.campaigns > 0) && (
+                  <div className="mb-4 p-3 bg-purple-500/10 rounded-lg border border-purple-500/20">
+                    <div className="text-sm text-purple-300 mb-2">Current Demo Data:</div>
+                    <div className="grid grid-cols-3 gap-4 text-center">
+                      <div>
+                        <div className="text-2xl font-bold text-white">{demoDataCounts.orders}</div>
+                        <div className="text-xs text-white/50">Orders</div>
+                      </div>
+                      <div>
+                        <div className="text-2xl font-bold text-white">{demoDataCounts.campaigns}</div>
+                        <div className="text-xs text-white/50">Campaign Days</div>
+                      </div>
+                      <div>
+                        <div className="text-2xl font-bold text-white">{demoDataCounts.pixelEvents}</div>
+                        <div className="text-xs text-white/50">Pixel Events</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleSeedDemoData}
+                    disabled={seedingDemo}
+                    className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800 disabled:cursor-not-allowed text-white rounded-lg font-medium transition flex items-center justify-center gap-2"
+                  >
+                    {seedingDemo ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Seeding Data...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Seed Demo Data
+                      </>
+                    )}
+                  </button>
+                  {demoDataCounts && (demoDataCounts.orders > 0 || demoDataCounts.campaigns > 0) && (
+                    <button
+                      onClick={handleClearDemoData}
+                      disabled={clearingDemo}
+                      className="px-4 py-2 bg-white/10 hover:bg-white/20 disabled:bg-white/5 disabled:cursor-not-allowed text-white rounded-lg font-medium transition flex items-center gap-2"
+                    >
+                      {clearingDemo ? (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      )}
+                      Clear
+                    </button>
+                  )}
+                </div>
+                <p className="text-white/40 text-xs mt-3">
+                  Seeds 60 days of data: ~150 orders, 7 campaigns with daily metrics, funnel events (page views, add to cart, checkout, purchase), and product costs.
+                </p>
+              </div>
             </div>
           </div>
 

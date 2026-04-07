@@ -62,7 +62,7 @@ function LTVContent() {
 
         // First get store ID
         const storeXhr = new XMLHttpRequest();
-        storeXhr.open('GET', `/api/stores?shop=${encodeURIComponent(shop)}`, false);
+        storeXhr.open('GET', `/api/stores/lookup?shop=${encodeURIComponent(shop)}`, false);
         storeXhr.send();
 
         if (storeXhr.status !== 200) {
