@@ -1299,8 +1299,8 @@ function DashboardContent() {
           ) : (
             // Dashboard with Stats
             <div>
-              {/* Getting Started Checklist */}
-              {stores[0]?.id && (
+              {/* Getting Started Checklist - temporarily disabled for debugging */}
+              {/* {stores[0]?.id && (
                 <GettingStarted
                   storeId={stores[0].id}
                   hasAdAccounts={hasAdAccounts}
@@ -1308,7 +1308,7 @@ function DashboardContent() {
                   hasAttributedOrders={attributedOrders > 0}
                   hasAlerts={hasAlerts}
                 />
-              )}
+              )} */}
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <MetricCard
@@ -1387,12 +1387,12 @@ function DashboardContent() {
                 </div>
               )}
 
-              {/* Alerts Widget */}
-              {stores[0] && (
+              {/* Alerts Widget - temporarily disabled for debugging */}
+              {/* {stores[0] && (
                 <div className="mb-8">
                   <AlertsWidget storeId={stores[0].id} />
                 </div>
-              )}
+              )} */}
 
               {/* AI Insights */}
               {latestInsight && (
