@@ -5,7 +5,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const storeId = searchParams.get('store_id');
-    const days = parseInt(searchParams.get('days') || '30');
+    const days = parseInt(searchParams.get('days') || '0'); // 0 = all time
 
     if (!storeId) {
       return NextResponse.json({ error: 'Store ID required' }, { status: 400 });
@@ -22,9 +22,11 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    // Calculate date range
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
+    // Calculate date range (0 = all time)
+    const startDate = days > 0 ? new Date() : new Date('2020-01-01');
+    if (days > 0) {
+      startDate.setDate(startDate.getDate() - days);
+    }
 
     // Get pixel events for funnel
     const { data: events, error: eventsError } = await supabase

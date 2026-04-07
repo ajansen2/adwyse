@@ -6,7 +6,7 @@ import { getSupabaseClient } from '@/lib/supabase-client';
 import { initializeAppBridge, isEmbeddedInShopify, navigateInApp, getShopifySessionToken, redirectToOAuth } from '@/lib/shopify-app-bridge';
 import Link from 'next/link';
 import { Sidebar, MobileNav, GettingStarted, ProfitSummary, AlertsWidget } from '@/components/dashboard';
-import { MetricCard, DashboardSkeleton } from '@/components/ui';
+import { MetricCard, DashboardSkeleton, StaggerContainer, StaggerItem } from '@/components/ui';
 import { RevenueChart, FunnelChart } from '@/components/charts';
 
 type DateRangeOption = '7d' | '14d' | '30d' | '90d' | 'all' | 'custom';
@@ -659,7 +659,7 @@ function DashboardContent() {
 
               // Fetch funnel data for conversion visualization
               const funnelXhr = new XMLHttpRequest();
-              funnelXhr.open('GET', `/api/analytics/funnel?store_id=${storeId}&days=30`, false);
+              funnelXhr.open('GET', `/api/analytics/funnel?store_id=${storeId}&days=0`, false); // 0 = all time
               funnelXhr.send();
 
               if (funnelXhr.status === 200) {
@@ -1335,61 +1335,69 @@ function DashboardContent() {
                 />
               )}
 
-              {/* MetricCards */}
+              {/* MetricCards with staggered entrance animation */}
               {ENABLE_EXTRA_COMPONENTS && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                  <MetricCard
-                    title="Total Orders"
-                    value={totalOrders}
-                    previousValue={previousPeriodMetrics?.totalOrders}
-                    sparklineData={ordersSparkline}
-                    icon={
-                      <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                      </svg>
-                    }
-                    className="bg-zinc-900/50 backdrop-blur border-zinc-800"
-                  />
+                <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" staggerDelay={0.1}>
+                  <StaggerItem>
+                    <MetricCard
+                      title="Total Orders"
+                      value={totalOrders}
+                      previousValue={previousPeriodMetrics?.totalOrders}
+                      sparklineData={ordersSparkline}
+                      icon={
+                        <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                        </svg>
+                      }
+                      className="bg-zinc-900/50 backdrop-blur border-zinc-800"
+                    />
+                  </StaggerItem>
 
-                  <MetricCard
-                    title="Total Revenue"
-                    value={totalRevenue}
-                    previousValue={previousPeriodMetrics?.totalRevenue}
-                    format="currency"
-                    sparklineData={revenueSparkline}
-                    icon={
-                      <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    }
-                    className="bg-zinc-900/50 backdrop-blur border-zinc-800"
-                  />
+                  <StaggerItem>
+                    <MetricCard
+                      title="Total Revenue"
+                      value={totalRevenue}
+                      previousValue={previousPeriodMetrics?.totalRevenue}
+                      format="currency"
+                      sparklineData={revenueSparkline}
+                      icon={
+                        <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      }
+                      className="bg-zinc-900/50 backdrop-blur border-zinc-800"
+                    />
+                  </StaggerItem>
 
-                  <MetricCard
-                    title="Ad Spend"
-                    value={totalSpend}
-                    format="currency"
-                    icon={
-                      <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                      </svg>
-                    }
-                    className="bg-zinc-900/50 backdrop-blur border-zinc-800"
-                  />
+                  <StaggerItem>
+                    <MetricCard
+                      title="Ad Spend"
+                      value={totalSpend}
+                      format="currency"
+                      icon={
+                        <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                      }
+                      className="bg-zinc-900/50 backdrop-blur border-zinc-800"
+                    />
+                  </StaggerItem>
 
-                  <MetricCard
-                    title="Average ROAS"
-                    value={avgROAS}
-                    format="multiplier"
-                    decimals={2}
-                    icon={
-                      <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                      </svg>
-                    }
-                    className="bg-zinc-900/50 backdrop-blur border-zinc-800"
-                  />
-                </div>
+                  <StaggerItem>
+                    <MetricCard
+                      title="Average ROAS"
+                      value={avgROAS}
+                      format="multiplier"
+                      decimals={2}
+                      icon={
+                        <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                      }
+                      className="bg-zinc-900/50 backdrop-blur border-zinc-800"
+                    />
+                  </StaggerItem>
+                </StaggerContainer>
               )}
 
               {/* Simple stats when components disabled */}
