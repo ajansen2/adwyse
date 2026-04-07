@@ -49,8 +49,24 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 });
     }
 
+    // Sanitize orders to ensure all fields are proper types (not objects)
+    // This prevents React error #310 when rendering
+    const sanitizedOrders = (orders || []).map(order => ({
+      ...order,
+      // Ensure string fields are strings (not objects)
+      customer_email: typeof order.customer_email === 'string' ? order.customer_email : null,
+      order_number: typeof order.order_number === 'string' ? order.order_number : String(order.order_number || ''),
+      currency: typeof order.currency === 'string' ? order.currency : 'USD',
+      attributed_platform: typeof order.attributed_platform === 'string' ? order.attributed_platform : null,
+      utm_source: typeof order.utm_source === 'string' ? order.utm_source : null,
+      utm_medium: typeof order.utm_medium === 'string' ? order.utm_medium : null,
+      utm_campaign: typeof order.utm_campaign === 'string' ? order.utm_campaign : null,
+      // Ensure numbers are numbers
+      total_price: Number(order.total_price) || 0,
+    }));
+
     return NextResponse.json({
-      orders: orders || [],
+      orders: sanitizedOrders,
       tier: subscription.tier,
       limits: {
         dataRetentionDays,
