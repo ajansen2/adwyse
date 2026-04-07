@@ -1,57 +1,68 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAlerts, getUnreadAlertsCount, markAlertsRead, checkAlerts } from '@/lib/alerts';
 import { createClient } from '@supabase/supabase-js';
 
-/**
- * Get alerts for a store
- */
 export async function GET(request: NextRequest) {
   try {
     const storeId = request.nextUrl.searchParams.get('store_id');
 
     if (!storeId) {
-      return NextResponse.json({ error: 'Store ID required' }, { status: 400 });
+      return NextResponse.json({ alerts: [] }, { status: 200 });
     }
 
-    // Check for new alerts first
-    await checkAlerts(storeId);
-
-    const alerts = await getAlerts(storeId);
-    const unreadCount = await getUnreadAlertsCount(storeId);
-
-    return NextResponse.json({
-      alerts,
-      unreadCount,
-    });
-  } catch (error) {
-    console.error('Error fetching alerts:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch alerts' },
-      { status: 500 }
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
+
+    // Fetch alerts for this store
+    const { data: alerts, error } = await supabase
+      .from('alerts')
+      .select('*')
+      .eq('store_id', storeId)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (error) {
+      console.error('Error fetching alerts:', error);
+      // Return empty array instead of error to prevent client crashes
+      return NextResponse.json({ alerts: [] }, { status: 200 });
+    }
+
+    return NextResponse.json({ alerts: alerts || [] }, { status: 200 });
+  } catch (error) {
+    console.error('Alerts API error:', error);
+    return NextResponse.json({ alerts: [] }, { status: 200 });
   }
 }
 
-/**
- * Mark alerts as read
- */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { alertIds } = body;
 
     if (!alertIds || !Array.isArray(alertIds)) {
-      return NextResponse.json({ error: 'Alert IDs required' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing alertIds' }, { status: 400 });
     }
 
-    await markAlertsRead(alertIds);
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error marking alerts read:', error);
-    return NextResponse.json(
-      { error: 'Failed to mark alerts read' },
-      { status: 500 }
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
+
+    // Mark alerts as read
+    const { error } = await supabase
+      .from('alerts')
+      .update({ is_read: true })
+      .in('id', alertIds);
+
+    if (error) {
+      console.error('Error updating alerts:', error);
+      return NextResponse.json({ error: 'Failed to update alerts' }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true }, { status: 200 });
+  } catch (error) {
+    console.error('Alerts POST error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

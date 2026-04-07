@@ -23,18 +23,23 @@ export function AlertsWidget({ storeId }: AlertsWidgetProps) {
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
-    if (!storeId) return;
-
-    const fetchAlerts = () => {
-      const xhr = new XMLHttpRequest();
-      xhr.open('GET', `/api/alerts?store_id=${storeId}`, false);
-      xhr.send();
-
-      if (xhr.status === 200) {
-        const data = JSON.parse(xhr.responseText);
-        setAlerts(data.alerts || []);
-      }
+    if (!storeId) {
       setLoading(false);
+      return;
+    }
+
+    const fetchAlerts = async () => {
+      try {
+        const response = await fetch(`/api/alerts?store_id=${storeId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setAlerts(data.alerts || []);
+        }
+      } catch (error) {
+        console.error('Error fetching alerts:', error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchAlerts();
