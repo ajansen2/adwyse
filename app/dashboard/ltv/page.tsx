@@ -137,7 +137,7 @@ function LTVContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900">
-      <Sidebar activePage="dashboard" />
+      <Sidebar activePage="ltv" />
 
       <main className="lg:ml-64 min-h-screen">
         <header className="bg-slate-900/50 backdrop-blur border-b border-white/10 sticky top-0 z-30">
@@ -205,8 +205,8 @@ function LTVContent() {
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={metrics.sourceBreakdown} layout="vertical">
                         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                        <XAxis type="number" tickFormatter={(v) => `$${v}`} stroke="#9CA3AF" />
-                        <YAxis dataKey="source" type="category" width={80} stroke="#9CA3AF" />
+                        <XAxis type="number" tickFormatter={(v) => `$${v}`} stroke="#9CA3AF" tick={{ fill: '#9CA3AF' }} />
+                        <YAxis dataKey="source" type="category" width={80} stroke="#9CA3AF" tick={{ fill: '#9CA3AF' }} />
                         <Tooltip
                           contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151' }}
                           formatter={(value: number) => [`$${value.toFixed(0)}`, 'Avg LTV']}
@@ -247,13 +247,14 @@ function LTVContent() {
                         <XAxis
                           dataKey="month"
                           stroke="#9CA3AF"
+                          tick={{ fill: '#9CA3AF' }}
                           tickFormatter={(v) => {
                             const [year, month] = v.split('-');
                             return `${month}/${year.slice(2)}`;
                           }}
                         />
-                        <YAxis yAxisId="left" stroke="#9CA3AF" tickFormatter={(v) => `$${v}`} />
-                        <YAxis yAxisId="right" orientation="right" stroke="#9CA3AF" />
+                        <YAxis yAxisId="left" stroke="#9CA3AF" tick={{ fill: '#9CA3AF' }} tickFormatter={(v) => `$${v}`} />
+                        <YAxis yAxisId="right" orientation="right" stroke="#9CA3AF" tick={{ fill: '#9CA3AF' }} />
                         <Tooltip
                           contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151' }}
                           formatter={(value: number, name: string) => [
