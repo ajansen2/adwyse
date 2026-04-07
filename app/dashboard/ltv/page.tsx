@@ -124,6 +124,36 @@ function LTVContent() {
     }).format(value);
   };
 
+  // Custom tooltip for bar chart
+  const CustomBarTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2">
+          <p className="text-gray-300 capitalize">{label}</p>
+          <p className="text-orange-400">Avg LTV : ${payload[0].value.toFixed(0)}</p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  // Custom tooltip for line chart
+  const CustomLineTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2">
+          <p className="text-gray-300">{label}</p>
+          {payload.map((entry: any, index: number) => (
+            <p key={index} style={{ color: entry.color }}>
+              {entry.dataKey === 'avgLTV' ? 'Avg LTV' : 'Customers'} : {entry.dataKey === 'avgLTV' ? `$${entry.value.toFixed(0)}` : entry.value}
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900 flex items-center justify-center">
@@ -207,12 +237,7 @@ function LTVContent() {
                         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                         <XAxis type="number" tickFormatter={(v) => `$${v}`} stroke="#9CA3AF" tick={{ fill: '#9CA3AF' }} />
                         <YAxis dataKey="source" type="category" width={80} stroke="#9CA3AF" tick={{ fill: '#9CA3AF' }} />
-                        <Tooltip
-                          contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', color: '#E5E7EB' }}
-                          labelStyle={{ color: '#9CA3AF' }}
-                          itemStyle={{ color: '#F97316' }}
-                          formatter={(value: number) => [`$${value.toFixed(0)}`, 'Avg LTV']}
-                        />
+                        <Tooltip content={<CustomBarTooltip />} />
                         <Bar dataKey="avgLTV" fill="#F97316" radius={[0, 4, 4, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
@@ -257,15 +282,7 @@ function LTVContent() {
                         />
                         <YAxis yAxisId="left" stroke="#9CA3AF" tick={{ fill: '#9CA3AF' }} tickFormatter={(v) => `$${v}`} />
                         <YAxis yAxisId="right" orientation="right" stroke="#9CA3AF" tick={{ fill: '#9CA3AF' }} />
-                        <Tooltip
-                          contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', color: '#E5E7EB' }}
-                          labelStyle={{ color: '#9CA3AF' }}
-                          itemStyle={{ color: '#F97316' }}
-                          formatter={(value: number, name: string) => [
-                            name === 'avgLTV' ? `$${value.toFixed(0)}` : value,
-                            name === 'avgLTV' ? 'Avg LTV' : 'Customers'
-                          ]}
-                        />
+                        <Tooltip content={<CustomLineTooltip />} />
                         <Line
                           yAxisId="left"
                           type="monotone"
