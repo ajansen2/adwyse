@@ -671,20 +671,22 @@ function DashboardContent() {
               }
 
               // Fetch funnel data for conversion visualization
-              // Use demo data for Adam's store, otherwise fetch from API
-              if (storeId === DEMO_STORE_ID) {
-                setFunnelData(generateDemoFunnelData());
-              } else {
-                const funnelXhr = new XMLHttpRequest();
-                funnelXhr.open('GET', `/api/analytics/funnel?store_id=${storeId}&days=0`, false); // 0 = all time
-                funnelXhr.send();
+              // Try API first, fall back to demo data if no real data exists
+              const funnelXhr = new XMLHttpRequest();
+              funnelXhr.open('GET', `/api/analytics/funnel?store_id=${storeId}&days=0`, false);
+              funnelXhr.send();
 
-                if (funnelXhr.status === 200) {
-                  const funnelJson = JSON.parse(funnelXhr.responseText);
-                  if (funnelJson.funnel && funnelJson.funnel.length > 0) {
-                    setFunnelData(funnelJson.funnel);
-                  }
+              if (funnelXhr.status === 200) {
+                const funnelJson = JSON.parse(funnelXhr.responseText);
+                if (funnelJson.funnel && funnelJson.funnel.some((s: {value: number}) => s.value > 0)) {
+                  setFunnelData(funnelJson.funnel);
+                } else {
+                  // No real data yet, show demo funnel
+                  setFunnelData(generateDemoFunnelData());
                 }
+              } else {
+                // API error, show demo funnel
+                setFunnelData(generateDemoFunnelData());
               }
 
               // Sync customer segments in background (for Built for Shopify requirement)

@@ -89,9 +89,6 @@ export async function GET(request: NextRequest) {
     const checkouts = eventCounts.checkout_started.size;
     const purchases = eventCounts.purchase.size;
 
-    // If no pixel events, return empty funnel (other stores will need real data)
-    // Demo data is only for Adam's store (handled above)
-
     // Build funnel array in format dashboard expects
     const funnel: FunnelStage[] = [
       { name: 'Page Views', value: pageViews },
