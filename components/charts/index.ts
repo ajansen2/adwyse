@@ -1,6 +1,7 @@
 // Chart Components - Recharts-based visualizations for Adwyse
 
 export { FunnelChart } from './FunnelChart';
+export { CohortChart } from './CohortChart';
 export { ROASComparison } from './ROASComparison';
 export { ProfitWaterfall } from './ProfitWaterfall';
 export { AttributionChart } from './AttributionChart';
