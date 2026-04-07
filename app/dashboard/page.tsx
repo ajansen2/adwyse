@@ -59,6 +59,9 @@ interface Campaign {
   total_orders: number;
 }
 
+// DEBUG FLAG: Set to false to disable extra components for debugging
+const ENABLE_EXTRA_COMPONENTS = false;
+
 function DashboardContent() {
   const [loading, setLoading] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState('Loading dashboard...');
@@ -1299,8 +1302,8 @@ function DashboardContent() {
           ) : (
             // Dashboard with Stats
             <div>
-              {/* Getting Started Checklist - temporarily disabled for debugging */}
-              {/* {stores[0]?.id && (
+              {/* Getting Started Checklist */}
+              {ENABLE_EXTRA_COMPONENTS && stores[0]?.id && (
                 <GettingStarted
                   storeId={stores[0].id}
                   hasAdAccounts={hasAdAccounts}
@@ -1308,7 +1311,7 @@ function DashboardContent() {
                   hasAttributedOrders={attributedOrders > 0}
                   hasAlerts={hasAlerts}
                 />
-              )} */}
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <MetricCard
@@ -1364,8 +1367,8 @@ function DashboardContent() {
                 />
               </div>
 
-              {/* Revenue Chart - temporarily disabled for debugging */}
-              {/* {chartData.length > 0 && (
+              {/* Revenue Chart */}
+              {ENABLE_EXTRA_COMPONENTS && chartData.length > 0 && (
                 <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-xl p-6 mb-8">
                   <div className="flex items-center justify-between mb-4">
                     <div>
@@ -1375,27 +1378,27 @@ function DashboardContent() {
                   </div>
                   <RevenueChart data={dateRangeOption === 'all' ? chartData.filter(d => d.revenue > 0 || d.adRevenue > 0) : chartData.slice(-30)} dateRangeLabel={dateRange.label} />
                 </div>
-              )} */}
+              )}
 
-              {/* Profit Summary - temporarily disabled for debugging */}
-              {/* {(totalRevenue > 0 || totalSpend > 0) && (
+              {/* Profit Summary */}
+              {ENABLE_EXTRA_COMPONENTS && (totalRevenue > 0 || totalSpend > 0) && (
                 <div className="mb-8">
                   <ProfitSummary
                     revenue={totalRevenue}
                     adSpend={totalSpend}
                   />
                 </div>
-              )} */}
+              )}
 
-              {/* Alerts Widget - temporarily disabled for debugging */}
-              {/* {stores[0] && (
+              {/* Alerts Widget */}
+              {ENABLE_EXTRA_COMPONENTS && stores[0] && (
                 <div className="mb-8">
                   <AlertsWidget storeId={stores[0].id} />
                 </div>
-              )} */}
+              )}
 
-              {/* AI Insights - temporarily disabled for debugging */}
-              {/* {latestInsight && typeof latestInsight.content === 'string' && (
+              {/* AI Insights */}
+              {ENABLE_EXTRA_COMPONENTS && latestInsight && typeof latestInsight.content === 'string' && (
                 <div className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 backdrop-blur border border-purple-500/30 rounded-xl p-6 mb-8">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
@@ -1458,10 +1461,10 @@ function DashboardContent() {
                     </div>
                   )}
                 </div>
-              )} */}
+              )}
 
-              {/* Generate Insights Button - temporarily disabled for debugging */}
-              {/* {!latestInsight && campaigns.length > 0 && (
+              {/* Generate Insights Button */}
+              {ENABLE_EXTRA_COMPONENTS && !latestInsight && campaigns.length > 0 && (
                 <div className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 backdrop-blur border border-purple-500/30 rounded-xl p-8 mb-8 text-center">
                   <div className="w-16 h-16 bg-purple-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
                     <svg className="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1512,7 +1515,7 @@ function DashboardContent() {
                     </button>
                   )}
                 </div>
-              )} */}
+              )}
 
               {/* Connected Stores */}
               <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-xl p-6 mb-8">
@@ -1666,8 +1669,8 @@ function DashboardContent() {
         </div>
       </main>
 
-      {/* Mobile Bottom Navigation - temporarily disabled for debugging */}
-      {/* <MobileNav activePage="dashboard" /> */}
+      {/* Mobile Bottom Navigation */}
+      {ENABLE_EXTRA_COMPONENTS && <MobileNav activePage="dashboard" />}
     </div>
   );
 }
