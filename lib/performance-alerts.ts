@@ -8,11 +8,12 @@ import { createClient } from '@supabase/supabase-js';
 interface AlertData {
   storeName: string;
   shopDomain: string;
-  alertType: 'low_roas' | 'high_spend';
+  alertType: 'low_roas' | 'high_spend' | 'creative_fatigue' | 'conversion_drop' | 'budget_pacing';
   currentValue: number;
   threshold: number;
   campaignName?: string;
   platform?: string;
+  additionalInfo?: string;
 }
 
 /**
@@ -27,13 +28,51 @@ export function generateAlertEmail(data: AlertData): string {
     ? `https://admin.shopify.com/store/${shopName}/apps/adwyse/dashboard/settings`
     : 'https://adwyse.ca/dashboard/settings';
 
-  const isLowRoas = data.alertType === 'low_roas';
-  const alertColor = isLowRoas ? '#ef4444' : '#f59e0b';
-  const alertIcon = isLowRoas ? '📉' : '💸';
-  const alertTitle = isLowRoas ? 'Low ROAS Alert' : 'High Spend Alert';
-  const alertMessage = isLowRoas
-    ? `Your ROAS has dropped to <strong>${data.currentValue.toFixed(2)}x</strong>, which is below your threshold of ${data.threshold}x.`
-    : `Your daily ad spend has reached <strong>$${data.currentValue.toFixed(2)}</strong>, exceeding your limit of $${data.threshold}.`;
+  // Determine alert styling based on type
+  const alertConfig = {
+    low_roas: {
+      color: '#ef4444',
+      icon: '📉',
+      title: 'Low ROAS Alert',
+      message: `Your ROAS has dropped to <strong>${data.currentValue.toFixed(2)}x</strong>, which is below your threshold of ${data.threshold}x.`,
+      action: 'Review your campaign targeting and ad creatives. Consider pausing underperforming ads or adjusting your bidding strategy.',
+    },
+    high_spend: {
+      color: '#f59e0b',
+      icon: '💸',
+      title: 'High Spend Alert',
+      message: `Your daily ad spend has reached <strong>$${data.currentValue.toFixed(2)}</strong>, exceeding your limit of $${data.threshold}.`,
+      action: 'Review your campaign budgets and consider pausing or reducing spend on campaigns that aren\'t meeting performance goals.',
+    },
+    creative_fatigue: {
+      color: '#8b5cf6',
+      icon: '🎨',
+      title: 'Creative Fatigue Alert',
+      message: `Your ad creative CTR has dropped by <strong>${data.currentValue.toFixed(1)}%</strong>. Your audience may be experiencing ad fatigue.`,
+      action: 'Refresh your ad creatives with new images, videos, or copy. Consider A/B testing new variations to re-engage your audience.',
+    },
+    conversion_drop: {
+      color: '#ec4899',
+      icon: '📊',
+      title: 'Conversion Drop Alert',
+      message: `Your conversions have dropped by <strong>${data.currentValue.toFixed(1)}%</strong> compared to last week.`,
+      action: 'Check your landing pages, checkout flow, and ad targeting. Review if any recent changes might have impacted performance.',
+    },
+    budget_pacing: {
+      color: '#06b6d4',
+      icon: '⏱️',
+      title: 'Budget Pacing Alert',
+      message: `Your campaign is spending <strong>${data.currentValue.toFixed(0)}%</strong> faster than expected. You may exhaust your budget early.`,
+      action: 'Review your bid strategy and budget allocation. Consider spreading your budget more evenly throughout the day.',
+    },
+  };
+
+  const config = alertConfig[data.alertType] || alertConfig.low_roas;
+  const alertColor = config.color;
+  const alertIcon = config.icon;
+  const alertTitle = config.title;
+  const alertMessage = config.message;
+  const recommendedAction = config.action;
 
   return `
 <!DOCTYPE html>
@@ -77,11 +116,17 @@ export function generateAlertEmail(data: AlertData): string {
               <div style="background-color: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 12px; padding: 20px;">
                 <p style="color: #fca5a5; margin: 0; font-size: 14px;">
                   <strong>Recommended Action:</strong><br>
-                  ${isLowRoas
-                    ? 'Review your campaign targeting and ad creatives. Consider pausing underperforming ads or adjusting your bidding strategy.'
-                    : 'Review your campaign budgets and consider pausing or reducing spend on campaigns that aren\'t meeting performance goals.'}
+                  ${recommendedAction}
                 </p>
               </div>
+
+              ${data.additionalInfo ? `
+              <div style="background-color: rgba(255,255,255,0.05); border-radius: 12px; padding: 15px; margin-top: 15px;">
+                <p style="color: rgba(255,255,255,0.6); margin: 0; font-size: 13px;">
+                  <strong>Additional Details:</strong> ${data.additionalInfo}
+                </p>
+              </div>
+              ` : ''}
             </td>
           </tr>
 
