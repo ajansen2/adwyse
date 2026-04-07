@@ -875,7 +875,7 @@ function DashboardContent() {
   return (
     <div className="min-h-screen bg-zinc-950">
       {/* Onboarding Modal */}
-      {showOnboarding && (
+      {ENABLE_EXTRA_COMPONENTS && showOnboarding && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl">
             {/* Progress dots */}
@@ -1313,59 +1313,84 @@ function DashboardContent() {
                 />
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <MetricCard
-                  title="Total Orders"
-                  value={totalOrders}
-                  previousValue={previousPeriodMetrics?.totalOrders}
-                  sparklineData={ordersSparkline}
-                  icon={
-                    <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                    </svg>
-                  }
-                  className="bg-zinc-900/50 backdrop-blur border-zinc-800"
-                />
+              {/* MetricCards */}
+              {ENABLE_EXTRA_COMPONENTS && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                  <MetricCard
+                    title="Total Orders"
+                    value={totalOrders}
+                    previousValue={previousPeriodMetrics?.totalOrders}
+                    sparklineData={ordersSparkline}
+                    icon={
+                      <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                      </svg>
+                    }
+                    className="bg-zinc-900/50 backdrop-blur border-zinc-800"
+                  />
 
-                <MetricCard
-                  title="Total Revenue"
-                  value={totalRevenue}
-                  previousValue={previousPeriodMetrics?.totalRevenue}
-                  format="currency"
-                  sparklineData={revenueSparkline}
-                  icon={
-                    <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  }
-                  className="bg-zinc-900/50 backdrop-blur border-zinc-800"
-                />
+                  <MetricCard
+                    title="Total Revenue"
+                    value={totalRevenue}
+                    previousValue={previousPeriodMetrics?.totalRevenue}
+                    format="currency"
+                    sparklineData={revenueSparkline}
+                    icon={
+                      <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    }
+                    className="bg-zinc-900/50 backdrop-blur border-zinc-800"
+                  />
 
-                <MetricCard
-                  title="Ad Spend"
-                  value={totalSpend}
-                  format="currency"
-                  icon={
-                    <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                  }
-                  className="bg-zinc-900/50 backdrop-blur border-zinc-800"
-                />
+                  <MetricCard
+                    title="Ad Spend"
+                    value={totalSpend}
+                    format="currency"
+                    icon={
+                      <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                    }
+                    className="bg-zinc-900/50 backdrop-blur border-zinc-800"
+                  />
 
-                <MetricCard
-                  title="Average ROAS"
-                  value={avgROAS}
-                  format="multiplier"
-                  decimals={2}
-                  icon={
-                    <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                    </svg>
-                  }
-                  className="bg-zinc-900/50 backdrop-blur border-zinc-800"
-                />
-              </div>
+                  <MetricCard
+                    title="Average ROAS"
+                    value={avgROAS}
+                    format="multiplier"
+                    decimals={2}
+                    icon={
+                      <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                      </svg>
+                    }
+                    className="bg-zinc-900/50 backdrop-blur border-zinc-800"
+                  />
+                </div>
+              )}
+
+              {/* Simple stats when components disabled */}
+              {!ENABLE_EXTRA_COMPONENTS && (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                  <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-xl p-4">
+                    <div className="text-white/60 text-sm">Total Orders</div>
+                    <div className="text-2xl font-bold text-white">{totalOrders}</div>
+                  </div>
+                  <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-xl p-4">
+                    <div className="text-white/60 text-sm">Total Revenue</div>
+                    <div className="text-2xl font-bold text-white">${totalRevenue.toFixed(2)}</div>
+                  </div>
+                  <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-xl p-4">
+                    <div className="text-white/60 text-sm">Ad Spend</div>
+                    <div className="text-2xl font-bold text-white">${totalSpend.toFixed(2)}</div>
+                  </div>
+                  <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-xl p-4">
+                    <div className="text-white/60 text-sm">Average ROAS</div>
+                    <div className="text-2xl font-bold text-white">{avgROAS.toFixed(2)}x</div>
+                  </div>
+                </div>
+              )}
 
               {/* Revenue Chart */}
               {ENABLE_EXTRA_COMPONENTS && chartData.length > 0 && (
@@ -1517,37 +1542,47 @@ function DashboardContent() {
                 </div>
               )}
 
-              {/* Connected Stores */}
-              <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-xl p-6 mb-8">
-                <h2 className="text-xl font-bold text-white mb-4">Connected Stores</h2>
-                <div className="space-y-3">
-                  {stores.map((store) => (
-                    <div key={store.id} className="flex items-center justify-between p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-orange-600/20 rounded-lg flex items-center justify-center">
-                          <svg className="w-6 h-6 text-orange-400" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M16.373 0c-.343 0-1.02.188-1.547.562-1.105.785-1.92 2.012-2.298 3.456-.75.3-1.39.566-1.828.764-.99.45-1.02.48-1.148.72-.1.183-.187.42-.27.7-1.23.397-2.46.784-2.976 1.13C3.563 8.5 3.375 10.874 3 12v4.78l15-3.562V8.5c0-2.437-1.5-4-3.75-4h-1.5c.327-1.163.97-2.25 2.058-3.008C15.39.934 15.933.718 16.375.5c.345-.17.564-.29.747-.406C17.28.002 17.39 0 17.625 0h-1.252z"/>
-                          </svg>
-                        </div>
-                        <div>
-                          <div className="text-white font-medium">{store.store_name}</div>
-                          <div className="text-white/40 text-sm">{store.shopify_domain}</div>
-                        </div>
-                      </div>
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        store.status === 'active'
-                          ? 'bg-green-500/20 text-green-300'
-                          : 'bg-yellow-500/20 text-yellow-300'
-                      }`}>
-                        {store.status === 'active' ? 'Active' : 'Paused'}
-                      </span>
-                    </div>
-                  ))}
+              {/* Connected Stores - Simple version when debug mode */}
+              {!ENABLE_EXTRA_COMPONENTS && stores.length > 0 && (
+                <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-xl p-6 mb-8">
+                  <h2 className="text-xl font-bold text-white mb-4">Connected Stores</h2>
+                  <div className="text-white">{stores[0]?.store_name} - {stores[0]?.shopify_domain}</div>
                 </div>
-              </div>
+              )}
+
+              {/* Connected Stores - Full version */}
+              {ENABLE_EXTRA_COMPONENTS && (
+                <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-xl p-6 mb-8">
+                  <h2 className="text-xl font-bold text-white mb-4">Connected Stores</h2>
+                  <div className="space-y-3">
+                    {stores.map((store) => (
+                      <div key={store.id} className="flex items-center justify-between p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-orange-600/20 rounded-lg flex items-center justify-center">
+                            <svg className="w-6 h-6 text-orange-400" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M16.373 0c-.343 0-1.02.188-1.547.562-1.105.785-1.92 2.012-2.298 3.456-.75.3-1.39.566-1.828.764-.99.45-1.02.48-1.148.72-.1.183-.187.42-.27.7-1.23.397-2.46.784-2.976 1.13C3.563 8.5 3.375 10.874 3 12v4.78l15-3.562V8.5c0-2.437-1.5-4-3.75-4h-1.5c.327-1.163.97-2.25 2.058-3.008C15.39.934 15.933.718 16.375.5c.345-.17.564-.29.747-.406C17.28.002 17.39 0 17.625 0h-1.252z"/>
+                            </svg>
+                          </div>
+                          <div>
+                            <div className="text-white font-medium">{store.store_name}</div>
+                            <div className="text-white/40 text-sm">{store.shopify_domain}</div>
+                          </div>
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                          store.status === 'active'
+                            ? 'bg-green-500/20 text-green-300'
+                            : 'bg-yellow-500/20 text-yellow-300'
+                        }`}>
+                          {store.status === 'active' ? 'Active' : 'Paused'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Info box when no orders */}
-              {orders.length === 0 && (
+              {ENABLE_EXTRA_COMPONENTS && orders.length === 0 && (
                 <div className="bg-blue-500/10 backdrop-blur border border-blue-500/30 rounded-xl p-6 mb-6">
                   <div className="flex items-start gap-4">
                     <div className="flex-shrink-0">
@@ -1577,8 +1612,16 @@ function DashboardContent() {
                 </div>
               )}
 
-              {/* Recent Orders */}
-              {filteredOrders.length > 0 && (
+              {/* Recent Orders - Simple version when debug mode */}
+              {!ENABLE_EXTRA_COMPONENTS && filteredOrders.length > 0 && (
+                <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-xl p-6">
+                  <h2 className="text-xl font-bold text-white mb-4">Recent Orders</h2>
+                  <div className="text-white/60">{filteredOrders.length} orders in selected period</div>
+                </div>
+              )}
+
+              {/* Recent Orders - Full version */}
+              {ENABLE_EXTRA_COMPONENTS && filteredOrders.length > 0 && (
                 <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-xl p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xl font-bold text-white">Recent Orders</h2>
