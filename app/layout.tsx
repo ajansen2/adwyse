@@ -76,9 +76,8 @@ export default function RootLayout({
         <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
         {/* Shopify API key meta tag for App Bridge */}
         <meta name="shopify-api-key" content={apiKey} />
-        {/* Initialize App Bridge with retry logic - waits for CDN to load */}
-        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
-        <script dangerouslySetInnerHTML={{__html: `
+        {/* Initialize App Bridge with retry logic - temporarily disabled for debugging */}
+        {/* <script dangerouslySetInnerHTML={{__html: `
           (function() {
             // Only initialize if embedded in Shopify (in iframe)
             if (window.self === window.top) {
@@ -98,14 +97,14 @@ export default function RootLayout({
 
                   if (host && shop) {
                     window.shopifyApp = window.shopify.createApp({
-                      apiKey: '${apiKey}',
+                      apiKey: apiKey,
                       host: host,
                       forceRedirect: false
                     });
-                    console.log('✅ App Bridge initialized from CDN (inline script after ' + retryCount + ' retries)');
+                    console.log('App Bridge initialized from CDN (inline script after ' + retryCount + ' retries)');
                   }
                 } catch (error) {
-                  console.error('❌ Failed to initialize App Bridge:', error);
+                  console.error('Failed to initialize App Bridge:', error);
                 }
               } else {
                 retryCount++;
@@ -113,7 +112,7 @@ export default function RootLayout({
                   // Retry after a short delay
                   setTimeout(initializeAppBridge, 100);
                 } else {
-                  console.error('❌ Timed out waiting for Shopify App Bridge CDN to load');
+                  console.error('Timed out waiting for Shopify App Bridge CDN to load');
                 }
               }
             }
@@ -121,13 +120,14 @@ export default function RootLayout({
             // Start initialization attempt
             initializeAppBridge();
           })();
-        `}} />
+        `}} /> */}
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
-        <CommandPalette />
+        {/* CommandPalette temporarily disabled for debugging */}
+        {/* <CommandPalette /> */}
       </body>
     </html>
   );
