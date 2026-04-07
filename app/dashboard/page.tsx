@@ -995,165 +995,174 @@ function DashboardContent() {
       )}
 
       {/* Sidebar */}
-      <Sidebar activePage="dashboard" />
+      {ENABLE_EXTRA_COMPONENTS && <Sidebar activePage="dashboard" />}
 
       {/* Main Content */}
-      <main className="lg:ml-64 min-h-screen">
-        {/* Top Header */}
-        <header className="bg-zinc-900 border-b border-zinc-800 sticky top-0 z-30">
-          <div className="px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="lg:hidden text-white hover:text-orange-400 transition"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </button>
-              <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-            </div>
-            <div className="flex items-center gap-3">
-              {/* Date Range Picker */}
-              <div className="relative">
+      <main className={ENABLE_EXTRA_COMPONENTS ? "lg:ml-64 min-h-screen" : "min-h-screen"}>
+        {/* Simple Header when debugging */}
+        {!ENABLE_EXTRA_COMPONENTS && (
+          <header className="bg-zinc-900 border-b border-zinc-800 p-6">
+            <h1 className="text-2xl font-bold text-white">Dashboard (Debug Mode)</h1>
+          </header>
+        )}
+
+        {/* Full Header */}
+        {ENABLE_EXTRA_COMPONENTS && (
+          <header className="bg-zinc-900 border-b border-zinc-800 sticky top-0 z-30">
+            <div className="px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-4">
                 <button
-                  onClick={() => setShowDatePicker(!showDatePicker)}
-                  className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-white/20 border border-white/20 rounded-lg text-white text-sm font-medium transition"
+                  onClick={() => setSidebarOpen(!sidebarOpen)}
+                  className="lg:hidden text-white hover:text-orange-400 transition"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  {dateRange.label}
-                  <svg className={`w-4 h-4 transition-transform ${showDatePicker ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                   </svg>
                 </button>
-
-                {showDatePicker && (
-                  <>
-                    {/* Backdrop to close dropdown when clicking outside */}
-                    <div
-                      className="fixed inset-0 z-40"
-                      onClick={() => setShowDatePicker(false)}
-                    />
-                    <div className="absolute right-0 mt-2 w-64 bg-zinc-800 border border-zinc-700 rounded-xl shadow-xl z-50 overflow-hidden">
-                      <div className="p-2">
-                        {[
-                          { value: '7d', label: 'Last 7 days' },
-                          { value: '14d', label: 'Last 14 days' },
-                          { value: '30d', label: 'Last 30 days' },
-                          { value: '90d', label: 'Last 90 days' },
-                          { value: 'all', label: 'All time' },
-                        ].map((option) => (
-                          <button
-                            key={option.value}
-                            onClick={() => {
-                              setDateRangeOption(option.value as DateRangeOption);
-                              setShowDatePicker(false);
-                            }}
-                            className={`w-full text-left px-4 py-2 rounded-lg text-sm transition ${
-                              dateRangeOption === option.value
-                                ? 'bg-orange-600 text-white'
-                                : 'text-white/80 hover:bg-zinc-800'
-                            }`}
-                          >
-                            {option.label}
-                          </button>
-                        ))}
-                      </div>
-                      <div className="border-t border-zinc-800 p-3">
-                        <div className="text-white/60 text-xs mb-2">Custom range</div>
-                        <div className="flex gap-2 mb-2">
-                          <input
-                            type="date"
-                            value={customStartDate}
-                            onChange={(e) => setCustomStartDate(e.target.value)}
-                            className="flex-1 px-2 py-1 bg-zinc-800 border border-white/20 rounded text-white text-sm"
-                          />
-                          <input
-                            type="date"
-                            value={customEndDate}
-                            onChange={(e) => setCustomEndDate(e.target.value)}
-                            className="flex-1 px-2 py-1 bg-zinc-800 border border-white/20 rounded text-white text-sm"
-                          />
-                        </div>
-                        <button
-                          onClick={() => {
-                            if (customStartDate && customEndDate) {
-                              setDateRangeOption('custom');
-                              setShowDatePicker(false);
-                            }
-                          }}
-                          disabled={!customStartDate || !customEndDate}
-                          className="w-full px-3 py-1.5 bg-orange-600 hover:bg-orange-700 disabled:bg-zinc-800 disabled:text-white/40 rounded text-white text-sm font-medium transition"
-                        >
-                          Apply
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                )}
+                <h1 className="text-2xl font-bold text-white">Dashboard</h1>
               </div>
+              <div className="flex items-center gap-3">
+                {/* Date Range Picker */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowDatePicker(!showDatePicker)}
+                    className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-white/20 border border-white/20 rounded-lg text-white text-sm font-medium transition"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    {dateRange.label}
+                    <svg className={`w-4 h-4 transition-transform ${showDatePicker ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
 
-              {/* Export Button */}
-              {filteredOrders.length > 0 && (
+                  {showDatePicker && (
+                    <>
+                      {/* Backdrop to close dropdown when clicking outside */}
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setShowDatePicker(false)}
+                      />
+                      <div className="absolute right-0 mt-2 w-64 bg-zinc-800 border border-zinc-700 rounded-xl shadow-xl z-50 overflow-hidden">
+                        <div className="p-2">
+                          {[
+                            { value: '7d', label: 'Last 7 days' },
+                            { value: '14d', label: 'Last 14 days' },
+                            { value: '30d', label: 'Last 30 days' },
+                            { value: '90d', label: 'Last 90 days' },
+                            { value: 'all', label: 'All time' },
+                          ].map((option) => (
+                            <button
+                              key={option.value}
+                              onClick={() => {
+                                setDateRangeOption(option.value as DateRangeOption);
+                                setShowDatePicker(false);
+                              }}
+                              className={`w-full text-left px-4 py-2 rounded-lg text-sm transition ${
+                                dateRangeOption === option.value
+                                  ? 'bg-orange-600 text-white'
+                                  : 'text-white/80 hover:bg-zinc-800'
+                              }`}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="border-t border-zinc-800 p-3">
+                          <div className="text-white/60 text-xs mb-2">Custom range</div>
+                          <div className="flex gap-2 mb-2">
+                            <input
+                              type="date"
+                              value={customStartDate}
+                              onChange={(e) => setCustomStartDate(e.target.value)}
+                              className="flex-1 px-2 py-1 bg-zinc-800 border border-white/20 rounded text-white text-sm"
+                            />
+                            <input
+                              type="date"
+                              value={customEndDate}
+                              onChange={(e) => setCustomEndDate(e.target.value)}
+                              className="flex-1 px-2 py-1 bg-zinc-800 border border-white/20 rounded text-white text-sm"
+                            />
+                          </div>
+                          <button
+                            onClick={() => {
+                              if (customStartDate && customEndDate) {
+                                setDateRangeOption('custom');
+                                setShowDatePicker(false);
+                              }
+                            }}
+                            disabled={!customStartDate || !customEndDate}
+                            className="w-full px-3 py-1.5 bg-orange-600 hover:bg-orange-700 disabled:bg-zinc-800 disabled:text-white/40 rounded text-white text-sm font-medium transition"
+                          >
+                            Apply
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Export Button */}
+                {filteredOrders.length > 0 && (
+                  <button
+                    onClick={handleExportCSV}
+                    className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-white/20 border border-white/20 rounded-lg text-white text-sm font-medium transition"
+                    title="Export to CSV"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span className="hidden sm:inline">Export</span>
+                  </button>
+                )}
+
+                {/* Help Button */}
                 <button
-                  onClick={handleExportCSV}
-                  className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-white/20 border border-white/20 rounded-lg text-white text-sm font-medium transition"
-                  title="Export to CSV"
+                  onClick={() => setShowOnboarding(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg text-zinc-300 text-sm font-medium transition"
+                  title="Quick Start Guide"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <span className="hidden sm:inline">Export</span>
+                  Help
                 </button>
-              )}
 
-              {/* Help Button */}
-              <button
-                onClick={() => setShowOnboarding(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg text-zinc-300 text-sm font-medium transition"
-                title="Quick Start Guide"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Help
-              </button>
+                {(() => {
+                  const store = stores[0];
+                  const trialDays = getTrialDaysLeft();
 
-              {(() => {
-                const store = stores[0];
-                const trialDays = getTrialDaysLeft();
+                  if (subscriptionTier === 'free') {
+                    return (
+                      <span className="px-3 py-1 bg-zinc-600/20 border border-zinc-500/30 rounded-full text-zinc-300 text-sm font-medium">
+                        Free Plan
+                      </span>
+                    );
+                  }
 
-                if (subscriptionTier === 'free') {
+                  if (subscriptionTier === 'trial' && trialDays !== null) {
+                    return (
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        trialDays <= 3
+                          ? 'bg-red-500/20 border border-red-500/30 text-red-300'
+                          : 'bg-orange-500/20 border border-orange-500/30 text-orange-300'
+                      }`}>
+                        {trialDays} day{trialDays !== 1 ? 's' : ''} left
+                      </span>
+                    );
+                  }
+
                   return (
-                    <span className="px-3 py-1 bg-zinc-600/20 border border-zinc-500/30 rounded-full text-zinc-300 text-sm font-medium">
-                      Free Plan
+                    <span className="px-3 py-1 bg-green-600/20 border border-green-500/30 rounded-full text-green-300 text-sm font-medium">
+                      Pro Plan
                     </span>
                   );
-                }
-
-                if (subscriptionTier === 'trial' && trialDays !== null) {
-                  return (
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      trialDays <= 3
-                        ? 'bg-red-500/20 border border-red-500/30 text-red-300'
-                        : 'bg-orange-500/20 border border-orange-500/30 text-orange-300'
-                    }`}>
-                      {trialDays} day{trialDays !== 1 ? 's' : ''} left
-                    </span>
-                  );
-                }
-
-                return (
-                  <span className="px-3 py-1 bg-green-600/20 border border-green-500/30 rounded-full text-green-300 text-sm font-medium">
-                    Pro Plan
-                  </span>
-                );
-              })()}
+                })()}
+              </div>
             </div>
-          </div>
-        </header>
+          </header>
+        )}
 
         {/* Free Tier Upgrade Banner */}
         {subscriptionTier === 'free' && (
