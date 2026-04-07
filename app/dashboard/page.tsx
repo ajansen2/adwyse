@@ -7,7 +7,7 @@ import { initializeAppBridge, isEmbeddedInShopify, navigateInApp, getShopifySess
 import Link from 'next/link';
 import { Sidebar, MobileNav, GettingStarted, ProfitSummary, AlertsWidget } from '@/components/dashboard';
 import { MetricCard, DashboardSkeleton } from '@/components/ui';
-import { RevenueChart } from '@/components/charts';
+import { RevenueChart, FunnelChart } from '@/components/charts';
 
 type DateRangeOption = '7d' | '14d' | '30d' | '90d' | 'all' | 'custom';
 
@@ -75,6 +75,7 @@ function DashboardContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
   const [latestInsight, setLatestInsight] = useState<any>(null);
+  const [funnelData, setFunnelData] = useState<{name: string; value: number}[]>([]);
   const [generatingInsight, setGeneratingInsight] = useState(false);
   const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'trial' | 'pro'>('trial');
   const [tierLimits, setTierLimits] = useState<{adAccounts: number; ordersPerMonth: number; aiInsights: boolean; dataRetentionDays?: number} | null>(null);
@@ -653,6 +654,18 @@ function DashboardContent() {
                 if (tierJson.tier) {
                   setSubscriptionTier(tierJson.tier);
                   setTierLimits(tierJson.limits);
+                }
+              }
+
+              // Fetch funnel data for conversion visualization
+              const funnelXhr = new XMLHttpRequest();
+              funnelXhr.open('GET', `/api/analytics/funnel?store_id=${storeId}&days=30`, false);
+              funnelXhr.send();
+
+              if (funnelXhr.status === 200) {
+                const funnelJson = JSON.parse(funnelXhr.responseText);
+                if (funnelJson.funnel) {
+                  setFunnelData(funnelJson.funnel);
                 }
               }
 
@@ -1411,6 +1424,13 @@ function DashboardContent() {
                     </div>
                   </div>
                   <RevenueChart data={dateRangeOption === 'all' ? chartData.filter(d => d.revenue > 0 || d.adRevenue > 0) : chartData.slice(-30)} dateRangeLabel={dateRange.label} />
+                </div>
+              )}
+
+              {/* Conversion Funnel */}
+              {ENABLE_EXTRA_COMPONENTS && funnelData.length > 0 && (
+                <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-xl p-6 mb-8">
+                  <FunnelChart data={funnelData} height={280} variant="dark" />
                 </div>
               )}
 
