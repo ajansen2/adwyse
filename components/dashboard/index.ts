@@ -4,3 +4,5 @@ export { GettingStarted } from './GettingStarted';
 export { ProfitSummary } from './ProfitSummary';
 export { AlertsWidget } from './AlertsWidget';
 export { InsightCards, QuickInsight } from './InsightCards';
+export { GoalProgress } from './GoalProgress';
+export { BudgetOptimizer } from './BudgetOptimizer';

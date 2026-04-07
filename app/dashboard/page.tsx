@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { initializeAppBridge, isEmbeddedInShopify, navigateInApp, getShopifySessionToken, redirectToOAuth } from '@/lib/shopify-app-bridge';
 import Link from 'next/link';
-import { Sidebar, MobileNav, GettingStarted, ProfitSummary, AlertsWidget } from '@/components/dashboard';
+import { Sidebar, MobileNav, GettingStarted, ProfitSummary, AlertsWidget, GoalProgress, BudgetOptimizer } from '@/components/dashboard';
 import { MetricCard, DashboardSkeleton, StaggerContainer, StaggerItem } from '@/components/ui';
 import { RevenueChart, FunnelChart } from '@/components/charts';
 
@@ -1456,6 +1456,20 @@ function DashboardContent() {
               {ENABLE_EXTRA_COMPONENTS && stores[0] && (
                 <div className="mb-8">
                   <AlertsWidget storeId={stores[0].id} />
+                </div>
+              )}
+
+              {/* Goal Progress */}
+              {ENABLE_EXTRA_COMPONENTS && stores[0] && (
+                <div className="mb-8">
+                  <GoalProgress storeId={stores[0].id} />
+                </div>
+              )}
+
+              {/* AI Budget Optimizer */}
+              {ENABLE_EXTRA_COMPONENTS && stores[0] && (
+                <div className="mb-8">
+                  <BudgetOptimizer storeId={stores[0].id} />
                 </div>
               )}
 

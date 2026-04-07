@@ -54,6 +54,12 @@ function SettingsContent() {
   const [seedingDemo, setSeedingDemo] = useState(false);
   const [clearingDemo, setClearingDemo] = useState(false);
   const [demoDataCounts, setDemoDataCounts] = useState<{ orders: number; campaigns: number; pixelEvents: number } | null>(null);
+  // Goals state
+  const [revenueGoal, setRevenueGoal] = useState<number | ''>('');
+  const [ordersGoal, setOrdersGoal] = useState<number | ''>('');
+  const [roasGoal, setRoasGoal] = useState<number | ''>('');
+  const [goalPeriod, setGoalPeriod] = useState<'daily' | 'weekly' | 'monthly'>('monthly');
+  const [savingGoals, setSavingGoals] = useState(false);
   const supabase = getSupabaseClient();
 
   // Get URL params directly from window.location (more reliable in iframes)
@@ -219,6 +225,27 @@ function SettingsContent() {
           } catch (err) {
             console.error('Error loading attribution model:', err);
           }
+
+          // Load goals
+          try {
+            console.log('🔧 Settings: Loading goals via XHR...');
+            const goalsXhr = new XMLHttpRequest();
+            goalsXhr.open('GET', `/api/goals?store_id=${data.store.id}`, false);
+            goalsXhr.send();
+            if (goalsXhr.status === 200) {
+              const goalsData = JSON.parse(goalsXhr.responseText);
+              const goals = goalsData.goals || [];
+              goals.forEach((goal: any) => {
+                if (goal.goal_type === 'revenue') setRevenueGoal(goal.target_value);
+                if (goal.goal_type === 'orders') setOrdersGoal(goal.target_value);
+                if (goal.goal_type === 'roas') setRoasGoal(goal.target_value);
+                setGoalPeriod(goal.period || 'monthly');
+              });
+              console.log('🔧 Settings: Goals loaded:', goals.length);
+            }
+          } catch (err) {
+            console.error('Error loading goals:', err);
+          }
         } else {
           console.log('🔧 Settings: No store in response data');
         }
@@ -262,6 +289,44 @@ function SettingsContent() {
       setTimeout(() => setErrorMessage(''), 3000);
     } finally {
       setSavingAlertSettings(false);
+    }
+  };
+
+  const handleSaveGoals = async () => {
+    if (!store) return;
+
+    setSavingGoals(true);
+    try {
+      const goalsToSave = [];
+      if (revenueGoal !== '' && revenueGoal > 0) {
+        goalsToSave.push({ goalType: 'revenue', targetValue: revenueGoal, period: goalPeriod });
+      }
+      if (ordersGoal !== '' && ordersGoal > 0) {
+        goalsToSave.push({ goalType: 'orders', targetValue: ordersGoal, period: goalPeriod });
+      }
+      if (roasGoal !== '' && roasGoal > 0) {
+        goalsToSave.push({ goalType: 'roas', targetValue: roasGoal, period: goalPeriod });
+      }
+
+      for (const goal of goalsToSave) {
+        await fetch('/api/goals', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            storeId: store.id,
+            ...goal,
+          }),
+        });
+      }
+
+      setSuccessMessage('Goals saved successfully');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (error) {
+      console.error('Error saving goals:', error);
+      setErrorMessage('Failed to save goals');
+      setTimeout(() => setErrorMessage(''), 3000);
+    } finally {
+      setSavingGoals(false);
     }
   };
 
@@ -1738,6 +1803,126 @@ function SettingsContent() {
                 </button>
               </div>
               <p className="text-white/40 text-xs mt-2">Send a sample alert to {store?.email || 'your email'}</p>
+            </div>
+          </div>
+
+          {/* Goals & Targets */}
+          <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6 mb-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">Goals & Targets</h2>
+                <p className="text-white/60 text-sm">Set performance goals to track your progress</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {/* Goal Period Selection */}
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-white/60 text-sm">Goal period:</span>
+                <div className="flex gap-2">
+                  {(['daily', 'weekly', 'monthly'] as const).map((period) => (
+                    <button
+                      key={period}
+                      onClick={() => setGoalPeriod(period)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                        goalPeriod === period
+                          ? 'bg-green-600 text-white'
+                          : 'bg-white/10 text-white/60 hover:bg-white/20'
+                      }`}
+                    >
+                      {period.charAt(0).toUpperCase() + period.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Revenue Goal */}
+              <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">💰</span>
+                      <span className="text-white font-medium">Revenue Goal</span>
+                    </div>
+                    <div className="text-white/40 text-sm">Target revenue per {goalPeriod}</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-white/60">$</span>
+                    <input
+                      type="number"
+                      value={revenueGoal}
+                      onChange={(e) => setRevenueGoal(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                      placeholder="10000"
+                      className="w-28 px-3 py-1.5 bg-white/10 border border-white/20 rounded-lg text-white text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Orders Goal */}
+              <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">📦</span>
+                      <span className="text-white font-medium">Orders Goal</span>
+                    </div>
+                    <div className="text-white/40 text-sm">Target orders per {goalPeriod}</div>
+                  </div>
+                  <input
+                    type="number"
+                    value={ordersGoal}
+                    onChange={(e) => setOrdersGoal(e.target.value === '' ? '' : parseInt(e.target.value))}
+                    placeholder="100"
+                    className="w-28 px-3 py-1.5 bg-white/10 border border-white/20 rounded-lg text-white text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* ROAS Goal */}
+              <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">📈</span>
+                      <span className="text-white font-medium">ROAS Goal</span>
+                    </div>
+                    <div className="text-white/40 text-sm">Target return on ad spend</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      value={roasGoal}
+                      onChange={(e) => setRoasGoal(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                      step="0.1"
+                      placeholder="2.5"
+                      className="w-20 px-3 py-1.5 bg-white/10 border border-white/20 rounded-lg text-white text-sm"
+                    />
+                    <span className="text-white/60">x</span>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={handleSaveGoals}
+                disabled={savingGoals}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:cursor-not-allowed text-white rounded-lg font-medium transition flex items-center gap-2"
+              >
+                {savingGoals ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Saving...
+                  </>
+                ) : (
+                  'Save Goals'
+                )}
+              </button>
+              <p className="text-white/40 text-xs">Goals will appear on your dashboard with progress tracking</p>
             </div>
           </div>
 

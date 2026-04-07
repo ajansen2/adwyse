@@ -4,6 +4,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { getSlackWebhook, sendSlackAlert } from './slack-notifications';
 
 interface AlertData {
   storeName: string;
@@ -283,6 +284,23 @@ export async function checkAndSendAlerts() {
         );
 
         if (sent) alertsSent++;
+
+        // Send Slack notification if enabled
+        const slackWebhook = await getSlackWebhook(setting.store_id);
+        if (slackWebhook) {
+          await sendSlackAlert(slackWebhook, {
+            type: 'roas_low',
+            severity: currentRoas < 0.5 ? 'critical' : currentRoas < 1 ? 'high' : 'medium',
+            title: 'Low ROAS Alert',
+            message: `ROAS dropped to ${currentRoas.toFixed(2)}x, below threshold of ${setting.roas_threshold}x`,
+            value: currentRoas,
+            threshold: setting.roas_threshold,
+            campaignName: worstCampaign?.campaign_name,
+            platform: worstCampaign?.source,
+            storeName: store.store_name,
+            shopDomain: store.shop_domain,
+          });
+        }
       }
 
       // Check spend alert
@@ -309,6 +327,24 @@ export async function checkAndSendAlerts() {
         );
 
         if (sent) alertsSent++;
+
+        // Send Slack notification if enabled
+        const slackWebhook = await getSlackWebhook(setting.store_id);
+        if (slackWebhook) {
+          const spendExceeded = ((totalSpend - setting.spend_threshold) / setting.spend_threshold) * 100;
+          await sendSlackAlert(slackWebhook, {
+            type: 'spend_high',
+            severity: spendExceeded > 50 ? 'critical' : spendExceeded > 25 ? 'high' : 'medium',
+            title: 'High Spend Alert',
+            message: `Daily spend reached $${totalSpend.toFixed(2)}, exceeding limit of $${setting.spend_threshold}`,
+            value: totalSpend,
+            threshold: setting.spend_threshold,
+            campaignName: highestSpender?.campaign_name,
+            platform: highestSpender?.source,
+            storeName: store.store_name,
+            shopDomain: store.shop_domain,
+          });
+        }
       }
     } catch (error) {
       console.error(`Error checking alerts for store ${setting.store_id}:`, error);

@@ -117,6 +117,34 @@ function OrdersContent() {
     loadOrders();
   }, [searchParams]);
 
+  // Calculate previous period metrics for comparison
+  const previousPeriodMetrics = useMemo(() => {
+    if (!dateRange.start || dateRangeOption === 'all') return null;
+
+    const periodLength = dateRange.end
+      ? dateRange.end.getTime() - dateRange.start.getTime()
+      : 30 * 24 * 60 * 60 * 1000;
+
+    const prevStart = new Date(dateRange.start.getTime() - periodLength);
+    const prevEnd = new Date(dateRange.start.getTime() - 1);
+
+    const prevOrders = orders.filter(order => {
+      const orderDate = new Date(order.order_created_at);
+      return orderDate >= prevStart && orderDate <= prevEnd;
+    });
+
+    const prevRevenue = prevOrders.reduce((sum, order) => sum + order.total_price, 0);
+    const prevAOV = prevOrders.length > 0 ? prevRevenue / prevOrders.length : 0;
+    const prevAttributedOrders = prevOrders.filter(o => o.attributed_platform && o.attributed_platform !== 'direct');
+
+    return {
+      totalOrders: prevOrders.length,
+      totalRevenue: prevRevenue,
+      avgOrderValue: prevAOV,
+      attributionRate: prevOrders.length > 0 ? (prevAttributedOrders.length / prevOrders.length) * 100 : 0,
+    };
+  }, [orders, dateRange, dateRangeOption]);
+
   // Calculate totals from filtered orders
   const totalRevenue = filteredOrders.reduce((sum, order) => sum + order.total_price, 0);
   const averageOrderValue = filteredOrders.length > 0 ? totalRevenue / filteredOrders.length : 0;
@@ -315,6 +343,7 @@ function OrdersContent() {
             <MetricCard
               title="Total Orders"
               value={filteredOrders.length}
+              previousValue={previousPeriodMetrics?.totalOrders}
               icon={
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
@@ -325,6 +354,7 @@ function OrdersContent() {
             <MetricCard
               title="Total Revenue"
               value={totalRevenue}
+              previousValue={previousPeriodMetrics?.totalRevenue}
               format="currency"
               icon={
                 <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -336,6 +366,7 @@ function OrdersContent() {
             <MetricCard
               title="Average Order Value"
               value={averageOrderValue}
+              previousValue={previousPeriodMetrics?.avgOrderValue}
               format="currency"
               icon={
                 <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -346,7 +377,8 @@ function OrdersContent() {
             />
             <MetricCard
               title="Attribution Rate"
-              value={orders.length > 0 ? (adAttributedOrders.length / orders.length) * 100 : 0}
+              value={filteredOrders.length > 0 ? (adAttributedOrders.length / filteredOrders.length) * 100 : 0}
+              previousValue={previousPeriodMetrics?.attributionRate}
               format="percent"
               icon={
                 <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

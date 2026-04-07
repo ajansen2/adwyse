@@ -11,7 +11,7 @@ interface SkeletonProps {
 export function Skeleton({ className = '', animate = true, style }: SkeletonProps) {
   return (
     <div
-      className={`bg-gray-200 rounded ${animate ? 'animate-pulse' : ''} ${className}`}
+      className={`bg-white/10 rounded ${animate ? 'animate-pulse' : ''} ${className}`}
       style={style}
     />
   );
@@ -20,7 +20,7 @@ export function Skeleton({ className = '', animate = true, style }: SkeletonProp
 // Pre-built skeleton layouts
 export function MetricCardSkeleton() {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4">
+    <div className="bg-white/5 backdrop-blur rounded-xl border border-white/10 p-4">
       <div className="animate-pulse">
         <Skeleton className="h-4 w-24 mb-3" animate={false} />
         <Skeleton className="h-8 w-32 mb-2" animate={false} />
@@ -44,12 +44,12 @@ export function TableRowSkeleton({ columns = 5 }: { columns?: number }) {
 
 export function TableSkeleton({ rows = 5, columns = 5 }: { rows?: number; columns?: number }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <div className="p-4 border-b border-gray-200">
+    <div className="bg-white/5 backdrop-blur rounded-xl border border-white/10 overflow-hidden">
+      <div className="p-4 border-b border-white/10">
         <Skeleton className="h-10 w-64" />
       </div>
       <table className="w-full">
-        <thead className="bg-gray-50">
+        <thead className="bg-white/5">
           <tr>
             {[...Array(columns)].map((_, i) => (
               <th key={i} className="px-4 py-3">
@@ -58,7 +58,7 @@ export function TableSkeleton({ rows = 5, columns = 5 }: { rows?: number; column
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-200">
+        <tbody className="divide-y divide-white/10">
           {[...Array(rows)].map((_, i) => (
             <TableRowSkeleton key={i} columns={columns} />
           ))}
@@ -70,7 +70,7 @@ export function TableSkeleton({ rows = 5, columns = 5 }: { rows?: number; column
 
 export function ChartSkeleton({ height = 300 }: { height?: number }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4">
+    <div className="bg-white/5 backdrop-blur rounded-xl border border-white/10 p-4">
       <div className="animate-pulse">
         <div className="flex justify-between mb-4">
           <Skeleton className="h-5 w-32" animate={false} />
@@ -112,7 +112,7 @@ export function DashboardSkeleton() {
 
 export function CardSkeleton() {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6 animate-pulse">
+    <div className="bg-white/5 backdrop-blur rounded-xl border border-white/10 p-6 animate-pulse">
       <Skeleton className="h-6 w-1/3 mb-4" animate={false} />
       <Skeleton className="h-4 w-full mb-2" animate={false} />
       <Skeleton className="h-4 w-2/3 mb-4" animate={false} />

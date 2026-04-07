@@ -25,6 +25,10 @@ interface CustomerLTV {
   total_revenue: number;
   avg_order_value: number;
   acquisition_source: string | null;
+  predicted_ltv: number;
+  ltv_score: 'high' | 'medium' | 'low';
+  days_since_first_order: number;
+  purchase_frequency: number;
 }
 
 interface LTVMetrics {
@@ -32,6 +36,9 @@ interface LTVMetrics {
   avgLTV: number;
   avgOrderValue: number;
   avgOrdersPerCustomer: number;
+  avgPredictedLTV: number;
+  predictedTotalValue: number;
+  highValueCustomers: number;
   topCustomers: CustomerLTV[];
   cohortData: {
     month: string;
@@ -43,6 +50,7 @@ interface LTVMetrics {
     source: string;
     customers: number;
     avgLTV: number;
+    avgPredictedLTV: number;
   }[];
 }
 
@@ -225,6 +233,50 @@ function LTVContent() {
             />
           </div>
 
+          {/* Predictive LTV Section */}
+          <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 backdrop-blur border border-purple-500/20 rounded-xl p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">Predictive LTV Analysis</h2>
+                <p className="text-white/60 text-sm">AI-powered lifetime value predictions</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-white/5 rounded-lg p-4">
+                <div className="text-white/60 text-sm mb-1">Predicted Avg LTV</div>
+                <div className="text-2xl font-bold text-white">
+                  ${(metrics?.avgPredictedLTV || 0).toFixed(2)}
+                </div>
+                <div className="text-green-400 text-sm mt-1">
+                  +${((metrics?.avgPredictedLTV || 0) - (metrics?.avgLTV || 0)).toFixed(2)} expected growth
+                </div>
+              </div>
+              <div className="bg-white/5 rounded-lg p-4">
+                <div className="text-white/60 text-sm mb-1">Predicted Total Value</div>
+                <div className="text-2xl font-bold text-white">
+                  ${((metrics?.predictedTotalValue || 0) / 1000).toFixed(1)}K
+                </div>
+                <div className="text-white/40 text-sm mt-1">
+                  Future revenue potential
+                </div>
+              </div>
+              <div className="bg-white/5 rounded-lg p-4">
+                <div className="text-white/60 text-sm mb-1">High-Value Customers</div>
+                <div className="text-2xl font-bold text-white">
+                  {metrics?.highValueCustomers || 0}
+                </div>
+                <div className="text-white/40 text-sm mt-1">
+                  {metrics?.totalCustomers ? ((metrics.highValueCustomers / metrics.totalCustomers) * 100).toFixed(0) : 0}% of total
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* LTV by Acquisition Source */}
             <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6">
@@ -324,8 +376,8 @@ function LTVContent() {
           {/* Top Customers Table */}
           <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-white">Top Customers by LTV</h2>
-              <span className="text-white/40 text-sm">Top 10</span>
+              <h2 className="text-xl font-bold text-white">Top Customers by Predicted LTV</h2>
+              <span className="text-white/40 text-sm">Top 10 highest potential</span>
             </div>
 
             {metrics?.topCustomers && metrics.topCustomers.length > 0 ? (
@@ -335,10 +387,11 @@ function LTVContent() {
                     <tr className="border-b border-white/10">
                       <th className="text-left text-white/60 text-sm font-medium py-3 px-4">#</th>
                       <th className="text-left text-white/60 text-sm font-medium py-3 px-4">Customer</th>
+                      <th className="text-left text-white/60 text-sm font-medium py-3 px-4">Score</th>
                       <th className="text-left text-white/60 text-sm font-medium py-3 px-4">Source</th>
                       <th className="text-right text-white/60 text-sm font-medium py-3 px-4">Orders</th>
-                      <th className="text-right text-white/60 text-sm font-medium py-3 px-4">Avg Order</th>
-                      <th className="text-right text-white/60 text-sm font-medium py-3 px-4">Total LTV</th>
+                      <th className="text-right text-white/60 text-sm font-medium py-3 px-4">Current LTV</th>
+                      <th className="text-right text-white/60 text-sm font-medium py-3 px-4">Predicted LTV</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -357,8 +410,17 @@ function LTVContent() {
                         <td className="py-3 px-4">
                           <div className="text-white font-medium">{customer.customer_email}</div>
                           <div className="text-white/40 text-xs">
-                            First order: {new Date(customer.first_order_date).toLocaleDateString()}
+                            {customer.purchase_frequency?.toFixed(1) || '0'} orders/month
                           </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                            customer.ltv_score === 'high' ? 'bg-green-500/20 text-green-400' :
+                            customer.ltv_score === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                            'bg-gray-500/20 text-gray-400'
+                          }`}>
+                            {customer.ltv_score?.toUpperCase() || 'N/A'}
+                          </span>
                         </td>
                         <td className="py-3 px-4">
                           <span className="px-2 py-1 rounded-full text-xs font-medium" style={{
@@ -369,9 +431,9 @@ function LTVContent() {
                           </span>
                         </td>
                         <td className="py-3 px-4 text-right text-white">{customer.total_orders}</td>
-                        <td className="py-3 px-4 text-right text-white">{formatCurrency(customer.avg_order_value)}</td>
+                        <td className="py-3 px-4 text-right text-white">{formatCurrency(customer.total_revenue)}</td>
                         <td className="py-3 px-4 text-right">
-                          <span className="text-green-400 font-bold">{formatCurrency(customer.total_revenue)}</span>
+                          <span className="text-purple-400 font-bold">{formatCurrency(customer.predicted_ltv || customer.total_revenue)}</span>
                         </td>
                       </tr>
                     ))}

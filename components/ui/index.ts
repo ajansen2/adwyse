@@ -24,6 +24,9 @@ export { CommandPalette, useCommandPalette } from './CommandPalette';
 export { Tooltip, InfoTooltip } from './Tooltip';
 export { AnimatedCard, StaggerContainer, StaggerItem, FadeIn, SlideIn, Pulse, CountUp } from './AnimatedCard';
 
+// Data Export
+export { ExportButton } from './ExportButton';
+
 // Landing page components (existing)
 export { InteractiveGlobe } from './interactive-globe';
 export { StatsMarquee } from './stats-marquee';

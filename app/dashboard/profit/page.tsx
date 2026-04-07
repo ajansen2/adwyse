@@ -1,11 +1,14 @@
 'use client';
 
-import { useEffect, useState, useMemo, Suspense } from 'react';
+import { useEffect, useState, useMemo, Suspense, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Sidebar, MobileNav } from '@/components/dashboard';
 import { MetricCard, DashboardSkeleton } from '@/components/ui';
 
 type DateRangeOption = '7d' | '14d' | '30d' | '90d' | 'all';
+
+// Demo store ID for Adam
+const DEMO_STORE_ID = '987c61dd-7696-47ca-bf05-37876953b0ca';
 
 interface ProfitSummary {
   totalRevenue: number;
@@ -40,11 +43,95 @@ interface ProductProfitability {
   avgMargin: number;
 }
 
+// Generate demo profit data
+function generateDemoProfitData(dateRange: DateRangeOption): {
+  summary: ProfitSummary;
+  costs: ProductCost[];
+  products: ProductProfitability[];
+} {
+  // Adjust multipliers based on date range
+  const multipliers: Record<DateRangeOption, number> = {
+    '7d': 0.25,
+    '14d': 0.5,
+    '30d': 1,
+    '90d': 3,
+    'all': 6
+  };
+  const mult = multipliers[dateRange];
+
+  const baseRevenue = 45000 * mult;
+  const baseCogs = baseRevenue * 0.35; // 35% COGS
+  const baseAdSpend = 12000 * mult;
+  const baseOrders = Math.round(95 * mult);
+
+  const summary: ProfitSummary = {
+    totalRevenue: baseRevenue + Math.random() * 5000 * mult,
+    totalCogs: baseCogs + Math.random() * 1000 * mult,
+    grossProfit: 0, // Will calculate
+    totalAdSpend: baseAdSpend + Math.random() * 2000 * mult,
+    netProfit: 0, // Will calculate
+    grossMarginPercent: 0, // Will calculate
+    trueRoas: 0, // Will calculate
+    orderCount: baseOrders + Math.round(Math.random() * 10 * mult)
+  };
+
+  summary.grossProfit = summary.totalRevenue - summary.totalCogs;
+  summary.netProfit = summary.grossProfit - summary.totalAdSpend;
+  summary.grossMarginPercent = (summary.grossProfit / summary.totalRevenue) * 100;
+  summary.trueRoas = summary.totalAdSpend > 0 ? summary.netProfit / summary.totalAdSpend : 0;
+
+  // Demo product costs
+  const demoProducts = [
+    { name: 'Premium Wireless Earbuds', sku: 'PWE-001', cost: 45.00, price: 129.99 },
+    { name: 'Smart Watch Pro', sku: 'SWP-002', cost: 85.00, price: 249.99 },
+    { name: 'Portable Charger 20000mAh', sku: 'PC-003', cost: 18.00, price: 49.99 },
+    { name: 'Bluetooth Speaker', sku: 'BS-004', cost: 25.00, price: 79.99 },
+    { name: 'USB-C Hub 7-in-1', sku: 'UCH-005', cost: 22.00, price: 59.99 },
+    { name: 'Noise Cancelling Headphones', sku: 'NCH-006', cost: 95.00, price: 299.99 },
+    { name: 'Fitness Tracker Band', sku: 'FTB-007', cost: 15.00, price: 49.99 },
+    { name: 'Wireless Mouse', sku: 'WM-008', cost: 12.00, price: 34.99 },
+  ];
+
+  const costs: ProductCost[] = demoProducts.map((p, i) => ({
+    id: `demo-cost-${i}`,
+    shopify_product_id: `demo-product-${i}`,
+    shopify_variant_id: null,
+    sku: p.sku,
+    product_title: p.name,
+    variant_title: null,
+    cost_per_unit: p.cost,
+    source: i % 3 === 0 ? 'manual' : i % 3 === 1 ? 'csv_import' : 'shopify_sync',
+    updated_at: new Date().toISOString()
+  }));
+
+  const products: ProductProfitability[] = demoProducts.map((p, i) => {
+    const unitsSold = Math.round((10 + Math.random() * 40) * mult);
+    const totalRevenue = unitsSold * p.price;
+    const totalCogs = unitsSold * p.cost;
+    const grossProfit = totalRevenue - totalCogs;
+    const avgMargin = (grossProfit / totalRevenue) * 100;
+
+    return {
+      productId: `demo-product-${i}`,
+      productTitle: p.name,
+      totalRevenue,
+      totalCogs,
+      grossProfit,
+      unitsSold,
+      avgMargin
+    };
+  }).sort((a, b) => b.grossProfit - a.grossProfit);
+
+  return { summary, costs, products };
+}
+
 function ProfitContent() {
   const searchParams = useSearchParams();
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(false);
   const [storeId, setStoreId] = useState<string | null>(null);
-  const [dateRange, setDateRange] = useState<DateRangeOption>('30d');
+  const [dateRange, setDateRange] = useState<DateRangeOption>('14d');
+  const isFirstLoad = useRef(true);
 
   // Profit data
   const [profitSummary, setProfitSummary] = useState<ProfitSummary | null>(null);
@@ -101,7 +188,7 @@ function ProfitContent() {
       try {
         const shop = searchParams.get('shop');
         if (!shop) {
-          setLoading(false);
+          setInitialLoading(false);
           return;
         }
 
@@ -119,7 +206,7 @@ function ProfitContent() {
       } catch (error) {
         console.error('Error loading store:', error);
       } finally {
-        setLoading(false);
+        setInitialLoading(false);
       }
     };
 
@@ -131,41 +218,58 @@ function ProfitContent() {
     if (!storeId) return;
 
     async function loadData() {
-      setLoading(true);
+      // Only show full loading skeleton on first load
+      if (isFirstLoad.current) {
+        setInitialLoading(true);
+      } else {
+        setDataLoading(true);
+      }
+
       try {
-        // Load profit summary
-        const summaryRes = await fetch(
-          `/api/profit/summary?storeId=${storeId}&startDate=${dateRangeParams.startDate || ''}&endDate=${dateRangeParams.endDate || ''}`
-        );
-        if (summaryRes.ok) {
-          const data = await summaryRes.json();
-          setProfitSummary(data.summary);
-        }
+        // Check if this is the demo store
+        if (storeId === DEMO_STORE_ID) {
+          // Generate demo data for Adam's store
+          const demoData = generateDemoProfitData(dateRange);
+          setProfitSummary(demoData.summary);
+          setProductCosts(demoData.costs);
+          setProductProfitability(demoData.products);
+        } else {
+          // Load real profit summary
+          const summaryRes = await fetch(
+            `/api/profit/summary?storeId=${storeId}&startDate=${dateRangeParams.startDate || ''}&endDate=${dateRangeParams.endDate || ''}`
+          );
+          if (summaryRes.ok) {
+            const data = await summaryRes.json();
+            setProfitSummary(data.summary);
+          }
 
-        // Load product costs
-        const costsRes = await fetch(`/api/products/costs?storeId=${storeId}&limit=100`);
-        if (costsRes.ok) {
-          const data = await costsRes.json();
-          setProductCosts(data.costs || []);
-        }
+          // Load product costs
+          const costsRes = await fetch(`/api/products/costs?storeId=${storeId}&limit=100`);
+          if (costsRes.ok) {
+            const data = await costsRes.json();
+            setProductCosts(data.costs || []);
+          }
 
-        // Load product profitability
-        const profitRes = await fetch(
-          `/api/profit/products?storeId=${storeId}&startDate=${dateRangeParams.startDate || ''}&endDate=${dateRangeParams.endDate || ''}`
-        );
-        if (profitRes.ok) {
-          const data = await profitRes.json();
-          setProductProfitability(data.products || []);
+          // Load product profitability
+          const profitRes = await fetch(
+            `/api/profit/products?storeId=${storeId}&startDate=${dateRangeParams.startDate || ''}&endDate=${dateRangeParams.endDate || ''}`
+          );
+          if (profitRes.ok) {
+            const data = await profitRes.json();
+            setProductProfitability(data.products || []);
+          }
         }
       } catch (error) {
         console.error('Error loading profit data:', error);
       } finally {
-        setLoading(false);
+        setInitialLoading(false);
+        setDataLoading(false);
+        isFirstLoad.current = false;
       }
     }
 
     loadData();
-  }, [storeId, dateRangeParams]);
+  }, [storeId, dateRange, dateRangeParams]);
 
   // Save product cost
   const saveCost = async () => {
@@ -301,7 +405,7 @@ function ProfitContent() {
     return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
   };
 
-  if (loading) {
+  if (initialLoading && !profitSummary) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900">
         <Sidebar activePage="profit" />
@@ -359,7 +463,15 @@ function ProfitContent() {
           </div>
         </header>
 
-        <div className="p-6">
+        <div className={`p-6 transition-opacity duration-200 ${dataLoading ? 'opacity-60' : 'opacity-100'}`}>
+          {/* Loading indicator */}
+          {dataLoading && (
+            <div className="fixed top-20 right-6 z-50 flex items-center gap-2 bg-slate-800/90 backdrop-blur px-3 py-2 rounded-lg border border-white/10 shadow-lg">
+              <div className="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+              <span className="text-sm text-white/80">Updating...</span>
+            </div>
+          )}
+
           {/* Tabs */}
           <div className="border-b border-white/10 mb-6">
             <nav className="-mb-px flex space-x-8">
@@ -469,8 +581,8 @@ function ProfitContent() {
                 </div>
               </div>
 
-              {/* COGS Coverage Warning */}
-              {productCosts.length === 0 && (
+              {/* COGS Coverage Warning - hide for demo store */}
+              {productCosts.length === 0 && storeId !== DEMO_STORE_ID && (
                 <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
                   <div className="flex items-start">
                     <span className="text-2xl mr-3">⚠️</span>

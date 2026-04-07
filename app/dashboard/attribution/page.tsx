@@ -7,6 +7,93 @@ import { MetricCard, DashboardSkeleton, PlatformBadge } from '@/components/ui';
 
 type AttributionModel = 'last_click' | 'first_click' | 'linear' | 'time_decay' | 'position_based';
 
+// Demo store ID for Adam
+const DEMO_STORE_ID = '987c61dd-7696-47ca-bf05-37876953b0ca';
+
+// Generate demo attribution data
+function generateDemoAttributionData(model: AttributionModel): {
+  data: AttributionData;
+  touchpoints: TouchpointData[];
+} {
+  // Attribution weights vary by model
+  const modelWeights: Record<AttributionModel, Record<string, number>> = {
+    last_click: { facebook: 0.35, google: 0.28, tiktok: 0.15, organic: 0.12, direct: 0.10 },
+    first_click: { facebook: 0.30, google: 0.25, tiktok: 0.18, organic: 0.15, direct: 0.12 },
+    linear: { facebook: 0.28, google: 0.26, tiktok: 0.20, organic: 0.14, direct: 0.12 },
+    time_decay: { facebook: 0.32, google: 0.27, tiktok: 0.17, organic: 0.13, direct: 0.11 },
+    position_based: { facebook: 0.31, google: 0.26, tiktok: 0.19, organic: 0.13, direct: 0.11 },
+  };
+
+  const weights = modelWeights[model];
+  const totalRevenue = 75890 + Math.random() * 5000;
+  const totalOrders = 152 + Math.floor(Math.random() * 20);
+
+  const channelNames: Record<string, string> = {
+    facebook: 'Facebook Ads',
+    google: 'Google Ads',
+    tiktok: 'TikTok Ads',
+    organic: 'Organic Search',
+    direct: 'Direct',
+  };
+
+  const channels: ChannelAttribution[] = Object.entries(weights).map(([platform, weight]) => ({
+    channel: channelNames[platform],
+    platform,
+    revenue: totalRevenue * weight,
+    orders: Math.round(totalOrders * weight),
+    percentage: weight * 100,
+    touchpoints: Math.round((150 + Math.random() * 100) * weight),
+  }));
+
+  // Sort by revenue
+  channels.sort((a, b) => b.revenue - a.revenue);
+
+  // Generate touchpoints
+  const touchpointTypes = ['ad_click', 'organic_visit', 'direct', 'email_click', 'social_click'];
+  const campaigns = ['Summer Sale 2024', 'Retargeting', 'Brand Search', 'Lookalike', 'TikTok Viral'];
+  const mediums: Record<string, string> = {
+    facebook: 'social',
+    google: 'cpc',
+    tiktok: 'social',
+    organic: 'organic',
+    direct: '',
+  };
+
+  const touchpoints: TouchpointData[] = [];
+  const platforms = Object.keys(weights);
+
+  for (let i = 0; i < 50; i++) {
+    const platform = platforms[Math.floor(Math.random() * platforms.length)];
+    const daysAgo = Math.floor(Math.random() * 14);
+    const date = new Date();
+    date.setDate(date.getDate() - daysAgo);
+    date.setHours(Math.floor(Math.random() * 24), Math.floor(Math.random() * 60));
+
+    touchpoints.push({
+      id: `demo-tp-${i}`,
+      customer_identifier: `customer_${Math.floor(Math.random() * 100)}@example.com`,
+      touchpoint_type: platform === 'direct' ? 'direct' : platform === 'organic' ? 'organic_visit' : 'ad_click',
+      utm_source: platform !== 'direct' ? platform : null,
+      utm_medium: mediums[platform] || null,
+      utm_campaign: platform !== 'direct' && platform !== 'organic' ? campaigns[Math.floor(Math.random() * campaigns.length)] : null,
+      occurred_at: date.toISOString(),
+    });
+  }
+
+  // Sort by most recent
+  touchpoints.sort((a, b) => new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime());
+
+  return {
+    data: {
+      model,
+      channels,
+      totalRevenue,
+      totalOrders,
+    },
+    touchpoints,
+  };
+}
+
 interface AttributionData {
   model: AttributionModel;
   channels: ChannelAttribution[];
@@ -78,6 +165,14 @@ function AttributionContent() {
 
     async function loadData() {
       try {
+        // Use demo data for Adam's store
+        if (storeId === DEMO_STORE_ID) {
+          const demoData = generateDemoAttributionData(selectedModel);
+          setAttributionData(demoData.data);
+          setTouchpoints(demoData.touchpoints);
+          return;
+        }
+
         // Load attribution summary
         const res = await fetch(`/api/attribution/summary?storeId=${storeId}&model=${selectedModel}`);
         if (res.ok) {

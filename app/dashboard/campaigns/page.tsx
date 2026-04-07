@@ -111,6 +111,36 @@ function CampaignsContent() {
     loadCampaigns();
   }, [searchParams]);
 
+  // Calculate previous period metrics for comparison
+  const previousPeriodMetrics = useMemo(() => {
+    if (!dateRange.start || dateRangeOption === 'all') return null;
+
+    const periodLength = dateRange.end
+      ? dateRange.end.getTime() - dateRange.start.getTime()
+      : 30 * 24 * 60 * 60 * 1000;
+
+    const prevStart = new Date(dateRange.start.getTime() - periodLength);
+    const prevEnd = new Date(dateRange.start.getTime() - 1);
+
+    const prevCampaigns = campaigns.filter(campaign => {
+      const campaignDate = new Date(campaign.created_at);
+      return campaignDate >= prevStart && campaignDate <= prevEnd;
+    });
+
+    const prevSpend = prevCampaigns.reduce((sum, c) => sum + c.total_spend, 0);
+    const prevRevenue = prevCampaigns.reduce((sum, c) => sum + c.total_revenue, 0);
+    const prevOrders = prevCampaigns.reduce((sum, c) => sum + c.total_orders, 0);
+    const prevROAS = prevSpend > 0 ? prevRevenue / prevSpend : 0;
+
+    return {
+      totalCampaigns: prevCampaigns.length,
+      totalSpend: prevSpend,
+      totalRevenue: prevRevenue,
+      totalOrders: prevOrders,
+      overallROAS: prevROAS,
+    };
+  }, [campaigns, dateRange, dateRangeOption]);
+
   // Calculate totals from filtered campaigns
   const totalSpend = filteredCampaigns.reduce((sum, campaign) => sum + campaign.total_spend, 0);
   const totalRevenue = filteredCampaigns.reduce((sum, campaign) => sum + campaign.total_revenue, 0);
@@ -344,6 +374,7 @@ function CampaignsContent() {
             <MetricCard
               title="Total Campaigns"
               value={filteredCampaigns.length}
+              previousValue={previousPeriodMetrics?.totalCampaigns}
               icon={
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -354,6 +385,7 @@ function CampaignsContent() {
             <MetricCard
               title="Total Spend"
               value={totalSpend}
+              previousValue={previousPeriodMetrics?.totalSpend}
               format="currency"
               icon={
                 <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -365,6 +397,7 @@ function CampaignsContent() {
             <MetricCard
               title="Total Revenue"
               value={totalRevenue}
+              previousValue={previousPeriodMetrics?.totalRevenue}
               format="currency"
               icon={
                 <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -376,6 +409,7 @@ function CampaignsContent() {
             <MetricCard
               title="Overall ROAS"
               value={overallROAS}
+              previousValue={previousPeriodMetrics?.overallROAS}
               format="multiplier"
               icon={
                 <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

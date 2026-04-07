@@ -171,8 +171,8 @@ function CreativesContent() {
             />
           </div>
 
-          {/* Creative Fatigue Alerts */}
-          {fatigue.length > 0 && (
+          {/* Creative Fatigue Alerts - only show creatives with actual decline */}
+          {fatigue.filter(f => f.roas_decline_pct > 0 || f.ctr_decline_pct > 0).length > 0 && (
             <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-6">
               <div className="flex items-center gap-3 mb-4">
                 <svg className="w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -180,32 +180,48 @@ function CreativesContent() {
                 </svg>
                 <div>
                   <h2 className="text-lg font-bold text-white">Creative Fatigue Detected</h2>
-                  <p className="text-white/60 text-sm">{fatigue.length} creative(s) showing declining performance</p>
+                  <p className="text-white/60 text-sm">
+                    {fatigue.filter(f => f.roas_decline_pct > 0 || f.ctr_decline_pct > 0).length} creative(s) showing declining performance
+                  </p>
                 </div>
               </div>
               <div className="space-y-3">
-                {fatigue.slice(0, 5).map((f) => (
-                  <div
-                    key={f.platform_ad_id}
-                    className="p-4 bg-yellow-500/10 rounded-lg border border-yellow-500/20"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-white font-medium">{f.ad_name || f.platform_ad_id}</div>
-                        <div className="text-white/50 text-sm">ID: {f.platform_ad_id}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-red-400 text-sm">
-                          ROAS: {f.start_roas?.toFixed(2)}x → {f.current_roas?.toFixed(2)}x
-                          <span className="ml-2 text-red-300">({f.roas_decline_pct?.toFixed(0)}% decline)</span>
+                {fatigue
+                  .filter(f => f.roas_decline_pct > 0 || f.ctr_decline_pct > 0)
+                  .slice(0, 5)
+                  .map((f) => {
+                    const roasDeclined = f.roas_decline_pct > 0;
+                    const ctrDeclined = f.ctr_decline_pct > 0;
+                    return (
+                      <div
+                        key={f.platform_ad_id}
+                        className="p-4 bg-yellow-500/10 rounded-lg border border-yellow-500/20"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-white font-medium">{f.ad_name || f.platform_ad_id}</div>
+                            <div className="text-white/50 text-sm">ID: {f.platform_ad_id}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className={`text-sm ${roasDeclined ? 'text-red-400' : 'text-green-400'}`}>
+                              ROAS: {f.start_roas?.toFixed(2)}x → {f.current_roas?.toFixed(2)}x
+                              <span className={`ml-2 ${roasDeclined ? 'text-red-300' : 'text-green-300'}`}>
+                                ({Math.abs(f.roas_decline_pct || 0).toFixed(0)}% {roasDeclined ? 'decline' : 'improvement'})
+                              </span>
+                            </div>
+                            <div className={`text-xs ${ctrDeclined ? 'text-yellow-400' : 'text-green-400'}`}>
+                              CTR: {f.start_ctr?.toFixed(2)}% → {f.current_ctr?.toFixed(2)}%
+                              {ctrDeclined && (
+                                <span className="ml-1 text-yellow-300">
+                                  ({Math.abs(f.ctr_decline_pct || 0).toFixed(0)}% decline)
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-yellow-400 text-xs">
-                          CTR: {f.start_ctr?.toFixed(2)}% → {f.current_ctr?.toFixed(2)}%
-                        </div>
                       </div>
-                    </div>
-                  </div>
-                ))}
+                    );
+                  })}
               </div>
             </div>
           )}
