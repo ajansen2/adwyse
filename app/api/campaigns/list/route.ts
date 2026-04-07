@@ -76,23 +76,23 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Map to expected format
+    // Map to expected format and sanitize all fields to prevent React error #310
     const campaignsWithMetrics = Array.from(campaignMap.values()).map(campaign => {
       const roas = campaign.spend > 0 ? campaign.attributed_revenue / campaign.spend : 0;
 
       return {
-        id: campaign.id,
-        name: campaign.campaign_name,
+        id: typeof campaign.id === 'string' ? campaign.id : String(campaign.id || ''),
+        name: typeof campaign.campaign_name === 'string' ? campaign.campaign_name : String(campaign.campaign_name || 'Unknown'),
         platform: 'facebook', // TODO: store platform in campaigns table
-        status: campaign.status || 'active',
-        total_spend: campaign.spend,
-        total_revenue: campaign.attributed_revenue,
-        total_orders: campaign.attributed_orders,
-        impressions: campaign.impressions,
-        clicks: campaign.clicks,
-        conversions: campaign.conversions,
-        created_at: campaign.created_at,
-        roas
+        status: typeof campaign.status === 'string' ? campaign.status : 'active',
+        total_spend: Number(campaign.spend) || 0,
+        total_revenue: Number(campaign.attributed_revenue) || 0,
+        total_orders: Number(campaign.attributed_orders) || 0,
+        impressions: Number(campaign.impressions) || 0,
+        clicks: Number(campaign.clicks) || 0,
+        conversions: Number(campaign.conversions) || 0,
+        created_at: typeof campaign.created_at === 'string' ? campaign.created_at : null,
+        roas: Number(roas) || 0
       };
     });
 

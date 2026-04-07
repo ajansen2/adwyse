@@ -239,6 +239,49 @@ function DashboardContent() {
     })).sort((a, b) => a.date.localeCompare(b.date));
   }, [filteredOrders, dateRange]);
 
+  // IMPORTANT: These useMemo hooks MUST be before any early returns to satisfy React's Rules of Hooks
+  // Calculate previous period metrics for comparison
+  const previousPeriodMetrics = useMemo(() => {
+    if (!dateRange.start || dateRangeOption === 'all') return null;
+
+    const periodLength = dateRange.end
+      ? dateRange.end.getTime() - dateRange.start.getTime()
+      : 30 * 24 * 60 * 60 * 1000; // Default 30 days
+
+    const prevStart = new Date(dateRange.start.getTime() - periodLength);
+    const prevEnd = new Date(dateRange.start.getTime() - 1);
+
+    const prevOrders = orders.filter(order => {
+      const orderDate = new Date(order.order_created_at);
+      return orderDate >= prevStart && orderDate <= prevEnd;
+    });
+
+    const prevTotalOrders = prevOrders.length;
+    const prevTotalRevenue = prevOrders.reduce((sum, order) => sum + order.total_price, 0);
+    const prevAttributedRevenue = prevOrders
+      .filter(order => order.attributed_platform && order.attributed_platform !== 'direct')
+      .reduce((sum, order) => sum + order.total_price, 0);
+
+    return {
+      totalOrders: prevTotalOrders,
+      totalRevenue: prevTotalRevenue,
+      attributedRevenue: prevAttributedRevenue,
+      totalSpend: 0,
+      avgROAS: 0
+    };
+  }, [orders, dateRange, dateRangeOption]);
+
+  // Generate sparkline data from chart data (last 7 days of revenue)
+  const revenueSparkline = useMemo(() => {
+    if (chartData.length === 0) return [];
+    return chartData.slice(-7).map(d => d.revenue);
+  }, [chartData]);
+
+  const ordersSparkline = useMemo(() => {
+    if (chartData.length === 0) return [];
+    return chartData.slice(-7).map(d => d.orders);
+  }, [chartData]);
+
   const searchParams = useSearchParams();
 
   // Handle subscribe button click
@@ -797,49 +840,6 @@ function DashboardContent() {
   // Calculate total ad spend and average ROAS
   const totalSpend = campaigns.reduce((sum, campaign) => sum + campaign.total_spend, 0);
   const avgROAS = totalSpend > 0 ? (attributedRevenue / totalSpend) : 0;
-
-  // Calculate previous period metrics for comparison
-  const previousPeriodMetrics = useMemo(() => {
-    if (!dateRange.start || dateRangeOption === 'all') return null;
-
-    const periodLength = dateRange.end
-      ? dateRange.end.getTime() - dateRange.start.getTime()
-      : 30 * 24 * 60 * 60 * 1000; // Default 30 days
-
-    const prevStart = new Date(dateRange.start.getTime() - periodLength);
-    const prevEnd = new Date(dateRange.start.getTime() - 1);
-
-    const prevOrders = orders.filter(order => {
-      const orderDate = new Date(order.order_created_at);
-      return orderDate >= prevStart && orderDate <= prevEnd;
-    });
-
-    const prevTotalOrders = prevOrders.length;
-    const prevTotalRevenue = prevOrders.reduce((sum, order) => sum + order.total_price, 0);
-    const prevAttributedRevenue = prevOrders
-      .filter(order => order.attributed_platform && order.attributed_platform !== 'direct')
-      .reduce((sum, order) => sum + order.total_price, 0);
-
-    return {
-      totalOrders: prevTotalOrders,
-      totalRevenue: prevTotalRevenue,
-      attributedRevenue: prevAttributedRevenue,
-      // For spend/ROAS we'd need historical campaign data, use 0 for now
-      totalSpend: 0,
-      avgROAS: 0
-    };
-  }, [orders, dateRange, dateRangeOption]);
-
-  // Generate sparkline data from chart data (last 7 days of revenue)
-  const revenueSparkline = useMemo(() => {
-    if (chartData.length === 0) return [];
-    return chartData.slice(-7).map(d => d.revenue);
-  }, [chartData]);
-
-  const ordersSparkline = useMemo(() => {
-    if (chartData.length === 0) return [];
-    return chartData.slice(-7).map(d => d.orders);
-  }, [chartData]);
 
   // Get max value for chart scaling
   const maxRevenue = Math.max(...chartData.map(d => d.revenue), 1);
