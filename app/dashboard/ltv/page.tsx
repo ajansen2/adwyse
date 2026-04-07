@@ -208,7 +208,9 @@ function LTVContent() {
                         <XAxis type="number" tickFormatter={(v) => `$${v}`} stroke="#9CA3AF" tick={{ fill: '#9CA3AF' }} />
                         <YAxis dataKey="source" type="category" width={80} stroke="#9CA3AF" tick={{ fill: '#9CA3AF' }} />
                         <Tooltip
-                          contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151' }}
+                          contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', color: '#E5E7EB' }}
+                          labelStyle={{ color: '#9CA3AF' }}
+                          itemStyle={{ color: '#F97316' }}
                           formatter={(value: number) => [`$${value.toFixed(0)}`, 'Avg LTV']}
                         />
                         <Bar dataKey="avgLTV" fill="#F97316" radius={[0, 4, 4, 0]} />
@@ -256,7 +258,9 @@ function LTVContent() {
                         <YAxis yAxisId="left" stroke="#9CA3AF" tick={{ fill: '#9CA3AF' }} tickFormatter={(v) => `$${v}`} />
                         <YAxis yAxisId="right" orientation="right" stroke="#9CA3AF" tick={{ fill: '#9CA3AF' }} />
                         <Tooltip
-                          contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151' }}
+                          contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', color: '#E5E7EB' }}
+                          labelStyle={{ color: '#9CA3AF' }}
+                          itemStyle={{ color: '#F97316' }}
                           formatter={(value: number, name: string) => [
                             name === 'avgLTV' ? `$${value.toFixed(0)}` : value,
                             name === 'avgLTV' ? 'Avg LTV' : 'Customers'
