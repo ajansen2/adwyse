@@ -569,6 +569,7 @@ function DashboardContent() {
           }
 
           // Get campaigns
+          let fetchedCampaigns: any[] = [];
           const campaignsXhr = new XMLHttpRequest();
           campaignsXhr.open('GET', `/api/campaigns/list?merchant_id=${(merchantData as Merchant).id}`, false);
           campaignsXhr.send();
@@ -576,6 +577,7 @@ function DashboardContent() {
           if (campaignsXhr.status === 200) {
             const campaignsJson = JSON.parse(campaignsXhr.responseText);
             if (campaignsJson.campaigns) {
+              fetchedCampaigns = campaignsJson.campaigns;
               setCampaigns(campaignsJson.campaigns);
             }
           }
@@ -620,33 +622,23 @@ function DashboardContent() {
                 // Non-critical, ignore errors
               });
 
-              // Check for Getting Started checklist items
-              // Check ad accounts
-              const adAccountsXhr = new XMLHttpRequest();
-              adAccountsXhr.open('GET', `/api/ad-accounts/list?store_id=${storeId}`, false);
-              adAccountsXhr.send();
-              if (adAccountsXhr.status === 200) {
-                const adAccountsJson = JSON.parse(adAccountsXhr.responseText);
-                setHasAdAccounts(adAccountsJson.accounts && adAccountsJson.accounts.length > 0);
-              }
+              // Check for Getting Started checklist items (non-blocking)
+              // These run in background to not slow down dashboard load
+
+              // Check ad accounts - use campaigns as proxy (if campaigns exist, ads are connected)
+              setHasAdAccounts(fetchedCampaigns.length > 0);
 
               // Check pixel events
-              const pixelXhr = new XMLHttpRequest();
-              pixelXhr.open('GET', `/api/pixel/verify?store_id=${storeId}`, false);
-              pixelXhr.send();
-              if (pixelXhr.status === 200) {
-                const pixelJson = JSON.parse(pixelXhr.responseText);
-                setHasPixelEvents(pixelJson.verified === true);
-              }
+              fetch(`/api/pixel/verify?store_id=${storeId}`)
+                .then(res => res.json())
+                .then(data => setHasPixelEvents(data.verified === true))
+                .catch(() => setHasPixelEvents(false));
 
               // Check alerts configuration
-              const settingsXhr = new XMLHttpRequest();
-              settingsXhr.open('GET', `/api/settings/alerts?store_id=${storeId}`, false);
-              settingsXhr.send();
-              if (settingsXhr.status === 200) {
-                const settingsJson = JSON.parse(settingsXhr.responseText);
-                setHasAlerts(settingsJson.roas_alert_enabled || settingsJson.spend_alert_enabled);
-              }
+              fetch(`/api/settings/alerts?store_id=${storeId}`)
+                .then(res => res.json())
+                .then(data => setHasAlerts(data.roas_alert_enabled || data.spend_alert_enabled))
+                .catch(() => setHasAlerts(false));
             }
           }
         } catch (error) {
