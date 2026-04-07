@@ -134,8 +134,12 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true, message: 'Order already tracked' }, { status: 200 });
       }
 
+      // Log error but return 200 to prevent Shopify from marking webhook as failing
       console.error('❌ Error inserting order:', insertError);
-      return NextResponse.json({ error: 'Failed to insert order' }, { status: 500 });
+      return NextResponse.json({
+        received: true,
+        error: 'Order insert failed - logged for investigation'
+      }, { status: 200 });
     }
 
     console.log('✅ Order tracked with attribution:', {
@@ -159,7 +163,12 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('❌ Orders webhook error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    // Return 200 to prevent Shopify from marking webhook as failing
+    // Critical errors should be monitored via logging/metrics
+    return NextResponse.json({
+      received: true,
+      error: 'Processing error logged'
+    }, { status: 200 });
   }
 }
 
@@ -314,18 +323,32 @@ async function linkOrderToCampaign(
 }
 
 // Verify Shopify webhook signature
+// Supports both DEV and PRODUCTION app secrets + manual webhook signing secret
 function verifyWebhook(data: string, hmac: string): boolean {
-  const secret = process.env.SHOPIFY_API_SECRET;
+  const secrets = [
+    process.env.SHOPIFY_API_SECRET,              // Primary secret
+    process.env.SHOPIFY_API_SECRET_PRODUCTION,   // Production app secret
+    process.env.SHOPIFY_API_SECRET_DEV,          // Dev app secret
+    process.env.SHOPIFY_WEBHOOK_SIGNING_SECRET,  // Manual webhook signing secret
+  ].filter(Boolean); // Remove undefined values
 
-  if (!secret) {
-    console.error('❌ No Shopify API secret configured');
+  if (secrets.length === 0) {
+    console.error('❌ No Shopify API secrets configured');
     return false;
   }
 
-  const hash = crypto
-    .createHmac('sha256', secret)
-    .update(data, 'utf8')
-    .digest('base64');
+  // Try each secret until one validates
+  for (const secret of secrets) {
+    const hash = crypto
+      .createHmac('sha256', secret!)
+      .update(data, 'utf8')
+      .digest('base64');
 
-  return hash === hmac;
+    if (hash === hmac) {
+      return true;
+    }
+  }
+
+  console.error('❌ Webhook signature verification failed');
+  return false;
 }
