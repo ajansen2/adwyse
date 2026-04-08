@@ -139,22 +139,17 @@ function DashboardContent() {
   useEffect(() => {
     if (stores.length > 0 && !loading) {
       const storeId = stores[0].id;
-      console.log('🚀 Loading funnel for store:', storeId);
 
       fetch(`/api/analytics/funnel?store_id=${storeId}&days=0`)
         .then(res => res.json())
         .then(data => {
-          console.log('📊 Funnel response:', data);
           if (data.funnel && data.funnel.length > 0) {
             setFunnelData(data.funnel);
-            console.log('✅ Funnel data set:', data.funnel);
           } else {
-            console.log('⚠️ No funnel data, using demo');
             setFunnelData(generateDemoFunnelData());
           }
         })
-        .catch(err => {
-          console.error('❌ Funnel error:', err);
+        .catch(() => {
           setFunnelData(generateDemoFunnelData());
         });
     }
@@ -693,35 +688,6 @@ function DashboardContent() {
                   setSubscriptionTier(tierJson.tier);
                   setTierLimits(tierJson.limits);
                 }
-              }
-
-              // Fetch funnel data for conversion visualization
-              console.log('🔄 Fetching funnel data for store:', storeId);
-              try {
-                const funnelXhr = new XMLHttpRequest();
-                funnelXhr.open('GET', `/api/analytics/funnel?store_id=${storeId}&days=0`, false);
-                funnelXhr.send();
-
-                console.log('📊 Funnel API response status:', funnelXhr.status);
-                console.log('📊 Funnel API response:', funnelXhr.responseText?.substring(0, 200));
-
-                if (funnelXhr.status === 200) {
-                  const funnelJson = JSON.parse(funnelXhr.responseText);
-                  console.log('📊 Funnel data parsed:', funnelJson);
-                  if (funnelJson.funnel && funnelJson.funnel.length > 0) {
-                    console.log('✅ Setting funnel data:', funnelJson.funnel);
-                    setFunnelData(funnelJson.funnel);
-                  } else {
-                    console.log('⚠️ No funnel in response, using demo data');
-                    setFunnelData(generateDemoFunnelData());
-                  }
-                } else {
-                  console.log('❌ Funnel API error, using demo data');
-                  setFunnelData(generateDemoFunnelData());
-                }
-              } catch (funnelError) {
-                console.error('❌ Funnel fetch error:', funnelError);
-                setFunnelData(generateDemoFunnelData());
               }
 
               // Sync customer segments in background (for Built for Shopify requirement)
@@ -1487,13 +1453,6 @@ function DashboardContent() {
                     </div>
                   </div>
                   <RevenueChart data={dateRangeOption === 'all' ? chartData.filter(d => d.revenue > 0 || d.adRevenue > 0) : chartData.slice(-30)} dateRangeLabel={dateRange.label} />
-                </div>
-              )}
-
-              {/* Conversion Funnel Debug */}
-              {ENABLE_EXTRA_COMPONENTS && (
-                <div className="bg-yellow-500/20 border border-yellow-500 rounded-xl p-4 mb-4 text-yellow-300 text-sm">
-                  🔍 Funnel Debug: {funnelData.length} items | Data: {JSON.stringify(funnelData.slice(0,1))}
                 </div>
               )}
 
