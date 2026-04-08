@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
+import {
+  analyzeCampaignTrends,
+  generateBudgetForecast,
+  calculateOptimalDistribution,
+  type CampaignTrend,
+  type BudgetForecast,
+  type DailyPerformance,
+} from '@/lib/predictive-budget';
 
 // Demo store ID for Adam's store
 const DEMO_STORE_ID = '987c61dd-7696-47ca-bf05-37876953b0ca';
@@ -40,6 +48,11 @@ interface BudgetOptimizationResult {
     projected_revenue_increase: number;
     reallocation_percentage: number;
   };
+  predictions?: {
+    trends: CampaignTrend[];
+    forecast: BudgetForecast;
+    optimal_distribution: Record<string, number>;
+  };
   insights: string[];
   generated_at: string;
 }
@@ -48,6 +61,141 @@ interface BudgetOptimizationResult {
  * Generate demo budget optimization data for Adam's store
  */
 function generateDemoBudgetOptimization(): BudgetOptimizationResult {
+  const now = new Date();
+  const dayOfMonth = now.getDate();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+
+  // Demo trends data
+  const demoTrends: CampaignTrend[] = [
+    {
+      campaign_id: 'demo_1',
+      campaign_name: 'Summer Sale - Lookalike',
+      platform: 'facebook',
+      trend_direction: 'improving',
+      trend_strength: 0.65,
+      roas_7d: 4.2,
+      roas_14d: 3.8,
+      roas_30d: 3.5,
+      ctr_trend: 0.02,
+      conversion_rate_trend: 0.01,
+      predicted_roas_next_7d: 4.5,
+      confidence: 85,
+      day_of_week_patterns: [
+        { day: 0, avg_roas: 3.8, avg_spend: 95, performance_index: 0.9 },
+        { day: 1, avg_roas: 4.5, avg_spend: 130, performance_index: 1.07 },
+        { day: 2, avg_roas: 4.8, avg_spend: 145, performance_index: 1.14 },
+        { day: 3, avg_roas: 4.2, avg_spend: 125, performance_index: 1.0 },
+        { day: 4, avg_roas: 4.6, avg_spend: 140, performance_index: 1.1 },
+        { day: 5, avg_roas: 4.0, avg_spend: 115, performance_index: 0.95 },
+        { day: 6, avg_roas: 3.5, avg_spend: 100, performance_index: 0.83 },
+      ],
+    },
+    {
+      campaign_id: 'demo_2',
+      campaign_name: 'Brand Awareness',
+      platform: 'google',
+      trend_direction: 'stable',
+      trend_strength: 0.1,
+      roas_7d: 3.1,
+      roas_14d: 3.0,
+      roas_30d: 2.9,
+      ctr_trend: 0.005,
+      conversion_rate_trend: 0.003,
+      predicted_roas_next_7d: 3.15,
+      confidence: 78,
+      day_of_week_patterns: [
+        { day: 0, avg_roas: 2.5, avg_spend: 45, performance_index: 0.81 },
+        { day: 1, avg_roas: 3.4, avg_spend: 70, performance_index: 1.1 },
+        { day: 2, avg_roas: 3.5, avg_spend: 72, performance_index: 1.13 },
+        { day: 3, avg_roas: 3.2, avg_spend: 65, performance_index: 1.03 },
+        { day: 4, avg_roas: 3.3, avg_spend: 68, performance_index: 1.06 },
+        { day: 5, avg_roas: 2.9, avg_spend: 55, performance_index: 0.94 },
+        { day: 6, avg_roas: 2.8, avg_spend: 50, performance_index: 0.9 },
+      ],
+    },
+    {
+      campaign_id: 'demo_3',
+      campaign_name: 'Retargeting - Cart Abandoners',
+      platform: 'facebook',
+      trend_direction: 'improving',
+      trend_strength: 0.45,
+      roas_7d: 5.2,
+      roas_14d: 4.8,
+      roas_30d: 4.5,
+      ctr_trend: 0.03,
+      conversion_rate_trend: 0.02,
+      predicted_roas_next_7d: 5.5,
+      confidence: 72,
+      day_of_week_patterns: [
+        { day: 0, avg_roas: 4.8, avg_spend: 38, performance_index: 0.92 },
+        { day: 1, avg_roas: 5.8, avg_spend: 52, performance_index: 1.12 },
+        { day: 2, avg_roas: 5.5, avg_spend: 50, performance_index: 1.06 },
+        { day: 3, avg_roas: 5.2, avg_spend: 48, performance_index: 1.0 },
+        { day: 4, avg_roas: 5.4, avg_spend: 49, performance_index: 1.04 },
+        { day: 5, avg_roas: 4.9, avg_spend: 42, performance_index: 0.94 },
+        { day: 6, avg_roas: 4.6, avg_spend: 40, performance_index: 0.88 },
+      ],
+    },
+    {
+      campaign_id: 'demo_4',
+      campaign_name: 'Cold Traffic - Interest',
+      platform: 'facebook',
+      trend_direction: 'declining',
+      trend_strength: -0.55,
+      roas_7d: 0.8,
+      roas_14d: 1.2,
+      roas_30d: 1.8,
+      ctr_trend: -0.02,
+      conversion_rate_trend: -0.015,
+      predicted_roas_next_7d: 0.6,
+      confidence: 80,
+      day_of_week_patterns: [
+        { day: 0, avg_roas: 0.7, avg_spend: 85, performance_index: 0.88 },
+        { day: 1, avg_roas: 0.9, avg_spend: 105, performance_index: 1.13 },
+        { day: 2, avg_roas: 0.85, avg_spend: 100, performance_index: 1.06 },
+        { day: 3, avg_roas: 0.8, avg_spend: 97, performance_index: 1.0 },
+        { day: 4, avg_roas: 0.82, avg_spend: 98, performance_index: 1.03 },
+        { day: 5, avg_roas: 0.75, avg_spend: 95, performance_index: 0.94 },
+        { day: 6, avg_roas: 0.7, avg_spend: 90, performance_index: 0.88 },
+      ],
+    },
+    {
+      campaign_id: 'demo_5',
+      campaign_name: 'Display - GDN',
+      platform: 'google',
+      trend_direction: 'declining',
+      trend_strength: -0.3,
+      roas_7d: 1.1,
+      roas_14d: 1.4,
+      roas_30d: 1.6,
+      ctr_trend: -0.01,
+      conversion_rate_trend: -0.008,
+      predicted_roas_next_7d: 0.95,
+      confidence: 65,
+      day_of_week_patterns: [
+        { day: 0, avg_roas: 0.9, avg_spend: 28, performance_index: 0.82 },
+        { day: 1, avg_roas: 1.25, avg_spend: 38, performance_index: 1.14 },
+        { day: 2, avg_roas: 1.2, avg_spend: 36, performance_index: 1.09 },
+        { day: 3, avg_roas: 1.1, avg_spend: 33, performance_index: 1.0 },
+        { day: 4, avg_roas: 1.15, avg_spend: 35, performance_index: 1.05 },
+        { day: 5, avg_roas: 1.0, avg_spend: 30, performance_index: 0.91 },
+        { day: 6, avg_roas: 0.95, avg_spend: 30, performance_index: 0.86 },
+      ],
+    },
+  ];
+
+  // Generate forecast
+  const forecast = generateBudgetForecast(demoTrends, 5000, daysInMonth, dayOfMonth);
+
+  // Calculate optimal distribution
+  const optimalDistribution: Record<string, number> = {
+    demo_1: 1250,
+    demo_2: 680,
+    demo_3: 520,
+    demo_4: 350,
+    demo_5: 200,
+  };
+
   return {
     recommendations: [
       {
@@ -58,7 +206,7 @@ function generateDemoBudgetOptimization(): BudgetOptimizationResult {
         recommended_spend: 1100,
         change_amount: 250,
         change_percent: 29.4,
-        reason: 'Excellent ROAS of 4.2x. Strong candidate for scaling with increased budget.',
+        reason: 'ROAS trending up 17% (3.5x → 4.2x). AI predicts 4.5x ROAS next week. Scale now to capture peak performance.',
         expected_roas: 3.99,
         confidence: 'high'
       },
@@ -70,7 +218,7 @@ function generateDemoBudgetOptimization(): BudgetOptimizationResult {
         recommended_spend: 530,
         change_amount: 110,
         change_percent: 26.2,
-        reason: 'Strong ROAS of 3.1x and proven conversions. Increase budget to capture more revenue.',
+        reason: 'Stable 3.1x ROAS with strong Tue-Thu performance. Increase budget on peak days for optimal efficiency.',
         expected_roas: 2.95,
         confidence: 'high'
       },
@@ -82,7 +230,7 @@ function generateDemoBudgetOptimization(): BudgetOptimizationResult {
         recommended_spend: 400,
         change_amount: 80,
         change_percent: 25.0,
-        reason: 'Above-average performance with room for growth. Gradually increase budget while monitoring.',
+        reason: 'Improving trend with 5.5x ROAS predicted. High-intent audience showing strong conversion rate growth.',
         expected_roas: 5.2,
         confidence: 'medium'
       },
@@ -94,7 +242,7 @@ function generateDemoBudgetOptimization(): BudgetOptimizationResult {
         recommended_spend: 476,
         change_amount: -204,
         change_percent: -30.0,
-        reason: 'ROAS of 0.8x is below breakeven. Reduce budget and test new creatives.',
+        reason: 'ROAS declining 56% over 30 days (1.8x → 0.8x). Creative fatigue detected. Reduce spend and refresh creatives.',
         expected_roas: 0.8,
         confidence: 'high'
       },
@@ -106,7 +254,7 @@ function generateDemoBudgetOptimization(): BudgetOptimizationResult {
         recommended_spend: 161,
         change_amount: -69,
         change_percent: -30.0,
-        reason: 'Underperforming compared to other campaigns. Reallocate budget to better performers.',
+        reason: 'Declining ROAS trend predicts sub-1x returns next week. Reallocate to better performers.',
         expected_roas: 1.1,
         confidence: 'medium'
       }
@@ -119,11 +267,17 @@ function generateDemoBudgetOptimization(): BudgetOptimizationResult {
       projected_revenue_increase: 925,
       reallocation_percentage: 10.9
     },
+    predictions: {
+      trends: demoTrends,
+      forecast,
+      optimal_distribution: optimalDistribution,
+    },
     insights: [
-      'Reallocate $273 from 2 underperforming campaigns to 3 high-performing campaigns.',
-      'Facebook is outperforming Google by 38%. Consider shifting more budget to Facebook.',
-      '"Summer Sale - Lookalike" is your top performer with 4.2x ROAS. This campaign should be prioritized for budget increases.',
-      '2 campaigns show strong early performance. Test scaling these with incremental budget increases.'
+      '📈 3 campaigns trending up, 2 declining. Reallocate $273 to high performers.',
+      '📅 Best days: Tue-Thu consistently outperform weekends by 15-20%.',
+      '⚠️ "Cold Traffic - Interest" showing creative fatigue - CTR down 25% in 14 days.',
+      '🎯 AI predicts 2.82x blended ROAS next week with recommended changes.',
+      `💰 Budget pacing: ${forecast.pacing.on_pace ? 'On track' : 'Behind pace'} - ${forecast.pacing.budget_utilization.toFixed(0)}% of monthly budget used.`
     ],
     generated_at: new Date().toISOString()
   };
@@ -331,12 +485,89 @@ export async function GET(request: NextRequest) {
     // Sort recommendations: increases first, then decreases
     recommendations.sort((a, b) => b.change_amount - a.change_amount);
 
-    // Generate insights
+    // Fetch daily performance data for predictions
+    let predictions: BudgetOptimizationResult['predictions'] = undefined;
+
+    try {
+      const { data: dailyData } = await supabase
+        .from('campaign_daily_stats')
+        .select('campaign_id, date, spend, revenue, clicks, impressions, conversions')
+        .eq('store_id', storeId)
+        .gte('date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+        .order('date', { ascending: true });
+
+      if (dailyData && dailyData.length > 0) {
+        // Group daily data by campaign
+        const campaignDailyData = new Map<string, DailyPerformance[]>();
+        for (const row of dailyData) {
+          const existing = campaignDailyData.get(row.campaign_id) || [];
+          existing.push({
+            date: row.date,
+            spend: parseFloat(row.spend) || 0,
+            revenue: parseFloat(row.revenue) || 0,
+            clicks: parseInt(row.clicks) || 0,
+            impressions: parseInt(row.impressions) || 0,
+            conversions: parseInt(row.conversions) || 0,
+          });
+          campaignDailyData.set(row.campaign_id, existing);
+        }
+
+        // Generate trends for each campaign
+        const trends: CampaignTrend[] = [];
+        for (const campaign of campaigns) {
+          const daily = campaignDailyData.get(campaign.id);
+          if (daily && daily.length >= 7) {
+            const trend = analyzeCampaignTrends(
+              campaign.id,
+              campaign.campaign_name,
+              campaign.platform || 'unknown',
+              daily
+            );
+            trends.push(trend);
+          }
+        }
+
+        if (trends.length > 0) {
+          // Generate forecast
+          const now = new Date();
+          const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+          const dayOfMonth = now.getDate();
+
+          // Estimate monthly budget from current spend
+          const estimatedMonthlyBudget = totalSpend * (daysInMonth / dayOfMonth);
+
+          const forecast = generateBudgetForecast(
+            trends,
+            estimatedMonthlyBudget,
+            daysInMonth,
+            dayOfMonth
+          );
+
+          // Calculate optimal distribution
+          const optimalDistMap = calculateOptimalDistribution(trends, totalSpend);
+          const optimal_distribution: Record<string, number> = {};
+          optimalDistMap.forEach((value, key) => {
+            optimal_distribution[key] = value;
+          });
+
+          predictions = {
+            trends,
+            forecast,
+            optimal_distribution,
+          };
+        }
+      }
+    } catch (predictionError) {
+      console.error('Error generating predictions:', predictionError);
+      // Continue without predictions
+    }
+
+    // Generate insights with prediction data
     const insights = generateBudgetInsights(campaignPerformance, recommendations, {
       avgRoas,
       totalSpend,
       totalRevenue,
-    });
+    }, predictions);
 
     const result: BudgetOptimizationResult = {
       recommendations,
@@ -348,6 +579,7 @@ export async function GET(request: NextRequest) {
         projected_revenue_increase: projectedRevenueIncrease,
         reallocation_percentage: (budgetToReallocate / currentTotalSpend) * 100,
       },
+      predictions,
       insights,
       generated_at: new Date().toISOString(),
     };
@@ -403,7 +635,8 @@ function calculateProjectedROAS(
 function generateBudgetInsights(
   campaigns: CampaignPerformance[],
   recommendations: BudgetRecommendation[],
-  metrics: { avgRoas: number; totalSpend: number; totalRevenue: number }
+  metrics: { avgRoas: number; totalSpend: number; totalRevenue: number },
+  predictions?: BudgetOptimizationResult['predictions']
 ): string[] {
   const insights: string[] = [];
 
@@ -411,10 +644,72 @@ function generateBudgetInsights(
   const decreases = recommendations.filter(r => r.change_amount < 0);
   const totalReallocation = decreases.reduce((sum, r) => sum + Math.abs(r.change_amount), 0);
 
-  if (increases.length > 0 && decreases.length > 0) {
-    insights.push(
-      `Reallocate $${totalReallocation.toFixed(2)} from ${decreases.length} underperforming campaign${decreases.length > 1 ? 's' : ''} to ${increases.length} high-performing campaign${increases.length > 1 ? 's' : ''}.`
+  // Prediction-based insights first
+  if (predictions?.trends) {
+    const improving = predictions.trends.filter(t => t.trend_direction === 'improving').length;
+    const declining = predictions.trends.filter(t => t.trend_direction === 'declining').length;
+
+    if (improving > 0 || declining > 0) {
+      insights.push(
+        `📈 ${improving} campaign${improving !== 1 ? 's' : ''} trending up, ${declining} declining. ${increases.length > 0 ? `Reallocate $${totalReallocation.toFixed(0)} to high performers.` : ''}`
+      );
+    }
+
+    // Day of week analysis
+    const allDowPatterns = predictions.trends.flatMap(t => t.day_of_week_patterns);
+    const dayPerformance = new Map<number, { total: number; count: number }>();
+    for (const pattern of allDowPatterns) {
+      const existing = dayPerformance.get(pattern.day) || { total: 0, count: 0 };
+      existing.total += pattern.performance_index;
+      existing.count++;
+      dayPerformance.set(pattern.day, existing);
+    }
+
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dayScores = Array.from(dayPerformance.entries())
+      .map(([day, data]) => ({ day, avg: data.total / data.count }))
+      .sort((a, b) => b.avg - a.avg);
+
+    const bestDays = dayScores.filter(d => d.avg > 1.05).slice(0, 3);
+    const worstDays = dayScores.filter(d => d.avg < 0.95).slice(-2);
+
+    if (bestDays.length > 0) {
+      const bestDayNames = bestDays.map(d => dayNames[d.day]).join('-');
+      const improvement = ((bestDays[0].avg - 1) * 100).toFixed(0);
+      insights.push(`📅 Best days: ${bestDayNames} outperform average by ${improvement}%.`);
+    }
+
+    // Fatigue detection
+    const fatiguedCampaigns = predictions.trends.filter(
+      t => t.trend_direction === 'declining' && t.roas_30d > t.roas_7d * 1.5
     );
+    if (fatiguedCampaigns.length > 0) {
+      const campaign = fatiguedCampaigns[0];
+      const decline = ((1 - campaign.roas_7d / campaign.roas_30d) * 100).toFixed(0);
+      insights.push(`⚠️ "${campaign.campaign_name}" showing creative fatigue - ROAS down ${decline}% in 30 days.`);
+    }
+
+    // Prediction-based ROAS forecast
+    if (predictions.forecast) {
+      const predictedRoas = predictions.forecast.weekly_forecast.predicted_roas;
+      if (predictedRoas > 0) {
+        insights.push(`🎯 AI predicts ${predictedRoas.toFixed(2)}x blended ROAS next week with recommended changes.`);
+      }
+
+      // Budget pacing
+      const pacing = predictions.forecast.pacing;
+      if (pacing.days_remaining > 0) {
+        const status = pacing.on_pace ? 'On track' : pacing.current_daily_spend > pacing.recommended_daily_spend ? 'Overspending' : 'Underspending';
+        insights.push(`💰 Budget pacing: ${status} - ${pacing.budget_utilization.toFixed(0)}% of monthly budget used with ${pacing.days_remaining} days left.`);
+      }
+    }
+  } else {
+    // Fallback to basic insights without predictions
+    if (increases.length > 0 && decreases.length > 0) {
+      insights.push(
+        `Reallocate $${totalReallocation.toFixed(2)} from ${decreases.length} underperforming campaign${decreases.length > 1 ? 's' : ''} to ${increases.length} high-performing campaign${increases.length > 1 ? 's' : ''}.`
+      );
+    }
   }
 
   // Platform-specific insights
@@ -436,33 +731,26 @@ function generateBudgetInsights(
   platformRoas.sort((a, b) => b.roas - a.roas);
 
   if (platformRoas.length > 1 && platformRoas[0].roas > platformRoas[platformRoas.length - 1].roas * 1.5) {
+    const capitalizeFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
     insights.push(
-      `${platformRoas[0].platform} is outperforming ${platformRoas[platformRoas.length - 1].platform} by ${((platformRoas[0].roas / platformRoas[platformRoas.length - 1].roas) * 100 - 100).toFixed(0)}%. Consider shifting more budget to ${platformRoas[0].platform}.`
-    );
-  }
-
-  // Top performer highlight
-  const topCampaign = campaigns[0];
-  if (topCampaign && topCampaign.roas > 2.5) {
-    insights.push(
-      `"${topCampaign.campaign_name}" is your top performer with ${topCampaign.roas.toFixed(2)}x ROAS. This campaign should be prioritized for budget increases.`
+      `${capitalizeFirst(platformRoas[0].platform)} is outperforming ${platformRoas[platformRoas.length - 1].platform} by ${((platformRoas[0].roas / platformRoas[platformRoas.length - 1].roas) * 100 - 100).toFixed(0)}%.`
     );
   }
 
   // Warning for low overall ROAS
   if (metrics.avgRoas < 1.5 && metrics.totalSpend > 200) {
     insights.push(
-      `Your overall ROAS of ${metrics.avgRoas.toFixed(2)}x may not be profitable after COGS. Focus on improving conversion rate or reducing spend on underperformers.`
+      `⚠️ Overall ROAS of ${metrics.avgRoas.toFixed(2)}x may not be profitable after COGS.`
     );
   }
 
   // Quick win identification
   const quickWins = campaigns.filter(c => c.roas > 2 && c.spend < 100);
-  if (quickWins.length > 0) {
+  if (quickWins.length > 0 && insights.length < 5) {
     insights.push(
-      `${quickWins.length} campaign${quickWins.length > 1 ? 's' : ''} show${quickWins.length === 1 ? 's' : ''} strong early performance. Test scaling these with incremental budget increases.`
+      `💡 ${quickWins.length} low-spend campaign${quickWins.length > 1 ? 's' : ''} showing strong ROAS. Test scaling with incremental increases.`
     );
   }
 
-  return insights;
+  return insights.slice(0, 5); // Max 5 insights
 }

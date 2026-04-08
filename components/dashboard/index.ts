@@ -6,3 +6,5 @@ export { AlertsWidget } from './AlertsWidget';
 export { InsightCards, QuickInsight } from './InsightCards';
 export { GoalProgress } from './GoalProgress';
 export { BudgetOptimizer } from './BudgetOptimizer';
+export { CompetitorSpy } from './CompetitorSpy';
+export { QuickActions } from './QuickActions';

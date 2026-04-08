@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { initializeAppBridge, isEmbeddedInShopify, navigateInApp, getShopifySessionToken, redirectToOAuth } from '@/lib/shopify-app-bridge';
 import Link from 'next/link';
-import { Sidebar, MobileNav, GettingStarted, ProfitSummary, AlertsWidget, GoalProgress, BudgetOptimizer } from '@/components/dashboard';
+import { Sidebar, MobileNav, GettingStarted, ProfitSummary, AlertsWidget, GoalProgress, BudgetOptimizer, CompetitorSpy, QuickActions } from '@/components/dashboard';
 import { MetricCard, DashboardSkeleton, StaggerContainer, StaggerItem } from '@/components/ui';
 import { RevenueChart, FunnelChart } from '@/components/charts';
 
@@ -1494,6 +1494,13 @@ function DashboardContent() {
                 </div>
               )}
 
+              {/* Competitor Spy */}
+              {ENABLE_EXTRA_COMPONENTS && stores[0] && (
+                <div className="mb-8">
+                  <CompetitorSpy storeId={stores[0].id} />
+                </div>
+              )}
+
               {/* AI Insights */}
               {ENABLE_EXTRA_COMPONENTS && latestInsight && typeof latestInsight.content === 'string' && (
                 <div className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 backdrop-blur border border-purple-500/30 rounded-xl p-6 mb-8">
@@ -1786,6 +1793,9 @@ function DashboardContent() {
 
       {/* Mobile Bottom Navigation */}
       {ENABLE_EXTRA_COMPONENTS && <MobileNav activePage="dashboard" />}
+
+      {/* Quick Actions Command Palette */}
+      <QuickActions storeId={stores[0]?.id} />
     </div>
   );
 }
