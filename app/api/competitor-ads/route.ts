@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { fetchCompetitorAds } from '@/lib/apify-ads';
 
 /**
  * Competitor Ad Spy API
- * 
- * NOTE: This uses demo data for now. To connect to Meta Ad Library API:
- * 1. Apply for access at https://www.facebook.com/ads/library/api
- * 2. Get an access token
- * 3. Replace demo data with real API calls
- * 
- * Meta Ad Library API is free but requires Facebook approval.
+ *
+ * Data sources (in order of preference):
+ *   1. Apify Facebook Ad Library scraper (when APIFY_API_TOKEN is set
+ *      and a search query is provided) — real, live ads with 24h caching
+ *   2. Demo seed data — fallback when no token or no query
  */
 
 interface CompetitorAd {
@@ -166,8 +165,32 @@ export async function GET(request: NextRequest) {
     const query = searchParams.get('query') || '';
     const industry = searchParams.get('industry') || 'default';
     const platform = searchParams.get('platform'); // 'facebook', 'instagram', or null for all
+    const limit = parseInt(searchParams.get('limit') || '20', 10);
 
-    // Get ads based on industry
+    // Try real Apify scrape if a query is provided and token is configured
+    if (query) {
+      try {
+        const apifyResults = await fetchCompetitorAds(query, limit);
+        if (apifyResults !== null) {
+          let ads = apifyResults;
+          if (platform) {
+            ads = ads.filter((ad) => ad.platform === platform || ad.platform === 'both');
+          }
+          return NextResponse.json({
+            ads,
+            totalCount: ads.length,
+            isDemo: false,
+            metaApiStatus: 'connected',
+            source: 'apify',
+          });
+        }
+      } catch (err) {
+        console.error('Apify fetch failed, falling back to demo:', err);
+        // Fall through to demo data
+      }
+    }
+
+    // Demo fallback
     let ads = demoCompetitorData[industry] || demoCompetitorData.default;
 
     // Add some from default to increase variety
@@ -197,7 +220,8 @@ export async function GET(request: NextRequest) {
       ads,
       totalCount: ads.length,
       isDemo: true, // Flag that this is demo data
-      metaApiStatus: 'demo' // Can be 'connected', 'demo', or 'error'
+      metaApiStatus: 'demo', // Can be 'connected', 'demo', or 'error'
+      source: 'demo',
     });
   } catch (error) {
     console.error('Error fetching competitor ads:', error);
