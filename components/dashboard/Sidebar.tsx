@@ -122,12 +122,16 @@ export function Sidebar({ activePage }: SidebarProps) {
     <aside className="fixed top-0 left-0 z-50 h-screen w-64 bg-slate-900/90 backdrop-blur border-r border-white/10 hidden lg:block">
       <div className="flex flex-col h-full">
         <div className="p-6 border-b border-white/10">
-          <Link href="/" className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => navigateInApp('/dashboard')}
+            className="flex items-center gap-3 cursor-pointer"
+          >
             <img src="/logo.png" alt="AdWyse" className="w-10 h-10" />
             <span className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
               AdWyse
             </span>
-          </Link>
+          </button>
         </div>
 
         <nav className="flex-1 p-4 space-y-2">
