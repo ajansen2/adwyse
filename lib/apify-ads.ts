@@ -31,7 +31,7 @@ export interface ApifyAd {
 /**
  * Build the Facebook Ad Library search URL the actor expects.
  */
-function buildAdLibraryUrl(query: string, country = 'ALL'): string {
+function buildAdLibraryUrl(query: string, country = 'US'): string {
   const params = new URLSearchParams({
     active_status: 'active',
     ad_type: 'all',
@@ -326,6 +326,40 @@ async function setCachedResults(
  * Caches results in Supabase for 24h to limit Apify spend.
  * Returns null if APIFY_API_TOKEN is not configured (caller should fall back to demo data).
  */
+/**
+ * Filter ads to only those whose advertiser name actually matches the query.
+ * This drops resellers / dropshippers / unrelated brands that show up because
+ * they mention the brand in their ad copy.
+ */
+function filterByBrandMatch(ads: ApifyAd[], query: string): ApifyAd[] {
+  const normalized = query.toLowerCase().trim();
+  if (!normalized) return ads;
+  return ads.filter((ad) => {
+    const name = ad.advertiserName?.toLowerCase() || '';
+    return (
+      name.includes(normalized) ||
+      // also accept if query is a substring of name with separators removed
+      name.replace(/[\s\-_.]/g, '').includes(normalized.replace(/[\s\-_.]/g, ''))
+    );
+  });
+}
+
+/**
+ * Dedupe ads by advertiser + body text. DCO ads return many near-identical
+ * variants — collapse them to one card per unique creative.
+ */
+function dedupeAds(ads: ApifyAd[]): ApifyAd[] {
+  const seen = new Set<string>();
+  const out: ApifyAd[] = [];
+  for (const ad of ads) {
+    const key = `${ad.advertiserName}|${(ad.adCreativeBody || '').slice(0, 100)}|${ad.adCreativeTitle || ''}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(ad);
+  }
+  return out;
+}
+
 export async function fetchCompetitorAds(
   query: string,
   limit = DEFAULT_LIMIT
@@ -334,7 +368,8 @@ export async function fetchCompetitorAds(
   if (!apiToken) return null;
   if (!query?.trim()) return [];
 
-  const queryKey = `apify:v2:${query.toLowerCase().trim()}:${limit}`;
+  // v3 cache key — bump to invalidate stale results from before dedupe/filter
+  const queryKey = `apify:v3:${query.toLowerCase().trim()}:${limit}`;
 
   // Check cache first
   const cached = await getCachedResults(queryKey);
@@ -343,9 +378,21 @@ export async function fetchCompetitorAds(
     return cached;
   }
 
-  // Run scraper
-  console.log(`🕷️  Running Apify scraper for "${query}"`);
-  const results = await runApifyScraper(query, limit, apiToken);
+  // Over-fetch so dedupe+filter still leaves us with ~limit results
+  const fetchLimit = Math.max(limit * 3, 30);
+  console.log(`🕷️  Running Apify scraper for "${query}" (fetching ${fetchLimit})`);
+  const raw = await runApifyScraper(query, fetchLimit, apiToken);
+
+  // Filter to ads where the advertiser actually matches the brand name
+  const onBrand = filterByBrandMatch(raw, query);
+  // Dedupe by creative
+  const deduped = dedupeAds(onBrand);
+  // Cap to requested limit
+  const results = deduped.slice(0, limit);
+
+  console.log(
+    `✨ ${query}: ${raw.length} raw → ${onBrand.length} on-brand → ${deduped.length} unique → ${results.length} returned`
+  );
 
   // Cache results (don't await — fire and forget)
   setCachedResults(queryKey, query, results).catch(() => {});

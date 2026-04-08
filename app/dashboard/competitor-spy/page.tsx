@@ -464,76 +464,68 @@ function CompetitorSpyContent() {
               )}
             </div>
           ) : (
-            /* Discover Ads */
-            <div className="space-y-4">
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
-                <div className="flex items-start gap-3">
-                  <svg className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <div>
-                    <h3 className="text-white font-medium">Demo Mode</h3>
-                    <p className="text-white/60 text-sm mt-1">
-                      Showing sample ads. Use the search above to find real competitor ads in Meta Ad Library.
-                    </p>
-                  </div>
+            /* Discover Ads — live search */
+            <div className="space-y-6">
+              <div className="bg-gradient-to-br from-orange-500/10 to-amber-500/10 border border-orange-500/30 rounded-xl p-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="w-5 h-5 text-orange-400" />
+                  <h3 className="font-semibold text-white text-lg">Discover Live Ads</h3>
+                  <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full font-medium">
+                    Live
+                  </span>
+                </div>
+                <p className="text-white/60 text-sm mb-4">
+                  Search any brand to see their active Facebook & Instagram ads — pulled live
+                  from Meta Ad Library. Results cached 24h.
+                </p>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (searchQuery.trim()) fetchLiveAds(searchQuery.trim());
+                  }}
+                  className="flex gap-2"
+                >
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="e.g. Gymshark, Nike, Apple..."
+                    className="flex-1 px-4 py-3 bg-slate-900/60 border border-white/10 rounded-lg text-white placeholder-white/30 focus:outline-none focus:border-orange-500/50"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!searchQuery.trim()}
+                    className="px-6 py-3 bg-orange-500 hover:bg-orange-600 disabled:bg-white/10 disabled:text-white/40 text-white font-medium rounded-lg transition flex items-center gap-2"
+                  >
+                    <Search className="w-4 h-4" />
+                    Spy
+                  </button>
+                </form>
+
+                {/* Quick brand suggestions */}
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <span className="text-white/40 text-xs">Try:</span>
+                  {['Gymshark', 'Nike', 'Lululemon', 'Alo Yoga', 'Glossier', 'Allbirds'].map((b) => (
+                    <button
+                      key={b}
+                      onClick={() => {
+                        setSearchQuery(b);
+                        fetchLiveAds(b);
+                      }}
+                      className="px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white text-xs rounded-full transition"
+                    >
+                      {b}
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {ads.map((ad) => (
-                  <div
-                    key={ad.id}
-                    className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-5 hover:border-white/20 transition"
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <h3 className="text-white font-semibold">{ad.advertiserName}</h3>
-                        <p className="text-white/40 text-sm">
-                          Running since {new Date(ad.startedRunning).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="flex flex-col gap-1 items-end">
-                        {getPlatformBadge(ad.platform)}
-                        {getAdTypeBadge(ad.adType)}
-                      </div>
-                    </div>
-
-                    {ad.adCreativeTitle && (
-                      <h4 className="text-orange-400 font-medium mb-2">{ad.adCreativeTitle}</h4>
-                    )}
-                    <p className="text-white/80 text-sm mb-4 line-clamp-3">{ad.adCreativeBody}</p>
-
-                    <div className="flex items-center gap-4 pt-4 border-t border-white/10">
-                      {ad.impressionRange && (
-                        <div>
-                          <div className="text-white/40 text-xs">Impressions</div>
-                          <div className="text-white font-medium text-sm">{ad.impressionRange}</div>
-                        </div>
-                      )}
-                      {ad.spendRange && (
-                        <div>
-                          <div className="text-white/40 text-xs">Est. Spend</div>
-                          <div className="text-green-400 font-medium text-sm">{ad.spendRange}</div>
-                        </div>
-                      )}
-                      <div className="ml-auto flex items-center gap-2">
-                        {ad.isActive ? (
-                          <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full">Active</span>
-                        ) : (
-                          <span className="px-2 py-1 bg-gray-500/20 text-gray-400 text-xs rounded-full">Inactive</span>
-                        )}
-                        <button
-                          onClick={() => openAdLibrary(ad.advertiserName)}
-                          className="p-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 rounded-lg transition"
-                          title="View in Ad Library"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              <div className="bg-white/5 border border-white/10 rounded-xl p-6 text-center">
+                <Eye className="w-8 h-8 text-white/30 mx-auto mb-3" />
+                <p className="text-white/60 text-sm">
+                  Search a brand above or click "View Ads" on a tracked competitor to see their
+                  live creatives.
+                </p>
               </div>
             </div>
           )}
