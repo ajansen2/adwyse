@@ -8,3 +8,5 @@ export { GoalProgress } from './GoalProgress';
 export { BudgetOptimizer } from './BudgetOptimizer';
 export { CompetitorSpy } from './CompetitorSpy';
 export { QuickActions } from './QuickActions';
+export { AskAdWyse } from './AskAdWyse';
+export { NCRoasCard } from './NCRoasCard';

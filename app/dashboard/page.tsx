@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { initializeAppBridge, isEmbeddedInShopify, navigateInApp, getShopifySessionToken, redirectToOAuth } from '@/lib/shopify-app-bridge';
 import Link from 'next/link';
-import { Sidebar, MobileNav, GettingStarted, ProfitSummary, AlertsWidget, GoalProgress, BudgetOptimizer, CompetitorSpy, QuickActions } from '@/components/dashboard';
+import { Sidebar, MobileNav, GettingStarted, ProfitSummary, AlertsWidget, GoalProgress, BudgetOptimizer, CompetitorSpy, QuickActions, AskAdWyse, NCRoasCard } from '@/components/dashboard';
 import { MetricCard, DashboardSkeleton, StaggerContainer, StaggerItem } from '@/components/ui';
 import { RevenueChart, FunnelChart } from '@/components/charts';
 
@@ -1487,6 +1487,13 @@ function DashboardContent() {
                 </div>
               )}
 
+              {/* New vs Repeat ROAS */}
+              {ENABLE_EXTRA_COMPONENTS && stores[0] && (
+                <div className="mb-8">
+                  <NCRoasCard storeId={stores[0].id} />
+                </div>
+              )}
+
               {/* AI Budget Optimizer */}
               {ENABLE_EXTRA_COMPONENTS && stores[0] && (
                 <div className="mb-8">
@@ -1796,6 +1803,9 @@ function DashboardContent() {
 
       {/* Quick Actions Command Palette */}
       <QuickActions storeId={stores[0]?.id} />
+
+      {/* AI Chat Assistant */}
+      <AskAdWyse storeId={stores[0]?.id} />
     </div>
   );
 }

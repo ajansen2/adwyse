@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { navigateInApp } from '@/lib/shopify-app-bridge';
 
 interface SidebarProps {
-  activePage: 'dashboard' | 'orders' | 'campaigns' | 'settings' | 'profit' | 'attribution' | 'webhooks' | 'creatives' | 'ltv' | 'competitor-spy';
+  activePage: 'dashboard' | 'orders' | 'campaigns' | 'settings' | 'profit' | 'attribution' | 'webhooks' | 'creatives' | 'ltv' | 'competitor-spy' | 'cohorts';
 }
 
 const navItems = [
