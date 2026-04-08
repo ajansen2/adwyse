@@ -40,6 +40,8 @@ interface CompetitorAd {
   advertiserName: string;
   adCreativeBody: string;
   adCreativeTitle?: string;
+  thumbnailUrl?: string;
+  snapshotUrl?: string;
   platform: 'facebook' | 'instagram' | 'both';
   adType: 'image' | 'video' | 'carousel';
   isActive: boolean;
@@ -84,6 +86,13 @@ function CompetitorSpyContent() {
     notes: '',
   });
   const [saving, setSaving] = useState(false);
+
+  // Live ads viewer state
+  const [viewingCompetitor, setViewingCompetitor] = useState<string | null>(null);
+  const [liveAds, setLiveAds] = useState<CompetitorAd[]>([]);
+  const [liveAdsLoading, setLiveAdsLoading] = useState(false);
+  const [liveAdsError, setLiveAdsError] = useState<string | null>(null);
+  const [liveAdsSource, setLiveAdsSource] = useState<'apify' | 'demo' | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -203,6 +212,36 @@ function CompetitorSpyContent() {
   const openAdLibrary = (competitorName: string) => {
     const url = `https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=US&media_type=all&q=${encodeURIComponent(competitorName)}`;
     window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const fetchLiveAds = async (competitorName: string) => {
+    setViewingCompetitor(competitorName);
+    setLiveAdsLoading(true);
+    setLiveAdsError(null);
+    setLiveAds([]);
+    setLiveAdsSource(null);
+
+    try {
+      const res = await fetch(
+        `/api/competitor-ads?query=${encodeURIComponent(competitorName)}&limit=20`
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setLiveAds(data.ads || []);
+      setLiveAdsSource(data.source || null);
+    } catch (err: any) {
+      console.error('Failed to fetch live ads:', err);
+      setLiveAdsError(err?.message || 'Failed to load ads');
+    } finally {
+      setLiveAdsLoading(false);
+    }
+  };
+
+  const closeLiveAds = () => {
+    setViewingCompetitor(null);
+    setLiveAds([]);
+    setLiveAdsError(null);
+    setLiveAdsSource(null);
   };
 
   const formatTimeAgo = (dateStr: string | null) => {
@@ -404,7 +443,7 @@ function CompetitorSpyContent() {
                         </div>
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => openAdLibrary(competitor.competitor_name)}
+                            onClick={() => fetchLiveAds(competitor.competitor_name)}
                             className="px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 font-medium rounded-lg transition flex items-center gap-2"
                           >
                             <Eye className="w-4 h-4" />
@@ -623,6 +662,185 @@ function CompetitorSpyContent() {
               >
                 {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                 Add Competitor
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Live Ads Viewer Modal */}
+      {viewingCompetitor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-white/10 rounded-xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Eye className="w-5 h-5 text-orange-400" />
+                  <h3 className="font-semibold text-white text-lg">{viewingCompetitor}</h3>
+                  {liveAdsSource === 'apify' && (
+                    <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full font-medium">
+                      Live
+                    </span>
+                  )}
+                  {liveAdsSource === 'demo' && (
+                    <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs rounded-full font-medium">
+                      Sample
+                    </span>
+                  )}
+                </div>
+                <p className="text-white/40 text-xs mt-0.5">
+                  {liveAdsLoading
+                    ? 'Fetching latest ads from Meta Ad Library…'
+                    : liveAds.length > 0
+                    ? `${liveAds.length} active ${liveAds.length === 1 ? 'ad' : 'ads'} found`
+                    : ''}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => openAdLibrary(viewingCompetitor)}
+                  className="px-3 py-1.5 text-xs text-white/60 hover:text-white/80 hover:bg-white/5 rounded-lg transition flex items-center gap-1"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  Open in Ad Library
+                </button>
+                <button
+                  onClick={closeLiveAds}
+                  className="p-1 text-white/40 hover:text-white/60 transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {liveAdsLoading && (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <Loader2 className="w-10 h-10 text-orange-400 animate-spin mb-4" />
+                  <p className="text-white font-medium">Scraping Meta Ad Library…</p>
+                  <p className="text-white/50 text-sm mt-1">
+                    This usually takes 10–20 seconds for fresh competitors.
+                  </p>
+                </div>
+              )}
+
+              {liveAdsError && !liveAdsLoading && (
+                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6 text-center">
+                  <p className="text-red-400 font-medium">Couldn't load ads</p>
+                  <p className="text-white/60 text-sm mt-1">{liveAdsError}</p>
+                  <button
+                    onClick={() => fetchLiveAds(viewingCompetitor)}
+                    className="mt-4 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg text-sm transition"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              )}
+
+              {!liveAdsLoading && !liveAdsError && liveAds.length === 0 && (
+                <div className="text-center py-16">
+                  <p className="text-white font-medium">No active ads found</p>
+                  <p className="text-white/50 text-sm mt-1">
+                    {viewingCompetitor} doesn't seem to have any ads running right now.
+                  </p>
+                </div>
+              )}
+
+              {!liveAdsLoading && !liveAdsError && liveAds.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {liveAds.map((ad) => (
+                    <div
+                      key={ad.id}
+                      className="bg-white/5 border border-white/10 rounded-xl overflow-hidden hover:bg-white/[0.07] transition flex flex-col"
+                    >
+                      {/* Thumbnail */}
+                      {(ad as any).thumbnailUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={(ad as any).thumbnailUrl}
+                          alt=""
+                          className="w-full h-48 object-cover bg-slate-800"
+                          referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-48 bg-slate-800 flex items-center justify-center text-white/20">
+                          <Eye className="w-10 h-10" />
+                        </div>
+                      )}
+
+                      {/* Content */}
+                      <div className="p-4 flex-1 flex flex-col">
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                          <span className="text-white/80 text-sm font-medium">
+                            {ad.advertiserName}
+                          </span>
+                          {getPlatformBadge(ad.platform)}
+                          {ad.adType === 'video' && (
+                            <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded-full">
+                              Video
+                            </span>
+                          )}
+                          {ad.adType === 'carousel' && (
+                            <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded-full">
+                              Carousel
+                            </span>
+                          )}
+                        </div>
+
+                        {ad.adCreativeTitle && (
+                          <h4 className="text-white font-medium text-sm mb-1 line-clamp-2">
+                            {ad.adCreativeTitle}
+                          </h4>
+                        )}
+                        {ad.adCreativeBody && (
+                          <p className="text-white/60 text-xs line-clamp-3 mb-3">
+                            {ad.adCreativeBody}
+                          </p>
+                        )}
+
+                        <div className="mt-auto flex items-center justify-between text-xs text-white/40">
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {ad.startedRunning?.split(' ')[0] || ''}
+                          </span>
+                          {(ad as any).snapshotUrl && (
+                            <a
+                              href={(ad as any).snapshotUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-orange-400 hover:text-orange-300 flex items-center gap-1"
+                            >
+                              View
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-3 border-t border-white/10 flex items-center justify-between text-xs text-white/40">
+              <span>
+                {liveAdsSource === 'apify'
+                  ? 'Live data from Meta Ad Library (cached 24h)'
+                  : liveAdsSource === 'demo'
+                  ? 'Sample data — connect a real source to see live ads'
+                  : 'Loading…'}
+              </span>
+              <button
+                onClick={closeLiveAds}
+                className="text-white/60 hover:text-white/80 transition"
+              >
+                Close
               </button>
             </div>
           </div>
