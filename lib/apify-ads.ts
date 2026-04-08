@@ -48,69 +48,186 @@ function buildAdLibraryUrl(query: string, country = 'ALL'): string {
  * The actor returns slightly different field names depending on ad type;
  * this maps the most common ones defensively.
  */
+/** Pick the first non-empty string from a list of candidates. */
+function pick(...vals: any[]): string | undefined {
+  for (const v of vals) {
+    if (typeof v === 'string' && v.trim()) return v;
+    if (typeof v === 'number') return String(v);
+  }
+  return undefined;
+}
+
+/** Walk an object recursively to find the first string at any of the given keys. */
+function deepFind(obj: any, keys: string[], maxDepth = 4): string | undefined {
+  if (!obj || maxDepth < 0) return undefined;
+  if (typeof obj !== 'object') return undefined;
+  for (const k of keys) {
+    if (obj[k] && typeof obj[k] === 'string' && obj[k].trim()) return obj[k];
+  }
+  for (const v of Object.values(obj)) {
+    if (Array.isArray(v)) {
+      for (const item of v) {
+        const found = deepFind(item, keys, maxDepth - 1);
+        if (found) return found;
+      }
+    } else if (typeof v === 'object') {
+      const found = deepFind(v, keys, maxDepth - 1);
+      if (found) return found;
+    }
+  }
+  return undefined;
+}
+
 function normalizeApifyResult(raw: any): ApifyAd {
-  const snapshot = raw.snapshot || raw.ad_snapshot || {};
-  const body =
-    snapshot.body?.text ||
-    raw.ad_creative_body ||
-    raw.adCreativeBody ||
-    raw.body ||
-    '';
-  const title =
-    snapshot.title ||
-    raw.ad_creative_title ||
-    raw.adCreativeTitle ||
-    raw.title ||
-    '';
+  const snapshot = raw.snapshot || raw.ad_snapshot || raw.adSnapshot || {};
+
   const advertiser =
-    snapshot.page_name ||
-    raw.page_name ||
-    raw.advertiserName ||
-    raw.advertiser_name ||
+    pick(
+      snapshot.page_name,
+      snapshot.pageName,
+      raw.page_name,
+      raw.pageName,
+      raw.advertiserName,
+      raw.advertiser_name,
+      raw.advertiser,
+      snapshot.byline,
+      raw.byline
+    ) ||
+    deepFind(raw, ['page_name', 'pageName', 'advertiserName', 'advertiser_name']) ||
     'Unknown';
 
-  // Platform: Apify returns publisher_platforms array
-  const platforms: string[] = raw.publisher_platforms || raw.platforms || [];
+  const body =
+    pick(
+      snapshot.body?.text,
+      snapshot.body?.markup?.__html,
+      snapshot.bodyText,
+      raw.ad_creative_body,
+      raw.adCreativeBody,
+      raw.body?.text,
+      raw.body,
+      raw.text,
+      raw.creative_body,
+      snapshot.link_description,
+      snapshot.caption
+    ) ||
+    deepFind(raw, ['text', 'body', 'caption', 'description', 'message']) ||
+    '';
+
+  const title = pick(
+    snapshot.title,
+    snapshot.titleText,
+    raw.ad_creative_title,
+    raw.adCreativeTitle,
+    raw.title,
+    raw.headline,
+    snapshot.link_url
+  );
+
+  // Platform detection
+  const platforms: string[] = (
+    raw.publisher_platforms ||
+    raw.publisherPlatform ||
+    raw.publisher_platform ||
+    raw.platforms ||
+    snapshot.publisher_platforms ||
+    []
+  )
+    .map((p: any) => (typeof p === 'string' ? p.toLowerCase() : ''))
+    .filter(Boolean);
   let platform: 'facebook' | 'instagram' | 'both' = 'facebook';
-  const hasFb = platforms.some((p) => p?.toLowerCase().includes('facebook'));
-  const hasIg = platforms.some((p) => p?.toLowerCase().includes('instagram'));
+  const hasFb = platforms.some((p) => p.includes('facebook'));
+  const hasIg = platforms.some((p) => p.includes('instagram'));
   if (hasFb && hasIg) platform = 'both';
   else if (hasIg) platform = 'instagram';
 
   // Ad type detection
+  const videos = snapshot.videos || raw.videos || [];
+  const cards = snapshot.cards || raw.cards || [];
   let adType: 'image' | 'video' | 'carousel' = 'image';
-  if (snapshot.videos?.length || raw.has_video) adType = 'video';
-  else if (snapshot.cards?.length > 1 || raw.is_carousel) adType = 'carousel';
+  if ((Array.isArray(videos) && videos.length) || raw.has_video) adType = 'video';
+  else if (Array.isArray(cards) && cards.length > 1) adType = 'carousel';
 
-  const thumb =
-    snapshot.videos?.[0]?.video_preview_image_url ||
-    snapshot.images?.[0]?.original_image_url ||
-    snapshot.images?.[0]?.resized_image_url ||
-    raw.thumbnail_url ||
-    raw.thumbnailUrl;
+  const thumb = pick(
+    videos?.[0]?.video_preview_image_url,
+    videos?.[0]?.videoPreviewImageURL,
+    snapshot.images?.[0]?.original_image_url,
+    snapshot.images?.[0]?.originalImageURL,
+    snapshot.images?.[0]?.resized_image_url,
+    snapshot.images?.[0]?.resizedImageURL,
+    raw.thumbnail_url,
+    raw.thumbnailUrl,
+    raw.image_url,
+    raw.imageUrl
+  );
+
+  const archiveId = raw.ad_archive_id || raw.adArchiveID || raw.adArchiveId || raw.id;
 
   return {
-    id: String(raw.ad_archive_id || raw.id || raw.adArchiveID || crypto.randomUUID()),
+    id: String(archiveId || crypto.randomUUID()),
     advertiserName: advertiser,
     adCreativeBody: body,
-    adCreativeTitle: title || undefined,
+    adCreativeTitle: title,
     thumbnailUrl: thumb,
     snapshotUrl:
       raw.snapshot_url ||
-      (raw.ad_archive_id
-        ? `https://www.facebook.com/ads/library/?id=${raw.ad_archive_id}`
+      raw.snapshotUrl ||
+      raw.url ||
+      (archiveId
+        ? `https://www.facebook.com/ads/library/?id=${archiveId}`
         : undefined),
     platform,
     adType,
-    isActive: raw.is_active !== false,
+    isActive: raw.is_active !== false && raw.isActive !== false,
     startedRunning:
-      raw.start_date_string ||
-      raw.startedRunning ||
-      raw.start_date ||
-      new Date().toISOString().split('T')[0],
-    impressionRange: raw.impressions?.text || raw.impressionRange,
-    spendRange: raw.spend?.text || raw.spendRange,
+      pick(
+        raw.start_date_string,
+        raw.startDateString,
+        raw.startedRunning,
+        raw.start_date,
+        raw.startDate
+      ) || new Date().toISOString().split('T')[0],
+    impressionRange: pick(
+      raw.impressions?.text,
+      raw.impressionsText,
+      raw.impressionRange,
+      snapshot.impressions?.text
+    ),
+    spendRange: pick(raw.spend?.text, raw.spendText, raw.spendRange, snapshot.spend?.text),
   };
+}
+
+/**
+ * Run the Apify actor and return RAW results (no normalization).
+ * Used by debug endpoint.
+ */
+export async function runApifyScraperRaw(
+  query: string,
+  limit: number
+): Promise<any[] | null> {
+  const apiToken = process.env.APIFY_API_TOKEN;
+  if (!apiToken) return null;
+
+  const url = `${APIFY_API_BASE}/acts/${APIFY_ACTOR_ID}/run-sync-get-dataset-items?token=${apiToken}`;
+  const input = {
+    urls: [{ url: buildAdLibraryUrl(query) }],
+    count: limit,
+    scrapeAdDetails: false,
+    'scrapePageAds.activeStatus': 'active',
+    period: '',
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Apify error ${response.status}: ${text.slice(0, 200)}`);
+  }
+
+  return response.json();
 }
 
 /**
