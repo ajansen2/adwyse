@@ -208,9 +208,10 @@ export async function runApifyScraperRaw(
   if (!apiToken) return null;
 
   const url = `${APIFY_API_BASE}/acts/${APIFY_ACTOR_ID}/run-sync-get-dataset-items?token=${apiToken}`;
+  // Actor requires minimum 10 charged results
   const input = {
     urls: [{ url: buildAdLibraryUrl(query) }],
-    count: limit,
+    count: Math.max(10, limit),
     scrapeAdDetails: false,
     'scrapePageAds.activeStatus': 'active',
     period: '',
