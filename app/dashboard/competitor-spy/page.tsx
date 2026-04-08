@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { Sidebar, MobileNav } from '@/components/dashboard';
 import {
@@ -65,6 +65,7 @@ const industries = [
 
 function CompetitorSpyContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [stores, setStores] = useState<Store[]>([]);
   const [competitors, setCompetitors] = useState<Competitor[]>([]);
@@ -87,30 +88,53 @@ function CompetitorSpyContent() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const supabase = getSupabaseClient();
-        const { data: { user } } = await supabase.auth.getUser();
+        const shop = searchParams.get('shop');
+        let storeId: string | null = null;
+        let storeName = '';
 
-        if (!user) {
-          router.push('/login');
-          return;
+        // Try shop param first (embedded Shopify app flow)
+        if (shop) {
+          const lookupRes = await fetch(`/api/stores/lookup?shop=${encodeURIComponent(shop)}`);
+          if (lookupRes.ok) {
+            const lookupData = await lookupRes.json();
+            const storeData = lookupData.store || lookupData.merchant;
+            if (storeData) {
+              storeId = storeData.id;
+              storeName = storeData.store_name || storeData.shop_domain || '';
+            }
+          }
         }
 
-        // Get stores
-        const { data: storesData } = await supabase
-          .from('adwyse_stores')
-          .select('id, store_name')
-          .eq('user_id', user.id);
-
-        const typedStores = (storesData || []) as Store[];
-        if (typedStores.length > 0) {
-          setStores(typedStores);
-
-          // Fetch competitors
-          const response = await fetch(`/api/competitors?store_id=${typedStores[0].id}`);
-          if (response.ok) {
-            const data = await response.json();
-            setCompetitors(data.competitors || []);
+        // Fallback to Supabase auth (non-embedded flow)
+        if (!storeId) {
+          const supabase = getSupabaseClient();
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { data: storesData } = await supabase
+              .from('adwyse_stores')
+              .select('id, store_name')
+              .eq('user_id', user.id);
+            const typedStores = (storesData || []) as Store[];
+            if (typedStores.length > 0) {
+              storeId = typedStores[0].id;
+              storeName = typedStores[0].store_name;
+            }
           }
+        }
+
+        // Final fallback: use demo store so the page is never blank
+        if (!storeId) {
+          storeId = DEMO_STORE_ID;
+          storeName = 'Demo Store';
+        }
+
+        setStores([{ id: storeId, store_name: storeName }]);
+
+        // Fetch competitors
+        const response = await fetch(`/api/competitors?store_id=${storeId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setCompetitors(data.competitors || []);
         }
 
         // Fetch demo ads
@@ -127,7 +151,7 @@ function CompetitorSpyContent() {
     };
 
     loadData();
-  }, [router]);
+  }, [router, searchParams]);
 
   const handleAddCompetitor = async () => {
     if (!newCompetitor.name.trim() || !stores[0]) return;

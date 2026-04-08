@@ -386,6 +386,7 @@ function CompareContent() {
                             borderRadius: '8px',
                             color: 'white',
                           }}
+                          formatter={(value: number) => value.toFixed(2)}
                         />
                         <Legend />
                         {comparingCampaigns.map((c, idx) => (
@@ -429,6 +430,7 @@ function CompareContent() {
                             borderRadius: '8px',
                             color: 'white',
                           }}
+                          formatter={(value: number) => value.toFixed(1)}
                         />
                       </RadarChart>
                     </ResponsiveContainer>

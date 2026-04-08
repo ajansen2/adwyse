@@ -230,35 +230,53 @@ export function BudgetOptimizer({ storeId }: BudgetOptimizerProps) {
               <Calendar className="w-3.5 h-3.5 text-blue-400" />
               <span className="text-xs font-medium text-white/80">Best Days to Advertise</span>
             </div>
-            <div className="flex items-end gap-1 h-8">
-              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, idx) => {
-                // Aggregate performance across all campaigns
-                const trends = data.predictions?.trends || [];
-                const avgPerf = trends.length > 0
+            {(() => {
+              const trends = data.predictions?.trends || [];
+              const dayPerfs = ['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((_, idx) =>
+                trends.length > 0
                   ? trends.reduce((sum, t) => {
                       const pattern = t.day_of_week_patterns.find(p => p.day === idx);
                       return sum + (pattern?.performance_index || 1);
                     }, 0) / trends.length
-                  : 1;
-                const height = Math.max(20, Math.min(100, avgPerf * 100 - 70));
-                const isGood = avgPerf > 1.05;
-                const isBad = avgPerf < 0.95;
+                  : 1
+              );
+              const maxPerf = Math.max(...dayPerfs);
+              return (
+                <div className="flex items-end gap-1 h-10">
+                  {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, idx) => {
+                    const avgPerf = dayPerfs[idx];
+                    const height = Math.max(20, Math.min(100, avgPerf * 100 - 70));
+                    const isBest = avgPerf === maxPerf && avgPerf > 1.05;
+                    const isGood = avgPerf > 1.05 && !isBest;
+                    const isBad = avgPerf < 0.95;
 
-                return (
-                  <div key={idx} className="flex flex-col items-center flex-1">
-                    <div
-                      className={`w-full rounded-t transition-all ${
-                        isGood ? 'bg-green-500/60' : isBad ? 'bg-red-500/40' : 'bg-white/20'
-                      }`}
-                      style={{ height: `${height}%` }}
-                    />
-                    <span className={`text-[10px] mt-1 ${isGood ? 'text-green-400' : isBad ? 'text-red-400/70' : 'text-white/40'}`}>
-                      {day}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+                    return (
+                      <div key={idx} className="flex flex-col items-center flex-1">
+                        <div
+                          className={`w-full rounded-t transition-all ${
+                            isBest ? 'bg-green-400 shadow-lg shadow-green-500/50' : isGood ? 'bg-green-500/60' : isBad ? 'bg-red-500/40' : 'bg-white/20'
+                          }`}
+                          style={{ height: `${height}%` }}
+                        />
+                        <span
+                          className={`text-[10px] mt-1 font-bold flex items-center justify-center ${
+                            isBest
+                              ? 'text-green-300 w-5 h-5 rounded-full bg-green-500/30 ring-2 ring-green-400 shadow-md shadow-green-500/50'
+                              : isGood
+                              ? 'text-green-400'
+                              : isBad
+                              ? 'text-red-400/70'
+                              : 'text-white/40'
+                          }`}
+                        >
+                          {day}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Budget Pacing */}
