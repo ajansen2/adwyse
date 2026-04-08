@@ -135,6 +135,31 @@ function DashboardContent() {
     }
   }, [stores, loading]);
 
+  // Load funnel data when stores are available
+  useEffect(() => {
+    if (stores.length > 0 && !loading) {
+      const storeId = stores[0].id;
+      console.log('🚀 Loading funnel for store:', storeId);
+
+      fetch(`/api/analytics/funnel?store_id=${storeId}&days=0`)
+        .then(res => res.json())
+        .then(data => {
+          console.log('📊 Funnel response:', data);
+          if (data.funnel && data.funnel.length > 0) {
+            setFunnelData(data.funnel);
+            console.log('✅ Funnel data set:', data.funnel);
+          } else {
+            console.log('⚠️ No funnel data, using demo');
+            setFunnelData(generateDemoFunnelData());
+          }
+        })
+        .catch(err => {
+          console.error('❌ Funnel error:', err);
+          setFunnelData(generateDemoFunnelData());
+        });
+    }
+  }, [stores, loading]);
+
   // Show onboarding only ONCE for new users
   useEffect(() => {
     if (stores.length > 0 && !loading) {
