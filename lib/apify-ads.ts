@@ -78,58 +78,51 @@ function deepFind(obj: any, keys: string[], maxDepth = 4): string | undefined {
   return undefined;
 }
 
+/** Strip out template placeholders like {{product.brand}} that DCO ads use. */
+function cleanText(s: string | undefined): string | undefined {
+  if (!s) return undefined;
+  const trimmed = s.trim();
+  if (!trimmed) return undefined;
+  // Reject pure template placeholders
+  if (/^\{\{[^}]+\}\}$/.test(trimmed)) return undefined;
+  return trimmed;
+}
+
 function normalizeApifyResult(raw: any): ApifyAd {
   const snapshot = raw.snapshot || raw.ad_snapshot || raw.adSnapshot || {};
+  const cards: any[] = Array.isArray(snapshot.cards) ? snapshot.cards : [];
+  const firstCard = cards[0] || {};
 
   const advertiser =
-    pick(
-      snapshot.page_name,
-      snapshot.pageName,
-      raw.page_name,
-      raw.pageName,
-      raw.advertiserName,
-      raw.advertiser_name,
-      raw.advertiser,
-      snapshot.byline,
-      raw.byline
-    ) ||
-    deepFind(raw, ['page_name', 'pageName', 'advertiserName', 'advertiser_name']) ||
+    cleanText(snapshot.page_name) ||
+    cleanText(raw.page_name) ||
+    cleanText(snapshot.byline) ||
+    cleanText(raw.advertiserName) ||
     'Unknown';
 
+  // Body: prefer card body (real text), fall back to snapshot body (often template placeholder)
   const body =
-    pick(
-      snapshot.body?.text,
-      snapshot.body?.markup?.__html,
-      snapshot.bodyText,
-      raw.ad_creative_body,
-      raw.adCreativeBody,
-      raw.body?.text,
-      raw.body,
-      raw.text,
-      raw.creative_body,
-      snapshot.link_description,
-      snapshot.caption
-    ) ||
-    deepFind(raw, ['text', 'body', 'caption', 'description', 'message']) ||
+    cleanText(firstCard.body) ||
+    cleanText(snapshot.body?.text) ||
+    cleanText(snapshot.body?.markup?.__html) ||
+    cleanText(snapshot.link_description) ||
+    cleanText(snapshot.caption) ||
+    cleanText(raw.body?.text) ||
+    cleanText(raw.body) ||
     '';
 
-  const title = pick(
-    snapshot.title,
-    snapshot.titleText,
-    raw.ad_creative_title,
-    raw.adCreativeTitle,
-    raw.title,
-    raw.headline,
-    snapshot.link_url
-  );
+  // Title: prefer card title over snapshot title (which is often template placeholder)
+  const title =
+    cleanText(firstCard.title) ||
+    cleanText(snapshot.title) ||
+    cleanText(firstCard.link_description) ||
+    cleanText(snapshot.link_description);
 
-  // Platform detection
+  // Platform detection — actual key is `publisher_platform` (singular)
   const platforms: string[] = (
-    raw.publisher_platforms ||
-    raw.publisherPlatform ||
     raw.publisher_platform ||
-    raw.platforms ||
-    snapshot.publisher_platforms ||
+    snapshot.publisher_platform ||
+    raw.publisher_platforms ||
     []
   )
     .map((p: any) => (typeof p === 'string' ? p.toLowerCase() : ''))
@@ -140,25 +133,23 @@ function normalizeApifyResult(raw: any): ApifyAd {
   if (hasFb && hasIg) platform = 'both';
   else if (hasIg) platform = 'instagram';
 
-  // Ad type detection
-  const videos = snapshot.videos || raw.videos || [];
-  const cards = snapshot.cards || raw.cards || [];
+  // Ad type detection — use display_format if present
+  const displayFormat = (snapshot.display_format || '').toUpperCase();
   let adType: 'image' | 'video' | 'carousel' = 'image';
-  if ((Array.isArray(videos) && videos.length) || raw.has_video) adType = 'video';
-  else if (Array.isArray(cards) && cards.length > 1) adType = 'carousel';
+  const hasVideo = !!firstCard.video_hd_url || !!firstCard.video_sd_url || (snapshot.videos?.length > 0);
+  if (displayFormat === 'VIDEO' || hasVideo) adType = 'video';
+  else if (displayFormat === 'CAROUSEL' || cards.length > 1) adType = 'carousel';
+  else if (displayFormat === 'IMAGE') adType = 'image';
 
-  const thumb = pick(
-    videos?.[0]?.video_preview_image_url,
-    videos?.[0]?.videoPreviewImageURL,
-    snapshot.images?.[0]?.original_image_url,
-    snapshot.images?.[0]?.originalImageURL,
-    snapshot.images?.[0]?.resized_image_url,
-    snapshot.images?.[0]?.resizedImageURL,
-    raw.thumbnail_url,
-    raw.thumbnailUrl,
-    raw.image_url,
-    raw.imageUrl
-  );
+  // Thumbnail: card images first, then top-level snapshot images, then video preview
+  const thumb =
+    firstCard.original_image_url ||
+    firstCard.resized_image_url ||
+    firstCard.video_preview_image_url ||
+    snapshot.images?.[0]?.original_image_url ||
+    snapshot.images?.[0]?.resized_image_url ||
+    snapshot.videos?.[0]?.video_preview_image_url ||
+    undefined;
 
   const archiveId = raw.ad_archive_id || raw.adArchiveID || raw.adArchiveId || raw.id;
 
@@ -169,9 +160,9 @@ function normalizeApifyResult(raw: any): ApifyAd {
     adCreativeTitle: title,
     thumbnailUrl: thumb,
     snapshotUrl:
+      raw.ad_library_url ||
       raw.snapshot_url ||
       raw.snapshotUrl ||
-      raw.url ||
       (archiveId
         ? `https://www.facebook.com/ads/library/?id=${archiveId}`
         : undefined),
@@ -180,11 +171,11 @@ function normalizeApifyResult(raw: any): ApifyAd {
     isActive: raw.is_active !== false && raw.isActive !== false,
     startedRunning:
       pick(
+        raw.start_date_formatted,
+        raw.startDateFormatted,
         raw.start_date_string,
         raw.startDateString,
-        raw.startedRunning,
-        raw.start_date,
-        raw.startDate
+        raw.startedRunning
       ) || new Date().toISOString().split('T')[0],
     impressionRange: pick(
       raw.impressions?.text,
@@ -343,7 +334,7 @@ export async function fetchCompetitorAds(
   if (!apiToken) return null;
   if (!query?.trim()) return [];
 
-  const queryKey = `apify:${query.toLowerCase().trim()}:${limit}`;
+  const queryKey = `apify:v2:${query.toLowerCase().trim()}:${limit}`;
 
   // Check cache first
   const cached = await getCachedResults(queryKey);
