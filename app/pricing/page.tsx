@@ -21,13 +21,13 @@ export default function PricingPage() {
               </span>
             </div>
             <h1 className="text-5xl md:text-6xl font-bold mb-6">
-              Start Free,{" "}
+              Triple Whale features.{" "}
               <span className="bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">
-                Scale When Ready
+                Half the price.
               </span>
             </h1>
             <p className="text-xl text-zinc-400 max-w-3xl mx-auto">
-              Get started with our free plan. Upgrade to Pro when you need unlimited tracking and AI insights.
+              AI assistant, competitor spy, cohort retention, predictive budget AI, server-side tracking — everything serious Shopify merchants need, for $99/mo.
             </p>
           </div>
         </div>
@@ -67,7 +67,7 @@ export default function PricingPage() {
                   <td className="px-6 py-4 text-sm text-zinc-400">Price</td>
                   <td className="px-6 py-4 text-center text-sm font-semibold text-green-400">Free forever</td>
                   <td className="px-6 py-4 text-center text-sm font-semibold text-amber-400">$99/mo</td>
-                  <td className="px-6 py-4 text-center text-sm text-zinc-500">$129/mo</td>
+                  <td className="px-6 py-4 text-center text-sm text-zinc-500">$149-219/mo</td>
                 </tr>
                 <tr className="bg-white/[0.02]">
                   <td className="px-6 py-4 text-sm text-zinc-400">Ad Accounts</td>
@@ -82,14 +82,74 @@ export default function PricingPage() {
                   <td className="px-6 py-4 text-center text-sm text-zinc-500">Tiered</td>
                 </tr>
                 <tr className="bg-white/[0.02]">
-                  <td className="px-6 py-4 text-sm text-zinc-400">AI-Powered Insights</td>
-                  <td className="px-6 py-4 text-center text-zinc-600">-</td>
+                  <td className="px-6 py-4 text-sm text-zinc-400">Real-time ROAS dashboard</td>
                   <td className="px-6 py-4 text-center"><Check className="w-5 h-5 text-green-400 mx-auto" /></td>
-                  <td className="px-6 py-4 text-center text-zinc-600">Limited</td>
+                  <td className="px-6 py-4 text-center"><Check className="w-5 h-5 text-green-400 mx-auto" /></td>
+                  <td className="px-6 py-4 text-center"><Check className="w-5 h-5 text-zinc-600 mx-auto" /></td>
                 </tr>
                 <tr>
-                  <td className="px-6 py-4 text-sm text-zinc-400">Email Reports</td>
-                  <td className="px-6 py-4 text-center text-zinc-600">-</td>
+                  <td className="px-6 py-4 text-sm text-zinc-400">AI Assistant (chat with your data)</td>
+                  <td className="px-6 py-4 text-center text-zinc-600">—</td>
+                  <td className="px-6 py-4 text-center"><Check className="w-5 h-5 text-green-400 mx-auto" /></td>
+                  <td className="px-6 py-4 text-center text-xs text-zinc-500">Moby AI</td>
+                </tr>
+                <tr className="bg-white/[0.02]">
+                  <td className="px-6 py-4 text-sm text-zinc-400">Competitor Spy (live ad scraping)</td>
+                  <td className="px-6 py-4 text-center text-zinc-600">—</td>
+                  <td className="px-6 py-4 text-center"><Check className="w-5 h-5 text-green-400 mx-auto" /></td>
+                  <td className="px-6 py-4 text-center text-zinc-600">—</td>
+                </tr>
+                <tr>
+                  <td className="px-6 py-4 text-sm text-zinc-400">AI Creative Score (rank 0-100)</td>
+                  <td className="px-6 py-4 text-center text-zinc-600">—</td>
+                  <td className="px-6 py-4 text-center"><Check className="w-5 h-5 text-green-400 mx-auto" /></td>
+                  <td className="px-6 py-4 text-center text-zinc-600">—</td>
+                </tr>
+                <tr className="bg-white/[0.02]">
+                  <td className="px-6 py-4 text-sm text-zinc-400">Cohort retention analysis</td>
+                  <td className="px-6 py-4 text-center text-zinc-600">—</td>
+                  <td className="px-6 py-4 text-center"><Check className="w-5 h-5 text-green-400 mx-auto" /></td>
+                  <td className="px-6 py-4 text-center"><Check className="w-5 h-5 text-zinc-600 mx-auto" /></td>
+                </tr>
+                <tr>
+                  <td className="px-6 py-4 text-sm text-zinc-400">New vs Repeat ROAS (NC-ROAS)</td>
+                  <td className="px-6 py-4 text-center text-zinc-600">—</td>
+                  <td className="px-6 py-4 text-center"><Check className="w-5 h-5 text-green-400 mx-auto" /></td>
+                  <td className="px-6 py-4 text-center"><Check className="w-5 h-5 text-zinc-600 mx-auto" /></td>
+                </tr>
+                <tr className="bg-white/[0.02]">
+                  <td className="px-6 py-4 text-sm text-zinc-400">Predictive Budget Optimizer</td>
+                  <td className="px-6 py-4 text-center text-zinc-600">—</td>
+                  <td className="px-6 py-4 text-center"><Check className="w-5 h-5 text-green-400 mx-auto" /></td>
+                  <td className="px-6 py-4 text-center text-zinc-600">—</td>
+                </tr>
+                <tr>
+                  <td className="px-6 py-4 text-sm text-zinc-400">Multi-touch attribution</td>
+                  <td className="px-6 py-4 text-center text-zinc-600">—</td>
+                  <td className="px-6 py-4 text-center"><Check className="w-5 h-5 text-green-400 mx-auto" /></td>
+                  <td className="px-6 py-4 text-center"><Check className="w-5 h-5 text-zinc-600 mx-auto" /></td>
+                </tr>
+                <tr className="bg-white/[0.02]">
+                  <td className="px-6 py-4 text-sm text-zinc-400">Server-side Conversions API (iOS14 fix)</td>
+                  <td className="px-6 py-4 text-center text-zinc-600">—</td>
+                  <td className="px-6 py-4 text-center"><Check className="w-5 h-5 text-green-400 mx-auto" /></td>
+                  <td className="px-6 py-4 text-center"><Check className="w-5 h-5 text-zinc-600 mx-auto" /></td>
+                </tr>
+                <tr>
+                  <td className="px-6 py-4 text-sm text-zinc-400">Slack daily digest</td>
+                  <td className="px-6 py-4 text-center text-zinc-600">—</td>
+                  <td className="px-6 py-4 text-center"><Check className="w-5 h-5 text-green-400 mx-auto" /></td>
+                  <td className="px-6 py-4 text-center"><Check className="w-5 h-5 text-zinc-600 mx-auto" /></td>
+                </tr>
+                <tr className="bg-white/[0.02]">
+                  <td className="px-6 py-4 text-sm text-zinc-400">Email reports & creative fatigue alerts</td>
+                  <td className="px-6 py-4 text-center text-zinc-600">—</td>
+                  <td className="px-6 py-4 text-center"><Check className="w-5 h-5 text-green-400 mx-auto" /></td>
+                  <td className="px-6 py-4 text-center"><Check className="w-5 h-5 text-zinc-600 mx-auto" /></td>
+                </tr>
+                <tr>
+                  <td className="px-6 py-4 text-sm text-zinc-400">Profit tracking (COGS) & Customer LTV</td>
+                  <td className="px-6 py-4 text-center text-zinc-600">—</td>
                   <td className="px-6 py-4 text-center"><Check className="w-5 h-5 text-green-400 mx-auto" /></td>
                   <td className="px-6 py-4 text-center"><Check className="w-5 h-5 text-zinc-600 mx-auto" /></td>
                 </tr>
@@ -102,6 +162,10 @@ export default function PricingPage() {
               </tbody>
             </table>
           </div>
+
+          <p className="text-center text-zinc-500 text-xs mt-4">
+            Same features. Half the price. Native Shopify install — no migration headaches.
+          </p>
         </div>
       </section>
 
@@ -155,23 +219,35 @@ export default function PricingPage() {
             {[
               {
                 q: "What's included in the free plan?",
-                a: "The free plan includes 1 ad account connection, 100 orders tracked per month, 30 days of data history, and basic ROAS calculations. Perfect for testing or small stores."
+                a: "1 ad account connection, 100 orders/month, 30 days of data history, basic ROAS dashboard, and the conversion funnel. Perfect for testing or very small stores."
+              },
+              {
+                q: "How is AdWyse different from Triple Whale?",
+                a: "Same core features (multi-touch attribution, AI assistant, cohorts, NC-ROAS, CAPI, creative analysis) at $99/mo flat — Triple Whale starts at $149 and tiers up to $219+. Plus we add a live Competitor Spy that scrapes Meta Ad Library, which Triple Whale doesn't have. And our setup is 2 minutes vs their 30+."
+              },
+              {
+                q: "What does the AI Assistant do?",
+                a: "It's a chat box where you ask questions in plain English — 'What's my best campaign?', 'What should I scale?', 'Why did revenue drop yesterday?' — and get specific answers with real numbers from your data. Powered by Claude."
+              },
+              {
+                q: "How does Competitor Spy work?",
+                a: "Add any brand name and we pull their currently-running Facebook & Instagram ads from Meta's Ad Library in real-time. See their creatives, copy, formats, and how long each ad has been running. Cached 24h to keep it fast."
+              },
+              {
+                q: "What is server-side Conversions API for?",
+                a: "iOS14 and Safari ITP wiped out ~30% of pixel-based attribution. Our server-side CAPI integration sends purchase events directly from our servers to Meta, recovering that lost data. Most merchants see ROAS jump 15-30% after enabling it."
               },
               {
                 q: "How does the Pro trial work?",
-                a: "Install AdWyse and get 7 days of full Pro access with no credit card required. After the trial, you can subscribe to Pro or continue on the free plan."
+                a: "Install AdWyse and get 7 days of full Pro access. No credit card required. After the trial, subscribe to Pro or stay on the free plan."
               },
               {
                 q: "Can I cancel anytime?",
-                a: "Yes! No contracts, no commitments. Cancel from your Shopify admin whenever you want. You'll be moved to the free plan with limited features."
+                a: "Yes. No contracts. Cancel from your Shopify admin and you'll move to the free plan with limited features."
               },
               {
                 q: "What ad platforms do you support?",
-                a: "Facebook Ads, Google Ads, and TikTok Ads. Free plan supports 1 account from any platform. Pro supports unlimited accounts across all platforms."
-              },
-              {
-                q: "What makes the AI insights special?",
-                a: "Claude AI analyzes your campaign data and generates specific recommendations like 'pause campaign X' or 'increase budget on Y'. This is a Pro-only feature."
+                a: "Facebook, Google, and TikTok Ads. Free plan supports 1 account from any platform. Pro supports unlimited accounts across all platforms."
               }
             ].map((faq, i) => (
               <div
