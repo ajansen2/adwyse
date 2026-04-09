@@ -555,8 +555,11 @@ export default function HomePage() {
                     { text: "100 orders/month", included: true },
                     { text: "30 days data history", included: true },
                     { text: "ROAS dashboard", included: true },
-                    { text: "AI insights", included: false },
-                    { text: "Email reports", included: false },
+                    { text: "Conversion funnel", included: true },
+                    { text: "AI Assistant", included: false },
+                    { text: "Competitor Spy", included: false },
+                    { text: "Cohorts & NC-ROAS", included: false },
+                    { text: "Email reports & alerts", included: false },
                   ].map((feature, i) => (
                     <li key={i} className={`flex items-center gap-3 ${feature.included ? 'text-zinc-300' : 'text-zinc-600'}`}>
                       <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${feature.included ? 'bg-green-500/20' : 'bg-zinc-800'}`}>
@@ -600,12 +603,18 @@ export default function HomePage() {
 
                 <ul className="space-y-3 mb-8">
                   {[
-                    { text: "Unlimited ad accounts", highlight: false },
-                    { text: "Unlimited orders", highlight: false },
-                    { text: "Full data history", highlight: false },
-                    { text: "ROAS dashboard", highlight: false },
-                    { text: "AI insights", highlight: true },
-                    { text: "Email reports & alerts", highlight: true },
+                    { text: "Everything in Free, plus:", highlight: false },
+                    { text: "Unlimited ad accounts & orders", highlight: false },
+                    { text: "AI Assistant — chat with your data", highlight: true },
+                    { text: "Competitor Spy (live ad scraping)", highlight: true },
+                    { text: "AI Creative Score", highlight: true },
+                    { text: "Cohort retention analysis", highlight: true },
+                    { text: "New vs Repeat ROAS", highlight: true },
+                    { text: "Predictive Budget Optimizer", highlight: true },
+                    { text: "Multi-touch attribution", highlight: false },
+                    { text: "Server-side Conversions API", highlight: true },
+                    { text: "Slack daily digest", highlight: false },
+                    { text: "Email reports & alerts", highlight: false },
                   ].map((feature, i) => (
                     <li key={i} className={`flex items-center gap-3 ${feature.highlight ? 'text-amber-300' : 'text-zinc-300'}`}>
                       <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${feature.highlight ? 'bg-amber-500/20' : 'bg-green-500/20'}`}>
