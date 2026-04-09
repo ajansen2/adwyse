@@ -68,15 +68,46 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ isDemo: false, cohorts: [] });
     }
 
-    // Find each customer's first-ever order date (to assign cohort)
+    // CRITICAL: A customer's "first order" must be their TRUE all-time first order,
+    // not just the first order we see in the window. Otherwise customers who joined
+    // years ago and re-purchased recently would be wrongly placed in a recent cohort.
+    //
+    // Query: for every email present in the window, look up the minimum
+    // order_created_at across ALL their orders (any time).
+    const emailsInWindow = Array.from(
+      new Set(
+        orders.map((o) => o.customer_email!.toLowerCase()).filter(Boolean)
+      )
+    );
+
     const firstOrderByEmail = new Map<string, Date>();
-    orders.forEach((o) => {
-      const email = o.customer_email!.toLowerCase();
-      const d = new Date(o.order_created_at);
-      const existing = firstOrderByEmail.get(email);
-      if (!existing || d < existing) {
-        firstOrderByEmail.set(email, d);
-      }
+
+    // Batch the IN query to avoid Postgres parameter limits (~1000 emails per batch)
+    const BATCH = 500;
+    for (let i = 0; i < emailsInWindow.length; i += BATCH) {
+      const batch = emailsInWindow.slice(i, i + BATCH);
+      const { data: allTimeFirsts } = await supabase
+        .from('orders')
+        .select('customer_email, order_created_at')
+        .eq('store_id', storeId)
+        .in('customer_email', batch)
+        .order('order_created_at', { ascending: true });
+
+      (allTimeFirsts || []).forEach((row: any) => {
+        const email = row.customer_email?.toLowerCase();
+        if (!email) return;
+        if (!firstOrderByEmail.has(email)) {
+          // ascending order means first one we see is the earliest
+          firstOrderByEmail.set(email, new Date(row.order_created_at));
+        }
+      });
+    }
+
+    // Drop customers whose true first order is BEFORE the window — they're
+    // existing customers, not part of any displayed cohort.
+    const validEmails = new Set<string>();
+    firstOrderByEmail.forEach((firstDate, email) => {
+      if (firstDate >= startDate) validEmails.add(email);
     });
 
     // Build cohorts: { '2026-03': { customers: Set, monthlyData: [...] } }
@@ -91,6 +122,8 @@ export async function GET(request: NextRequest) {
 
     orders.forEach((o) => {
       const email = o.customer_email!.toLowerCase();
+      // Skip pre-existing customers (their first order was before the window)
+      if (!validEmails.has(email)) return;
       const orderDate = new Date(o.order_created_at);
       const firstDate = firstOrderByEmail.get(email)!;
       const cohortMonth = `${firstDate.getFullYear()}-${String(firstDate.getMonth() + 1).padStart(2, '0')}`;
