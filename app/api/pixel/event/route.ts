@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { recordTouchpoint, determineTouchpointType } from '@/lib/attribution-engine';
+import { sendCapiPurchase } from '@/lib/meta-capi';
 
 /**
  * Pixel Event Receiver
@@ -116,6 +117,59 @@ export async function POST(request: NextRequest) {
     if (eventError) {
       console.error('Error storing pixel event:', eventError);
       // Don't fail the request - pixel should be resilient
+    }
+
+    // Forward purchase events to Meta Conversions API (server-side tracking)
+    // for stores that have CAPI enabled. This recovers attribution lost to
+    // iOS14 / browser tracking restrictions. Fire-and-forget so we never
+    // block the pixel response.
+    if (eventType === 'purchase') {
+      const orderId = String(payload.eventData?.orderId || payload.eventData?.order_id || '');
+      const value = parseFloat(payload.eventData?.value || payload.eventData?.total || 0);
+      const currency = String(payload.eventData?.currency || 'USD');
+
+      if (orderId && value > 0) {
+        // Extract IP from forwarded headers
+        const ipAddress =
+          request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+          request.headers.get('x-real-ip') ||
+          undefined;
+
+        sendCapiPurchase(storeId, {
+          orderId,
+          value,
+          currency,
+          customerEmail: payload.customerEmail,
+          customerPhone: payload.eventData?.phone,
+          firstName: payload.eventData?.firstName,
+          lastName: payload.eventData?.lastName,
+          city: payload.eventData?.city,
+          state: payload.eventData?.state,
+          zip: payload.eventData?.zip,
+          country: payload.eventData?.country,
+          externalId: visitorId,
+          pageUrl: payload.pageUrl,
+          userAgent: payload.userAgent,
+          ipAddress,
+          fbc: payload.fbclid ? `fb.1.${Date.now()}.${payload.fbclid}` : undefined,
+          fbp: payload.eventData?.fbp,
+        })
+          .then(async (result) => {
+            // Log the result for observability
+            await supabase.from('meta_capi_events_log').insert({
+              store_id: storeId,
+              event_name: 'Purchase',
+              event_id: orderId,
+              order_id: orderId,
+              value,
+              success: result.success,
+              error: result.error || null,
+            });
+          })
+          .catch((err) => {
+            console.error('CAPI fire-and-forget failed:', err);
+          });
+      }
     }
 
     // Record touchpoint for attribution if we have attribution data
