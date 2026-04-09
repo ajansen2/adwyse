@@ -6,6 +6,7 @@ import { getSupabaseClient } from '@/lib/supabase-client';
 import { initializeAppBridge, isEmbeddedInShopify, navigateInApp, getShopifySessionToken, redirectToOAuth } from '@/lib/shopify-app-bridge';
 import Link from 'next/link';
 import { Sidebar, MobileNav, GettingStarted, ProfitSummary, AlertsWidget, GoalProgress, BudgetOptimizer, CompetitorSpy, QuickActions, AskAdWyse, NCRoasCard } from '@/components/dashboard';
+import { useTier } from '@/lib/use-tier';
 import { MetricCard, DashboardSkeleton, StaggerContainer, StaggerItem } from '@/components/ui';
 import { RevenueChart, FunnelChart } from '@/components/charts';
 
@@ -76,6 +77,10 @@ interface Campaign {
 const ENABLE_EXTRA_COMPONENTS = true;
 
 function DashboardContent() {
+  // Tier gating — free users only see basic widgets
+  const { isPro: tierIsPro, loading: tierLoading } = useTier();
+  const showPro = tierIsPro || tierLoading;
+
   const [loading, setLoading] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState('Loading dashboard...');
   const [merchant, setMerchant] = useState<Merchant | null>(null);
@@ -1029,7 +1034,7 @@ function DashboardContent() {
       )}
 
       {/* Sidebar */}
-      {ENABLE_EXTRA_COMPONENTS && <Sidebar activePage="dashboard" />}
+      {ENABLE_EXTRA_COMPONENTS && <Sidebar activePage="dashboard" storeId={stores[0]?.id} />}
 
       {/* Main Content */}
       <main className={ENABLE_EXTRA_COMPONENTS ? "lg:ml-64 min-h-screen" : "min-h-screen"}>
@@ -1463,8 +1468,8 @@ function DashboardContent() {
                 </div>
               )}
 
-              {/* Profit Summary */}
-              {ENABLE_EXTRA_COMPONENTS && (totalRevenue > 0 || totalSpend > 0) && (
+              {/* Profit Summary — Pro */}
+              {showPro && ENABLE_EXTRA_COMPONENTS && (totalRevenue > 0 || totalSpend > 0) && (
                 <div className="mb-8">
                   <ProfitSummary
                     revenue={totalRevenue}
@@ -1473,38 +1478,68 @@ function DashboardContent() {
                 </div>
               )}
 
-              {/* Alerts Widget */}
-              {ENABLE_EXTRA_COMPONENTS && stores[0] && (
+              {/* Alerts Widget — Pro */}
+              {showPro && ENABLE_EXTRA_COMPONENTS && stores[0] && (
                 <div className="mb-8">
                   <AlertsWidget storeId={stores[0].id} />
                 </div>
               )}
 
-              {/* Goal Progress */}
-              {ENABLE_EXTRA_COMPONENTS && stores[0] && (
+              {/* Goal Progress — Pro */}
+              {showPro && ENABLE_EXTRA_COMPONENTS && stores[0] && (
                 <div className="mb-8">
                   <GoalProgress storeId={stores[0].id} />
                 </div>
               )}
 
-              {/* New vs Repeat ROAS */}
-              {ENABLE_EXTRA_COMPONENTS && stores[0] && (
+              {/* New vs Repeat ROAS — Pro */}
+              {showPro && ENABLE_EXTRA_COMPONENTS && stores[0] && (
                 <div className="mb-8">
                   <NCRoasCard storeId={stores[0].id} />
                 </div>
               )}
 
-              {/* AI Budget Optimizer */}
-              {ENABLE_EXTRA_COMPONENTS && stores[0] && (
+              {/* AI Budget Optimizer — Pro */}
+              {showPro && ENABLE_EXTRA_COMPONENTS && stores[0] && (
                 <div className="mb-8">
                   <BudgetOptimizer storeId={stores[0].id} />
                 </div>
               )}
 
-              {/* Competitor Spy */}
-              {ENABLE_EXTRA_COMPONENTS && stores[0] && (
+              {/* Competitor Spy — Pro */}
+              {showPro && ENABLE_EXTRA_COMPONENTS && stores[0] && (
                 <div className="mb-8">
                   <CompetitorSpy storeId={stores[0].id} />
+                </div>
+              )}
+
+              {/* Free user upgrade nudge */}
+              {!tierLoading && !tierIsPro && stores[0] && (
+                <div className="mb-8 bg-gradient-to-br from-orange-500/10 via-amber-500/10 to-orange-500/10 border border-orange-500/30 rounded-2xl p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-orange-500/20 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-6 h-6 text-orange-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.539-1.118l1.519-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-white font-bold text-lg mb-1">
+                        Unlock the full AdWyse experience
+                      </h3>
+                      <p className="text-white/70 text-sm mb-4">
+                        Get AI Assistant, Competitor Spy, Cohort Retention, NC-ROAS, Predictive Budget Optimizer, and more — for $99/mo. Cancel anytime.
+                      </p>
+                      <button
+                        onClick={() => navigateInApp('/pricing')}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold rounded-lg transition shadow-lg shadow-orange-500/20"
+                      >
+                        Upgrade to Pro
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -1804,8 +1839,8 @@ function DashboardContent() {
       {/* Quick Actions Command Palette */}
       <QuickActions storeId={stores[0]?.id} />
 
-      {/* AI Chat Assistant */}
-      <AskAdWyse storeId={stores[0]?.id} />
+      {/* AI Chat Assistant — Pro only */}
+      {showPro && <AskAdWyse storeId={stores[0]?.id} />}
     </div>
   );
 }

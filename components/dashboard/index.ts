@@ -10,3 +10,4 @@ export { CompetitorSpy } from './CompetitorSpy';
 export { QuickActions } from './QuickActions';
 export { AskAdWyse } from './AskAdWyse';
 export { NCRoasCard } from './NCRoasCard';
+export { UpgradeGate } from './UpgradeGate';

@@ -2,9 +2,10 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Sidebar, MobileNav } from '@/components/dashboard';
+import { Sidebar, MobileNav, UpgradeGate } from '@/components/dashboard';
 import { DashboardSkeleton } from '@/components/ui';
 import { Trophy, TrendingDown, AlertTriangle, Sparkles, Info } from 'lucide-react';
+import { useTier } from '@/lib/use-tier';
 
 const DEMO_STORE_ID = '987c61dd-7696-47ca-bf05-37876953b0ca';
 
@@ -46,6 +47,7 @@ function scoreColor(score: number) {
 
 function CreativeScoreContent() {
   const searchParams = useSearchParams();
+  const { isPro, loading: tierLoading } = useTier();
   const [loading, setLoading] = useState(true);
   const [scored, setScored] = useState<ScoredCreative[]>([]);
   const [filter, setFilter] = useState<'all' | 'top' | 'good' | 'avg' | 'poor' | 'kill'>(
@@ -83,13 +85,34 @@ function CreativeScoreContent() {
     load();
   }, [searchParams]);
 
-  if (loading) {
+  if (loading || tierLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900">
         <Sidebar activePage="creatives" />
         <main className="lg:ml-64 min-h-screen p-6">
           <DashboardSkeleton />
         </main>
+      </div>
+    );
+  }
+
+  if (!isPro) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900">
+        <Sidebar activePage="creatives" />
+        <main className="lg:ml-64 min-h-screen">
+          <UpgradeGate
+            feature="AI Creative Score"
+            description="Auto-rank your ad creatives 0-100 so you know exactly which to scale and which to kill."
+            bullets={[
+              'Percentile ranking across CTR, CVR, and ROAS',
+              'Top performers, kill list, and everything in between',
+              'AI-generated reason for each creative\'s score',
+              'Filter by rank to find winners and losers fast',
+            ]}
+          />
+        </main>
+        <MobileNav activePage="creatives" />
       </div>
     );
   }

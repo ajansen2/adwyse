@@ -3,7 +3,8 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getSupabaseClient } from '@/lib/supabase-client';
-import { Sidebar, MobileNav } from '@/components/dashboard';
+import { Sidebar, MobileNav, UpgradeGate } from '@/components/dashboard';
+import { useTier } from '@/lib/use-tier';
 import {
   Eye,
   Plus,
@@ -68,6 +69,7 @@ const industries = [
 function CompetitorSpyContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { isPro, loading: tierLoading } = useTier();
   const [loading, setLoading] = useState(true);
   const [stores, setStores] = useState<Store[]>([]);
   const [competitors, setCompetitors] = useState<Competitor[]>([]);
@@ -290,10 +292,31 @@ function CompetitorSpyContent() {
     }
   };
 
-  if (loading) {
+  if (loading || tierLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-orange-400 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!isPro) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+        <Sidebar activePage="competitor-spy" />
+        <main className="lg:ml-64 min-h-screen">
+          <UpgradeGate
+            feature="Competitor Spy"
+            description="See exactly what ads your competitors are running on Facebook & Instagram — live, in real time."
+            bullets={[
+              'Live data from Meta Ad Library — updated 24h cache',
+              'See thumbnails, copy, ad type (video/carousel), and platforms',
+              'Track multiple competitors and quickly compare their creatives',
+              'Direct links to each ad in Meta\'s public Ad Library',
+            ]}
+          />
+        </main>
+        <MobileNav activePage="competitor-spy" />
       </div>
     );
   }

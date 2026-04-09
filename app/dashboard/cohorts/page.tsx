@@ -2,9 +2,10 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Sidebar, MobileNav } from '@/components/dashboard';
+import { Sidebar, MobileNav, UpgradeGate } from '@/components/dashboard';
 import { DashboardSkeleton } from '@/components/ui';
 import { Users, TrendingUp, DollarSign, Info } from 'lucide-react';
+import { useTier } from '@/lib/use-tier';
 
 interface Cohort {
   cohortMonth: string;
@@ -27,6 +28,7 @@ function getHeatColor(pct: number): string {
 
 function CohortsContent() {
   const searchParams = useSearchParams();
+  const { isPro, loading: tierLoading } = useTier();
   const [loading, setLoading] = useState(true);
   const [cohorts, setCohorts] = useState<Cohort[]>([]);
   const [isDemo, setIsDemo] = useState(false);
@@ -64,13 +66,34 @@ function CohortsContent() {
     load();
   }, [searchParams]);
 
-  if (loading) {
+  if (loading || tierLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900">
         <Sidebar activePage="cohorts" />
         <main className="lg:ml-64 min-h-screen p-6">
           <DashboardSkeleton />
         </main>
+      </div>
+    );
+  }
+
+  if (!isPro) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900">
+        <Sidebar activePage="cohorts" />
+        <main className="lg:ml-64 min-h-screen">
+          <UpgradeGate
+            feature="Cohort Retention"
+            description="See exactly how each month's customers come back over time."
+            bullets={[
+              'Retention heatmap by acquisition month',
+              'Track repurchase rates from M0 through M5+',
+              'Switch between retention % and revenue $ views',
+              'Identify churn problems before they kill your LTV',
+            ]}
+          />
+        </main>
+        <MobileNav activePage="cohorts" />
       </div>
     );
   }
