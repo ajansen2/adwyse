@@ -48,6 +48,14 @@ function SettingsContent() {
   const [slackDailySummary, setSlackDailySummary] = useState(false);
   const [savingSlackSettings, setSavingSlackSettings] = useState(false);
   const [testingSlack, setTestingSlack] = useState(false);
+  // Meta CAPI state
+  const [capiEnabled, setCapiEnabled] = useState(false);
+  const [capiPixelId, setCapiPixelId] = useState('');
+  const [capiToken, setCapiToken] = useState('');
+  const [capiTestCode, setCapiTestCode] = useState('');
+  const [savingCapi, setSavingCapi] = useState(false);
+  const [testingCapi, setTestingCapi] = useState(false);
+  const [capiTestResult, setCapiTestResult] = useState<{ ok: boolean; msg: string } | null>(null);
   const [sendingTestPixel, setSendingTestPixel] = useState(false);
   const [testPixelSent, setTestPixelSent] = useState(false);
   // Demo data state
@@ -209,6 +217,22 @@ function SettingsContent() {
             }
           } catch (err) {
             console.error('Error loading Slack settings:', err);
+          }
+
+          // Load Meta CAPI settings
+          try {
+            const capiXhr = new XMLHttpRequest();
+            capiXhr.open('GET', `/api/meta-capi/settings?store_id=${data.store.id}`, false);
+            capiXhr.send();
+            if (capiXhr.status === 200) {
+              const c = JSON.parse(capiXhr.responseText);
+              setCapiEnabled(c.enabled || false);
+              setCapiPixelId(c.pixelId || '');
+              setCapiToken(c.tokenMasked || '');
+              setCapiTestCode(c.testCode || '');
+            }
+          } catch (err) {
+            console.error('Error loading CAPI settings:', err);
           }
 
           // Load attribution model
@@ -399,6 +423,67 @@ function SettingsContent() {
       setTimeout(() => setErrorMessage(''), 3000);
     } finally {
       setTestingSlack(false);
+    }
+  };
+
+  const handleSaveCapi = async () => {
+    if (!store) return;
+    setSavingCapi(true);
+    setCapiTestResult(null);
+    try {
+      const res = await fetch('/api/meta-capi/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          storeId: store.id,
+          enabled: capiEnabled,
+          pixelId: capiPixelId,
+          token: capiToken,
+          testCode: capiTestCode,
+        }),
+      });
+      if (res.ok) {
+        setSuccessMessage('Meta CAPI settings saved');
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } else {
+        const d = await res.json().catch(() => ({}));
+        setErrorMessage(d.error || 'Failed to save CAPI settings');
+        setTimeout(() => setErrorMessage(''), 5000);
+      }
+    } catch (err) {
+      setErrorMessage('Failed to save CAPI settings');
+      setTimeout(() => setErrorMessage(''), 3000);
+    } finally {
+      setSavingCapi(false);
+    }
+  };
+
+  const handleTestCapi = async () => {
+    if (!store) return;
+    setTestingCapi(true);
+    setCapiTestResult(null);
+    try {
+      const res = await fetch('/api/meta-capi/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storeId: store.id }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setCapiTestResult({
+          ok: true,
+          msg: data.message || 'Test event sent. Check Meta Events Manager.',
+        });
+      } else {
+        setCapiTestResult({
+          ok: false,
+          msg: data.error || 'Test failed',
+        });
+      }
+    } catch (err: any) {
+      setCapiTestResult({ ok: false, msg: err?.message || 'Test failed' });
+    } finally {
+      setTestingCapi(false);
     }
   };
 
@@ -2021,6 +2106,152 @@ function SettingsContent() {
                   'Save Slack Settings'
                 )}
               </button>
+            </div>
+          </div>
+
+          {/* Meta Conversions API */}
+          <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-6">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-xl font-bold text-blue-400 flex items-center gap-2">
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                </svg>
+                Meta Conversions API
+              </h2>
+              <span className="px-2 py-0.5 bg-purple-500/20 text-purple-300 text-xs rounded-full font-medium">
+                Pro
+              </span>
+            </div>
+            <p className="text-white/60 mb-6 text-sm">
+              Send purchase events server-side to Meta to recover ~30% of attribution lost to iOS14 tracking restrictions.
+              Works alongside the browser pixel — Meta automatically dedupes by order ID.
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-white/80 text-sm font-medium mb-2">
+                  Meta Pixel ID
+                </label>
+                <input
+                  type="text"
+                  value={capiPixelId}
+                  onChange={(e) => setCapiPixelId(e.target.value)}
+                  placeholder="e.g. 1234567890123456"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/30 focus:outline-none focus:border-blue-500/50"
+                />
+                <p className="text-white/40 text-xs mt-1">
+                  Find in Meta Events Manager → Your pixel → Settings
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-white/80 text-sm font-medium mb-2">
+                  Conversions API Access Token
+                </label>
+                <input
+                  type="password"
+                  value={capiToken}
+                  onChange={(e) => setCapiToken(e.target.value)}
+                  placeholder={capiToken && capiToken.includes('•') ? capiToken : 'Paste your CAPI token'}
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/30 focus:outline-none focus:border-blue-500/50 font-mono text-sm"
+                />
+                <p className="text-white/40 text-xs mt-1">
+                  Generate at Events Manager → Your pixel → Settings → Conversions API → Generate Access Token
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-white/80 text-sm font-medium mb-2">
+                  Test Event Code{' '}
+                  <span className="text-white/40 font-normal">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={capiTestCode}
+                  onChange={(e) => setCapiTestCode(e.target.value)}
+                  placeholder="e.g. TEST12345"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/30 focus:outline-none focus:border-blue-500/50"
+                />
+                <p className="text-white/40 text-xs mt-1">
+                  When set, events appear in Events Manager → Test Events for verification. Remove for production.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                <div>
+                  <div className="text-white font-medium text-sm">Enable Conversions API</div>
+                  <div className="text-white/40 text-xs">
+                    Forward purchase events server-side to Meta
+                  </div>
+                </div>
+                <button
+                  onClick={() => setCapiEnabled(!capiEnabled)}
+                  className={`w-12 h-6 rounded-full transition-colors ${
+                    capiEnabled ? 'bg-green-600' : 'bg-white/20'
+                  }`}
+                >
+                  <div
+                    className={`w-5 h-5 bg-white rounded-full transition-transform ${
+                      capiEnabled ? 'translate-x-6' : 'translate-x-0.5'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {capiTestResult && (
+                <div
+                  className={`p-3 rounded-lg text-sm ${
+                    capiTestResult.ok
+                      ? 'bg-green-500/10 border border-green-500/30 text-green-300'
+                      : 'bg-red-500/10 border border-red-500/30 text-red-300'
+                  }`}
+                >
+                  {capiTestResult.ok ? '✅ ' : '❌ '}
+                  {capiTestResult.msg}
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleSaveCapi}
+                  disabled={savingCapi}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 text-white rounded-lg font-medium transition flex items-center gap-2"
+                >
+                  {savingCapi ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save CAPI Settings'
+                  )}
+                </button>
+                <button
+                  onClick={handleTestCapi}
+                  disabled={testingCapi || !capiPixelId}
+                  className="px-4 py-2 bg-white/10 hover:bg-white/20 disabled:bg-white/5 disabled:text-white/30 text-white rounded-lg font-medium transition flex items-center gap-2"
+                >
+                  {testingCapi ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Testing...
+                    </>
+                  ) : (
+                    'Test Connection'
+                  )}
+                </button>
+              </div>
+
+              <div className="text-white/40 text-xs">
+                <a
+                  href="https://developers.facebook.com/docs/marketing-api/conversions-api/get-started"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:text-blue-300 underline"
+                >
+                  Meta Conversions API setup guide →
+                </a>
+              </div>
             </div>
           </div>
 
