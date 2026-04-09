@@ -9,6 +9,7 @@ import {
   type BudgetForecast,
   type DailyPerformance,
 } from '@/lib/predictive-budget';
+import { requireProFeature } from '@/lib/subscription-tiers';
 
 // Demo store ID for Adam's store
 const DEMO_STORE_ID = '987c61dd-7696-47ca-bf05-37876953b0ca';
@@ -325,6 +326,9 @@ export async function GET(request: NextRequest) {
     if (!storeId) {
       return NextResponse.json({ error: 'Store ID required' }, { status: 400 });
     }
+
+    const gate = await requireProFeature(storeId, 'predictiveBudget');
+    if (gate) return gate;
 
     // Return demo data for Adam's store
     if (storeId === DEMO_STORE_ID) {

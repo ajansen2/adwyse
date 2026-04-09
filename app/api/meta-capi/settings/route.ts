@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { requireProFeature } from '@/lib/subscription-tiers';
 
 function getSupabase() {
   return createClient(
@@ -60,6 +61,13 @@ export async function POST(request: NextRequest) {
 
     if (!storeId) {
       return NextResponse.json({ error: 'storeId required' }, { status: 400 });
+    }
+
+    // Only Pro users can enable CAPI (free users can't burn server cycles
+    // sending events to Meta on our dime)
+    if (enabled) {
+      const gate = await requireProFeature(storeId, 'conversionsApi');
+      if (gate) return gate;
     }
 
     const supabase = getSupabase();

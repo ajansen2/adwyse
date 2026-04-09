@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { requireProFeature } from '@/lib/subscription-tiers';
 
 const DEMO_STORE_ID = '987c61dd-7696-47ca-bf05-37876953b0ca';
 
@@ -40,6 +41,9 @@ export async function GET(request: NextRequest) {
     if (!storeId) {
       return NextResponse.json({ error: 'store_id required' }, { status: 400 });
     }
+
+    const gate = await requireProFeature(storeId, 'cohortRetention');
+    if (gate) return gate;
 
     if (storeId === DEMO_STORE_ID) {
       return NextResponse.json({ isDemo: true, cohorts: generateDemoCohorts() });

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchCompetitorAds } from '@/lib/apify-ads';
+import { requireProFeature } from '@/lib/subscription-tiers';
 
 /**
  * Competitor Ad Spy API
@@ -166,6 +167,11 @@ export async function GET(request: NextRequest) {
     const industry = searchParams.get('industry') || 'default';
     const platform = searchParams.get('platform'); // 'facebook', 'instagram', or null for all
     const limit = parseInt(searchParams.get('limit') || '20', 10);
+    const storeId = searchParams.get('store_id');
+
+    // Pro gate — block free users from burning Apify credits
+    const gate = await requireProFeature(storeId, 'competitorSpy');
+    if (gate) return gate;
 
     // Try real Apify scrape if a query is provided and token is configured
     if (query) {

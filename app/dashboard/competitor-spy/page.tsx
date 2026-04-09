@@ -222,9 +222,16 @@ function CompetitorSpyContent() {
     setLiveAdsSource(null);
 
     try {
+      const sid = stores[0]?.id || '';
       const res = await fetch(
-        `/api/competitor-ads?query=${encodeURIComponent(competitorName)}&limit=20`
+        `/api/competitor-ads?query=${encodeURIComponent(competitorName)}&limit=20&store_id=${sid}`
       );
+      if (res.status === 403) {
+        const data = await res.json().catch(() => ({}));
+        setLiveAdsError(data.message || 'Competitor Spy requires AdWyse Pro');
+        setLiveAdsLoading(false);
+        return;
+      }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setLiveAds(data.ads || []);

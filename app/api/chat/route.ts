@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { buildChatContext } from '@/lib/chat-context';
+import { requireProFeature } from '@/lib/subscription-tiers';
 
 const DEMO_STORE_ID = '987c61dd-7696-47ca-bf05-37876953b0ca';
 
@@ -60,6 +61,10 @@ export async function POST(request: NextRequest) {
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json({ error: 'messages array required' }, { status: 400 });
     }
+
+    // Pro gate — block free users from burning Claude API tokens
+    const gate = await requireProFeature(storeId, 'aiChat');
+    if (gate) return gate;
 
     if (!process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json(

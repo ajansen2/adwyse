@@ -6,7 +6,16 @@ export interface TierLimits {
   adAccounts: number;        // Max connected ad accounts
   ordersPerMonth: number;    // Max orders tracked per month
   dataRetentionDays: number; // Days of historical data
-  aiInsights: boolean;       // Access to AI insights
+  aiInsights: boolean;       // Static AI insights cards (existing)
+  aiChat: boolean;           // Conversational AI assistant
+  competitorSpy: boolean;    // Live Meta Ad Library scraping
+  cohortRetention: boolean;  // Cohort analysis page
+  ncRoas: boolean;           // New vs Repeat ROAS
+  creativeScore: boolean;    // AI creative scoring
+  predictiveBudget: boolean; // Predictive Budget Optimizer
+  multiTouchAttribution: boolean;
+  conversionsApi: boolean;   // Server-side Meta CAPI
+  slackIntegration: boolean; // Slack daily digest + alerts
   emailReports: boolean;     // Weekly/monthly email reports
   customAlerts: boolean;     // Custom threshold alerts
 }
@@ -17,6 +26,15 @@ export const TIER_LIMITS: Record<SubscriptionTier, TierLimits> = {
     ordersPerMonth: 100,
     dataRetentionDays: 30,
     aiInsights: false,
+    aiChat: false,
+    competitorSpy: false,
+    cohortRetention: false,
+    ncRoas: false,
+    creativeScore: false,
+    predictiveBudget: false,
+    multiTouchAttribution: false,
+    conversionsApi: false,
+    slackIntegration: false,
     emailReports: false,
     customAlerts: false,
   },
@@ -25,6 +43,15 @@ export const TIER_LIMITS: Record<SubscriptionTier, TierLimits> = {
     ordersPerMonth: 500,
     dataRetentionDays: 90,
     aiInsights: true,
+    aiChat: true,
+    competitorSpy: true,
+    cohortRetention: true,
+    ncRoas: true,
+    creativeScore: true,
+    predictiveBudget: true,
+    multiTouchAttribution: true,
+    conversionsApi: true,
+    slackIntegration: true,
     emailReports: true,
     customAlerts: true,
   },
@@ -33,10 +60,67 @@ export const TIER_LIMITS: Record<SubscriptionTier, TierLimits> = {
     ordersPerMonth: 999999,
     dataRetentionDays: 365,
     aiInsights: true,
+    aiChat: true,
+    competitorSpy: true,
+    cohortRetention: true,
+    ncRoas: true,
+    creativeScore: true,
+    predictiveBudget: true,
+    multiTouchAttribution: true,
+    conversionsApi: true,
+    slackIntegration: true,
     emailReports: true,
     customAlerts: true,
   },
 };
+
+const DEMO_STORE_ID = '987c61dd-7696-47ca-bf05-37876953b0ca';
+
+/**
+ * Generic Pro feature gate. Returns null if allowed, or a 403 Response if not.
+ * Demo store always allowed so the marketing demo + Adam's test store work.
+ *
+ * Usage:
+ *   const gate = await requireProFeature(storeId, 'aiChat');
+ *   if (gate) return gate;
+ */
+export async function requireProFeature(
+  storeId: string | null | undefined,
+  feature: keyof TierLimits
+): Promise<Response | null> {
+  if (!storeId || storeId === DEMO_STORE_ID) return null;
+
+  const tierCheck = await getStoreTier(storeId);
+  const allowed = tierCheck.limits[feature];
+
+  if (allowed === true) return null;
+  if (typeof allowed === 'number' && allowed > 0) return null;
+
+  const featureNames: Partial<Record<keyof TierLimits, string>> = {
+    aiChat: 'the AI Assistant',
+    competitorSpy: 'Competitor Spy',
+    cohortRetention: 'Cohort Retention',
+    ncRoas: 'New vs Repeat ROAS',
+    creativeScore: 'Creative Score',
+    predictiveBudget: 'the Predictive Budget Optimizer',
+    multiTouchAttribution: 'Multi-touch Attribution',
+    conversionsApi: 'the Server-side Conversions API',
+    slackIntegration: 'Slack integration',
+    emailReports: 'Email reports',
+    aiInsights: 'AI insights',
+  };
+
+  return new Response(
+    JSON.stringify({
+      error: 'Pro feature required',
+      feature,
+      currentTier: tierCheck.tier,
+      message: `This feature requires AdWyse Pro. Upgrade to unlock ${featureNames[feature] || String(feature)}.`,
+      upgradeUrl: '/pricing',
+    }),
+    { status: 403, headers: { 'Content-Type': 'application/json' } }
+  );
+}
 
 export interface TierCheck {
   tier: SubscriptionTier;
@@ -150,24 +234,3 @@ export async function checkOrderLimit(storeId: string): Promise<{ allowed: boole
   return { allowed: true, current: currentCount, limit };
 }
 
-export async function requireProFeature(storeId: string, feature: keyof TierLimits): Promise<{ allowed: boolean; tier: SubscriptionTier; message?: string }> {
-  const tierCheck = await getStoreTier(storeId);
-
-  const featureAllowed = tierCheck.limits[feature];
-
-  if (!featureAllowed) {
-    const featureNames: Record<string, string> = {
-      aiInsights: 'AI Insights',
-      emailReports: 'Email Reports',
-      customAlerts: 'Custom Alerts',
-    };
-
-    return {
-      allowed: false,
-      tier: tierCheck.tier,
-      message: `${featureNames[feature] || feature} is a Pro feature. Upgrade to unlock.`
-    };
-  }
-
-  return { allowed: true, tier: tierCheck.tier };
-}
