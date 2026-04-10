@@ -12,8 +12,21 @@ const DEMO_STORE_ID = '987c61dd-7696-47ca-bf05-37876953b0ca';
 export async function GET(request: NextRequest) {
   try {
     const storeId = request.nextUrl.searchParams.get('store_id');
+    const forceTier = request.nextUrl.searchParams.get('force_tier');
     if (!storeId) {
       return NextResponse.json({ error: 'store_id required' }, { status: 400 });
+    }
+
+    // Testing override: ?force_tier=free lets Adam preview the free experience
+    // on his own store without changing subscription_status in the DB.
+    if (forceTier === 'free') {
+      const { TIER_LIMITS } = await import('@/lib/subscription-tiers');
+      return NextResponse.json({
+        tier: 'free',
+        isPro: false,
+        isDemo: false,
+        limits: TIER_LIMITS.free,
+      });
     }
 
     // The "demo" bypass for Adam's testing store: keep it as Pro so the

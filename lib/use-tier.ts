@@ -33,6 +33,11 @@ export function useTier(storeId?: string | null): TierInfo {
     let cancelled = false;
 
     const resolveAndFetch = async () => {
+      // Skip cache when force_tier is present (testing mode)
+      const isForcedTier =
+        typeof window !== 'undefined' &&
+        new URLSearchParams(window.location.search).has('force_tier');
+
       let id = storeId || null;
 
       // If no explicit storeId, try to resolve from ?shop= URL param
@@ -68,13 +73,20 @@ export function useTier(storeId?: string | null): TierInfo {
         return;
       }
 
-      if (cache.has(id)) {
+      if (!isForcedTier && cache.has(id)) {
         if (!cancelled) setInfo(cache.get(id)!);
         return;
       }
 
+      // Pass through ?force_tier= if present in URL (for testing)
+      let tierUrl = `/api/me/tier?store_id=${id}`;
+      if (typeof window !== 'undefined') {
+        const ft = new URLSearchParams(window.location.search).get('force_tier');
+        if (ft) tierUrl += `&force_tier=${ft}`;
+      }
+
       try {
-        const res = await fetch(`/api/me/tier?store_id=${id}`);
+        const res = await fetch(tierUrl);
         const data = await res.json();
         const next: TierInfo = {
           tier: data.tier || 'free',
