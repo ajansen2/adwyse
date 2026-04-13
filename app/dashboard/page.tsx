@@ -78,8 +78,15 @@ const ENABLE_EXTRA_COMPONENTS = true;
 
 function DashboardContent() {
   // Tier gating — free users only see basic widgets
-  const { isPro: tierIsPro, loading: tierLoading } = useTier();
+  const { isPro: tierIsPro, loading: tierLoading, tier: tierValue } = useTier();
   const showPro = tierIsPro || tierLoading;
+
+  // Sync useTier() result into subscriptionTier state for badge/banners
+  useEffect(() => {
+    if (!tierLoading && tierValue) {
+      setSubscriptionTier(tierValue);
+    }
+  }, [tierLoading, tierValue]);
 
   const [loading, setLoading] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState('Loading dashboard...');
