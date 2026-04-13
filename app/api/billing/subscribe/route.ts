@@ -42,9 +42,9 @@ export async function GET(request: NextRequest) {
 
     if (!store.access_token || store.access_token === 'revoked') {
       console.error('❌ [BILLING SUBSCRIBE] No valid access token for store');
-      const shopName = shop.replace('.myshopify.com', '');
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://adwyse.ca';
       return NextResponse.redirect(
-        `https://admin.shopify.com/store/${shopName}/apps/adwyse?error=needs_reinstall`
+        `${appUrl}/dashboard?shop=${shop}&error=needs_reinstall`
       );
     }
 
@@ -85,16 +85,16 @@ export async function GET(request: NextRequest) {
       const activeSubscriptions = existingData.data?.currentAppInstallation?.activeSubscriptions || [];
       const active = activeSubscriptions.find((s: any) => s.status === 'ACTIVE');
       if (active) {
-        // Already subscribed — redirect back to dashboard
+        // Already subscribed — redirect back to dashboard within the app
         console.log('✅ [BILLING SUBSCRIBE] Already has active subscription');
         await supabase
           .from('stores')
           .update({ subscription_status: 'active', billing_charge_id: active.id })
           .eq('id', store.id);
 
-        const shopName = shop.replace('.myshopify.com', '');
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://adwyse.ca';
         return NextResponse.redirect(
-          `https://admin.shopify.com/store/${shopName}/apps/adwyse/dashboard?billing=already_active`
+          `${appUrl}/dashboard?shop=${shop}&billing=already_active`
         );
       }
     }
@@ -157,27 +157,27 @@ export async function GET(request: NextRequest) {
 
     if (chargeData.errors) {
       console.error('❌ [BILLING SUBSCRIBE] GraphQL errors:', chargeData.errors);
-      const shopName = shop.replace('.myshopify.com', '');
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://adwyse.ca';
       return NextResponse.redirect(
-        `https://admin.shopify.com/store/${shopName}/apps/adwyse/dashboard?error=billing_failed`
+        `${appUrl}/dashboard?shop=${shop}&error=billing_failed`
       );
     }
 
     const userErrors = chargeData.data?.appSubscriptionCreate?.userErrors;
     if (userErrors && userErrors.length > 0) {
       console.error('❌ [BILLING SUBSCRIBE] User errors:', userErrors);
-      const shopName = shop.replace('.myshopify.com', '');
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://adwyse.ca';
       return NextResponse.redirect(
-        `https://admin.shopify.com/store/${shopName}/apps/adwyse/dashboard?error=billing_failed&message=${encodeURIComponent(userErrors[0].message)}`
+        `${appUrl}/dashboard?shop=${shop}&error=billing_failed&message=${encodeURIComponent(userErrors[0].message)}`
       );
     }
 
     const confirmationUrl = chargeData.data?.appSubscriptionCreate?.confirmationUrl;
     if (!confirmationUrl) {
       console.error('❌ [BILLING SUBSCRIBE] No confirmation URL');
-      const shopName = shop.replace('.myshopify.com', '');
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://adwyse.ca';
       return NextResponse.redirect(
-        `https://admin.shopify.com/store/${shopName}/apps/adwyse/dashboard?error=billing_no_url`
+        `${appUrl}/dashboard?shop=${shop}&error=billing_no_url`
       );
     }
 
@@ -189,9 +189,9 @@ export async function GET(request: NextRequest) {
     console.error('❌ [BILLING SUBSCRIBE] Error:', error);
     const shop = request.nextUrl.searchParams.get('shop');
     if (shop) {
-      const shopName = shop.replace('.myshopify.com', '');
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://adwyse.ca';
       return NextResponse.redirect(
-        `https://admin.shopify.com/store/${shopName}/apps/adwyse/dashboard?error=billing_error`
+        `${appUrl}/dashboard?shop=${shop}&error=billing_error`
       );
     }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
