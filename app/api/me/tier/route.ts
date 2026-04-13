@@ -19,7 +19,8 @@ export async function GET(request: NextRequest) {
 
     // Testing override: ?force_tier=free lets Adam preview the free experience
     // on his own store without changing subscription_status in the DB.
-    if (forceTier === 'free') {
+    // Locked to Adam's demo store only.
+    if (forceTier === 'free' && storeId === DEMO_STORE_ID) {
       const { TIER_LIMITS } = await import('@/lib/subscription-tiers');
       return NextResponse.json({
         tier: 'free',

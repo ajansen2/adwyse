@@ -117,24 +117,26 @@ export function isEmbeddedInShopify(): boolean {
 export function navigateInApp(path: string) {
   const isEmbedded = window.self !== window.top;
 
-  if (!isEmbedded) {
-    // Not embedded - use regular navigation
-    window.location.href = path;
-    return;
-  }
-
-  // For embedded apps, preserve query parameters (shop, host, etc.)
+  // Preserve essential query parameters across navigation
   const urlParams = new URLSearchParams(window.location.search);
   const shop = urlParams.get('shop');
   const host = urlParams.get('host');
+  const forceTier = urlParams.get('force_tier');
 
-  // Build path with query parameters
+  // Build path with preserved query parameters
   let fullPath = path;
-  if (shop || host) {
-    const params = new URLSearchParams();
-    if (shop) params.set('shop', shop);
-    if (host) params.set('host', host);
+  const params = new URLSearchParams();
+  if (shop) params.set('shop', shop);
+  if (host) params.set('host', host);
+  if (forceTier) params.set('force_tier', forceTier);
+  if (params.toString()) {
     fullPath = `${path}?${params.toString()}`;
+  }
+
+  if (!isEmbedded) {
+    // Not embedded - use regular navigation
+    window.location.href = fullPath;
+    return;
   }
 
   if (!appBridge) {
