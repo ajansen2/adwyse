@@ -36,6 +36,7 @@ function SettingsContent() {
   const [testAlertSent, setTestAlertSent] = useState(false);
   const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'trial' | 'pro'>('pro');
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeBilling, setUpgradeBilling] = useState<'monthly' | 'yearly'>('monthly');
   const [upgrading, setUpgrading] = useState(false);
   const [pixelCopied, setPixelCopied] = useState(false);
   const [pixelVerifying, setPixelVerifying] = useState(false);
@@ -1097,48 +1098,68 @@ function SettingsContent() {
                   <p className="text-white/60">Unlock the full power of AdWyse</p>
                 </div>
 
-                <div className="space-y-3 mb-6">
-                  <div className="flex items-center gap-3 text-white">
-                    <svg className="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>Unlimited order tracking</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-white">
-                    <svg className="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>Unlimited ad account connections</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-white">
-                    <svg className="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>AI-powered campaign insights</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-white">
-                    <svg className="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>Custom performance alerts</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-white">
-                    <svg className="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>Weekly/monthly email reports</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-white">
-                    <svg className="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>Unlimited data history</span>
+                {/* Billing Toggle */}
+                <div className="flex justify-center mb-6">
+                  <div className="bg-white/5 p-1 rounded-xl ring-1 ring-white/10 flex w-full max-w-xs">
+                    <button
+                      onClick={() => setUpgradeBilling('monthly')}
+                      className={`flex-1 py-2 rounded-lg text-sm font-medium transition ${
+                        upgradeBilling === 'monthly'
+                          ? 'text-white bg-white/10 ring-1 ring-white/10'
+                          : 'text-white/50 hover:text-white/80'
+                      }`}
+                    >
+                      Monthly
+                    </button>
+                    <button
+                      onClick={() => setUpgradeBilling('yearly')}
+                      className={`flex-1 py-2 rounded-lg text-sm font-medium transition flex items-center justify-center gap-1.5 ${
+                        upgradeBilling === 'yearly'
+                          ? 'text-white bg-white/10 ring-1 ring-white/10'
+                          : 'text-white/50 hover:text-white/80'
+                      }`}
+                    >
+                      Yearly
+                      <span className="bg-green-500 text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white">SAVE 20%</span>
+                    </button>
                   </div>
                 </div>
 
+                <div className="grid grid-cols-2 gap-2 mb-6">
+                  {[
+                    'Unlimited orders & data history',
+                    'Unlimited ad accounts',
+                    'AI Assistant (Ask AdWyse)',
+                    'Competitor Spy (live ads)',
+                    'AI Creative Score (0-100)',
+                    'Cohort Retention Analysis',
+                    'New vs Repeat ROAS',
+                    'Predictive Budget Optimizer',
+                    'Multi-touch Attribution',
+                    'Server-side CAPI',
+                    'Slack Daily Digest',
+                    'Email Reports & Alerts',
+                  ].map((feature, i) => (
+                    <div key={i} className="flex items-center gap-2 text-white text-sm">
+                      <svg className="w-4 h-4 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span>{feature}</span>
+                    </div>
+                  ))}
+                </div>
+
                 <div className="text-center mb-6">
-                  <div className="text-4xl font-bold text-white">$99<span className="text-lg font-normal text-white/60">/month</span></div>
-                  <p className="text-white/40 text-sm mt-1">Cancel anytime</p>
+                  <div className="text-4xl font-bold text-white">
+                    ${upgradeBilling === 'yearly' ? '79' : '99'}
+                    <span className="text-lg font-normal text-white/60">/month</span>
+                  </div>
+                  {upgradeBilling === 'yearly' && (
+                    <p className="text-green-400 text-sm mt-1">
+                      $948/year (save $240 vs monthly)
+                    </p>
+                  )}
+                  <p className="text-white/40 text-sm mt-1">7-day free trial · Cancel anytime</p>
                 </div>
 
                 <button
@@ -1153,7 +1174,7 @@ function SettingsContent() {
                     </>
                   ) : (
                     <>
-                      Upgrade Now
+                      Start Free Trial
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                       </svg>

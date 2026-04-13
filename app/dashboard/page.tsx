@@ -95,7 +95,7 @@ function DashboardContent() {
   const [latestInsight, setLatestInsight] = useState<any>(null);
   const [funnelData, setFunnelData] = useState<{name: string; value: number}[]>([]);
   const [generatingInsight, setGeneratingInsight] = useState(false);
-  const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'trial' | 'pro'>('pro');
+  const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'trial' | 'pro' | null>(null);
   const [tierLimits, setTierLimits] = useState<{adAccounts: number; ordersPerMonth: number; aiInsights: boolean; dataRetentionDays?: number} | null>(null);
   const [ordersLimitInfo, setOrdersLimitInfo] = useState<{ordersReturned: number; ordersPerMonth: number; dataRetentionDays: number} | null>(null);
   const [dateRangeOption, setDateRangeOption] = useState<DateRangeOption>('30d');
@@ -1216,6 +1216,7 @@ function DashboardContent() {
                     );
                   }
 
+                  if (subscriptionTier === null) return null; // Still loading
                   return (
                     <span className="px-3 py-1 bg-green-600/20 border border-green-500/30 rounded-full text-green-300 text-sm font-medium">
                       Pro Plan
