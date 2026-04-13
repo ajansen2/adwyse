@@ -12,7 +12,6 @@ export async function GET(request: NextRequest) {
   try {
     const shop = request.nextUrl.searchParams.get('shop');
     const plan = request.nextUrl.searchParams.get('plan') || 'pro';
-    const billingCycle = request.nextUrl.searchParams.get('billing_cycle') || 'monthly';
 
     if (!shop) {
       return NextResponse.json(
@@ -52,8 +51,8 @@ export async function GET(request: NextRequest) {
     const isTestStore = shop.includes('-test') || shop.includes('development') || shop.includes('dev-');
 
     // Set price based on billing cycle
-    const price = billingCycle === 'yearly' ? 79.00 : 99.00;
-    const interval = billingCycle === 'yearly' ? 'ANNUAL' : 'EVERY_30_DAYS';
+    const price = 99.99;
+    const interval = 'EVERY_30_DAYS';
 
     // Check for existing active subscription
     const existingResponse = await fetch(
@@ -133,7 +132,7 @@ export async function GET(request: NextRequest) {
             }
           `,
           variables: {
-            name: `AdWyse Pro (${billingCycle === 'yearly' ? 'Annual' : 'Monthly'})`,
+            name: 'AdWyse Pro',
             returnUrl,
             trialDays: 7,
             test: isTestStore,

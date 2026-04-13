@@ -1341,7 +1341,7 @@ function DashboardContent() {
                   </div>
                 </div>
                 <p className="text-white/60 text-sm mt-4">
-                  Your subscription is $99/month. Cancel anytime.
+                  Your subscription is $99.99/month. Cancel anytime.
                 </p>
               </div>
             </div>
@@ -1559,7 +1559,7 @@ function DashboardContent() {
                         Unlock the full AdWyse experience
                       </h3>
                       <p className="text-white/70 text-sm mb-4">
-                        Get AI Assistant, Competitor Spy, Cohort Retention, NC-ROAS, Predictive Budget Optimizer, and more — for $99/mo. Cancel anytime.
+                        Get AI Assistant, Competitor Spy, Cohort Retention, NC-ROAS, Predictive Budget Optimizer, and more — for $99.99/mo. Cancel anytime.
                       </p>
                       <button
                         onClick={() => navigateInApp('/dashboard/pricing')}

@@ -36,7 +36,6 @@ function SettingsContent() {
   const [testAlertSent, setTestAlertSent] = useState(false);
   const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'trial' | 'pro'>('pro');
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [upgradeBilling, setUpgradeBilling] = useState<'monthly' | 'yearly'>('monthly');
   const [upgrading, setUpgrading] = useState(false);
   const [pixelCopied, setPixelCopied] = useState(false);
   const [pixelVerifying, setPixelVerifying] = useState(false);
@@ -1098,33 +1097,6 @@ function SettingsContent() {
                   <p className="text-white/60">Unlock the full power of AdWyse</p>
                 </div>
 
-                {/* Billing Toggle */}
-                <div className="flex justify-center mb-6">
-                  <div className="bg-white/5 p-1 rounded-xl ring-1 ring-white/10 flex w-full max-w-xs">
-                    <button
-                      onClick={() => setUpgradeBilling('monthly')}
-                      className={`flex-1 py-2 rounded-lg text-sm font-medium transition ${
-                        upgradeBilling === 'monthly'
-                          ? 'text-white bg-white/10 ring-1 ring-white/10'
-                          : 'text-white/50 hover:text-white/80'
-                      }`}
-                    >
-                      Monthly
-                    </button>
-                    <button
-                      onClick={() => setUpgradeBilling('yearly')}
-                      className={`flex-1 py-2 rounded-lg text-sm font-medium transition flex items-center justify-center gap-1.5 ${
-                        upgradeBilling === 'yearly'
-                          ? 'text-white bg-white/10 ring-1 ring-white/10'
-                          : 'text-white/50 hover:text-white/80'
-                      }`}
-                    >
-                      Yearly
-                      <span className="bg-green-500 text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white">SAVE 20%</span>
-                    </button>
-                  </div>
-                </div>
-
                 <div className="grid grid-cols-2 gap-2 mb-6">
                   {[
                     'Unlimited orders & data history',
@@ -1151,14 +1123,9 @@ function SettingsContent() {
 
                 <div className="text-center mb-6">
                   <div className="text-4xl font-bold text-white">
-                    ${upgradeBilling === 'yearly' ? '79' : '99'}
+                    $99.99
                     <span className="text-lg font-normal text-white/60">/month</span>
                   </div>
-                  {upgradeBilling === 'yearly' && (
-                    <p className="text-green-400 text-sm mt-1">
-                      $948/year (save $240 vs monthly)
-                    </p>
-                  )}
                   <p className="text-white/40 text-sm mt-1">7-day free trial · Cancel anytime</p>
                 </div>
 

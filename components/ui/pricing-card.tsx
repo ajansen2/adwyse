@@ -4,7 +4,6 @@ import {
   Tick02Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import NumberFlow from "@number-flow/react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 
@@ -13,8 +12,7 @@ const plans = [
     id: "free",
     name: "Free",
     description: "getting started",
-    monthlyPrice: 0,
-    yearlyPrice: 0,
+    price: 0,
     features: [
       "1 ad account",
       "100 orders/month",
@@ -27,8 +25,7 @@ const plans = [
     id: "pro",
     name: "Pro",
     description: "scaling stores",
-    monthlyPrice: 99,
-    yearlyPrice: 79,
+    price: 99.99,
     features: [
       "Everything in Free, plus:",
       "Unlimited ad accounts & orders",
@@ -54,9 +51,6 @@ const TRANSITION = {
 };
 
 function PricingCard() {
-  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">(
-    "monthly"
-  );
   const [selectedPlan, setSelectedPlan] = useState("pro");
 
   const handleUpgrade = () => {
@@ -71,7 +65,6 @@ function PricingCard() {
     const params = new URLSearchParams();
     if (shop) params.set('shop', shop);
     params.set('plan', 'pro');
-    params.set('billing_cycle', billingCycle);
     window.location.href = `/api/billing/subscribe?${params.toString()}`;
   };
 
@@ -81,53 +74,11 @@ function PricingCard() {
         <h1 className="text-2xl font-semibold text-foreground tracking-tight">
           Select a Plan
         </h1>
-
-        <div className="bg-muted p-1 h-10 w-full rounded-xl ring-1 ring-border flex">
-          <button
-            onClick={() => setBillingCycle("monthly")}
-            className={`flex-1 h-full rounded-lg text-base font-medium  relative transition-colors duration-300 ${
-              billingCycle === "monthly"
-                ? "text-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {billingCycle === "monthly" && (
-              <motion.div
-                layoutId="tab-bg"
-                className="absolute inset-0 bg-background rounded-lg shadow-sm ring-1 ring-border"
-                transition={TRANSITION}
-              />
-            )}
-            <span className="relative z-10">Monthly</span>
-          </button>
-          <button
-            onClick={() => setBillingCycle("yearly")}
-            className={`flex-1 h-full rounded-lg text-base font-medium relative transition-colors duration-300 flex items-center justify-center gap-2 ${
-              billingCycle === "yearly"
-                ? "text-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {billingCycle === "yearly" && (
-              <motion.div
-                layoutId="tab-bg"
-                className="absolute inset-0 bg-background rounded-lg shadow-sm ring-1 ring-border"
-                transition={TRANSITION}
-              />
-            )}
-            <span className="relative z-10">Yearly</span>
-            <span className="relative z-10 bg-primary text-xs font-black px-1.5 py-0.5 rounded-full uppercase text-primary-foreground tracking-tight whitespace-nowrap font-light">
-              20% OFF
-            </span>
-          </button>
-        </div>
       </div>
 
       <div className="flex flex-col gap-3">
         {plans.map((plan) => {
           const isSelected = selectedPlan === plan.id;
-          const price =
-            billingCycle === "monthly" ? plan.monthlyPrice : plan.yearlyPrice;
 
           return (
             <div
@@ -180,13 +131,10 @@ function PricingCard() {
                     </div>
                     <div className="text-right">
                       <div className="text-xl font-medium text-foreground">
-                        <NumberFlow
-                          value={price}
-                          format={{ style: "currency", currency: "USD" }}
-                        />
+                        US${plan.price.toFixed(2)}
                       </div>
-                      <div className="text-xs text-muted-foreground/60 flex items-center justify-end gap-1 ">
-                        {billingCycle === "monthly" ? "Month" : "Year"}
+                      <div className="text-xs text-muted-foreground/60">
+                        /month
                       </div>
                     </div>
                   </div>
@@ -225,7 +173,6 @@ function PricingCard() {
                               </motion.div>
                             ))}
                           </div>
-
                         </div>
                       </motion.div>
                     )}

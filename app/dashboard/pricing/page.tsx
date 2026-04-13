@@ -22,7 +22,7 @@ export default function DashboardPricingPage() {
               </span>
             </h1>
             <p className="text-zinc-400 text-lg">
-              AI assistant, competitor spy, cohort retention, predictive budget AI, and more — for $99/mo.
+              AI assistant, competitor spy, cohort retention, predictive budget AI, and more — for $99.99/mo.
             </p>
           </div>
 
@@ -45,7 +45,7 @@ export default function DashboardPricingPage() {
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {[
-                    { feature: 'Price', free: 'Free forever', pro: '$99/mo' },
+                    { feature: 'Price', free: 'Free forever', pro: '$99.99/mo' },
                     { feature: 'Ad Accounts', free: '1', pro: 'Unlimited' },
                     { feature: 'Orders/Month', free: '100', pro: 'Unlimited' },
                     { feature: 'Data History', free: '30 days', pro: 'Unlimited' },
