@@ -106,6 +106,7 @@ function DashboardContent() {
   const [onboardingStep, setOnboardingStep] = useState(1);
   const [showBillingRequired, setShowBillingRequired] = useState(false);
   const [subscribing, setSubscribing] = useState(false);
+  const [showUpgradeSuccess, setShowUpgradeSuccess] = useState(false);
   // Getting Started checklist state
   const [hasAdAccounts, setHasAdAccounts] = useState(false);
   const [hasPixelEvents, setHasPixelEvents] = useState(false);
@@ -139,6 +140,20 @@ function DashboardContent() {
       }
     }
   }, [stores, loading]);
+
+  // Detect billing success from URL params
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const billing = params.get('billing');
+    if (billing === 'already_active' || billing === 'success') {
+      setShowUpgradeSuccess(true);
+      // Clean the URL param without reload
+      const url = new URL(window.location.href);
+      url.searchParams.delete('billing');
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, []);
 
   // Load funnel data when stores are available
   useEffect(() => {
@@ -1844,6 +1859,54 @@ function DashboardContent() {
 
       {/* AI Chat Assistant — Pro only */}
       {showPro && <AskAdWyse storeId={stores[0]?.id} />}
+
+      {/* Upgrade Success Modal */}
+      {showUpgradeSuccess && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-zinc-900 border border-white/10 rounded-2xl p-8 max-w-lg w-full mx-4 text-center shadow-2xl">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h2 className="text-3xl font-bold text-white mb-3">Welcome to Pro!</h2>
+            <p className="text-white/60 mb-6">You&apos;ve unlocked the full AdWyse experience. Here&apos;s what&apos;s now available:</p>
+
+            <div className="grid grid-cols-2 gap-3 mb-8 text-left">
+              {[
+                { icon: '🤖', label: 'AI Assistant', desc: 'Chat with your data' },
+                { icon: '🕵️', label: 'Competitor Spy', desc: 'Live ad scraping' },
+                { icon: '📊', label: 'Cohort Retention', desc: 'Customer behavior analysis' },
+                { icon: '🎯', label: 'NC-ROAS', desc: 'New vs repeat customers' },
+                { icon: '🧠', label: 'Budget Optimizer', desc: 'AI-powered forecasting' },
+                { icon: '🎨', label: 'Creative Score', desc: 'Rank creatives 0-100' },
+                { icon: '📈', label: 'Multi-touch Attribution', desc: '5 attribution models' },
+                { icon: '🔗', label: 'Conversions API', desc: 'Server-side tracking' },
+                { icon: '💬', label: 'Slack Digest', desc: 'Daily performance alerts' },
+                { icon: '📧', label: 'Email Reports', desc: 'Weekly & monthly summaries' },
+              ].map((item, i) => (
+                <div key={i} className="flex items-start gap-2 p-2 rounded-lg bg-white/5">
+                  <span className="text-lg">{item.icon}</span>
+                  <div>
+                    <div className="text-white text-sm font-medium">{item.label}</div>
+                    <div className="text-white/40 text-xs">{item.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setShowUpgradeSuccess(false)}
+              className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-semibold rounded-xl transition-all hover:shadow-lg hover:shadow-orange-500/25"
+            >
+              Start Exploring
+            </button>
+            <p className="text-white/30 text-xs mt-3">
+              Your 7-day free trial has started. Cancel anytime from Shopify.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -144,7 +144,7 @@ export async function GET(request: NextRequest) {
         // For embedded apps, construct the proper Shopify admin URL
         const shopName = shop!.replace('.myshopify.com', '');
         const apiKey = process.env.SHOPIFY_API_KEY || '08fa8bc27e0e3ac857912c7e7ee289d0';
-        const shopifyAdminUrl = `https://admin.shopify.com/store/${shopName}/apps/${apiKey}`;
+        const shopifyAdminUrl = `https://admin.shopify.com/store/${shopName}/apps/${apiKey}/dashboard?billing=success`;
 
         console.log('🔄 Redirecting to:', shopifyAdminUrl);
         console.log('📍 Shop:', shop);
