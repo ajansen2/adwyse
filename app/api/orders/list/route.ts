@@ -32,6 +32,25 @@ export async function GET(request: NextRequest) {
     const dateCutoff = new Date();
     dateCutoff.setDate(dateCutoff.getDate() - dataRetentionDays);
 
+    // For free tier, find which platform the first ad account uses
+    // so we only show orders from that platform (+ organic/direct)
+    let allowedPlatforms: string[] | null = null;
+    if (subscription.tier === 'free') {
+      const { data: firstAccount } = await supabase
+        .from('adwyse_ad_accounts')
+        .select('platform')
+        .eq('store_id', merchantId)
+        .eq('is_connected', true)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (firstAccount) {
+        // Allow the connected platform + organic/direct (always visible)
+        allowedPlatforms = [firstAccount.platform, 'organic', 'direct', ''];
+      }
+    }
+
     // In AdWyse schema, merchant_id IS the store_id (each store is its own merchant)
     // Get orders for this store with tier-based limits
     let query = supabase
@@ -41,6 +60,10 @@ export async function GET(request: NextRequest) {
       .gte('created_at', dateCutoff.toISOString())
       .order('created_at', { ascending: false })
       .limit(Math.min(orderLimit, 1000)); // Cap at tier limit
+
+    if (allowedPlatforms) {
+      query = query.in('attributed_platform', allowedPlatforms);
+    }
 
     const { data: orders, error: ordersError } = await query;
 

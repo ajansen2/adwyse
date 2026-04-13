@@ -31,10 +31,27 @@ export async function GET(request: NextRequest) {
     const dateCutoff = new Date();
     dateCutoff.setDate(dateCutoff.getDate() - dataRetentionDays);
 
+    // For free tier, limit to first connected ad account only
+    let allowedAccountIds: string[] | null = null;
+    if (subscription.tier === 'free') {
+      const { data: firstAccount } = await supabase
+        .from('adwyse_ad_accounts')
+        .select('id')
+        .eq('store_id', merchantId)
+        .eq('is_connected', true)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (firstAccount) {
+        allowedAccountIds = [firstAccount.id];
+      }
+    }
+
     // Get campaigns for this store with ad account info for platform
     // Since campaigns table stores daily data, we need to aggregate
     // Apply tier-based date filter
-    const { data: campaigns, error: campaignsError } = await supabase
+    let campaignsQuery = supabase
       .from('adwyse_campaigns')
       .select(`
         *,
@@ -43,6 +60,12 @@ export async function GET(request: NextRequest) {
       .eq('store_id', merchantId)
       .gte('date', dateCutoff.toISOString().split('T')[0])
       .order('date', { ascending: false });
+
+    if (allowedAccountIds) {
+      campaignsQuery = campaignsQuery.in('ad_account_id', allowedAccountIds);
+    }
+
+    const { data: campaigns, error: campaignsError } = await campaignsQuery;
 
     if (campaignsError) {
       console.error('❌ Error fetching campaigns:', campaignsError);
