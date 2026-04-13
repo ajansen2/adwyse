@@ -200,7 +200,7 @@ export function Sidebar({ activePage, storeId }: SidebarProps) {
         {!loading && !isPro && (
           <div className="p-4">
             <button
-              onClick={() => navigateInApp('/pricing')}
+              onClick={() => navigateInApp('/dashboard/pricing')}
               className="w-full p-4 rounded-xl bg-gradient-to-br from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white text-left transition shadow-lg shadow-orange-500/20"
             >
               <div className="flex items-center gap-2 mb-1">

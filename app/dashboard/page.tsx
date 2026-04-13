@@ -1224,7 +1224,7 @@ function DashboardContent() {
                 </div>
               </div>
               <button
-                onClick={() => navigateInApp('/pricing')}
+                onClick={() => navigateInApp('/dashboard/pricing')}
                 className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 rounded-lg text-white font-semibold hover:shadow-lg hover:shadow-amber-500/25 transition flex items-center gap-2"
               >
                 Upgrade to Pro
@@ -1260,7 +1260,7 @@ function DashboardContent() {
                 </div>
               </div>
               <button
-                onClick={() => navigateInApp('/pricing')}
+                onClick={() => navigateInApp('/dashboard/pricing')}
                 className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 rounded text-red-200 text-xs font-medium transition"
               >
                 Upgrade
@@ -1533,7 +1533,7 @@ function DashboardContent() {
                         Get AI Assistant, Competitor Spy, Cohort Retention, NC-ROAS, Predictive Budget Optimizer, and more — for $99/mo. Cancel anytime.
                       </p>
                       <button
-                        onClick={() => navigateInApp('/pricing')}
+                        onClick={() => navigateInApp('/dashboard/pricing')}
                         className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold rounded-lg transition shadow-lg shadow-orange-500/20"
                       >
                         Upgrade to Pro
@@ -1633,7 +1633,7 @@ function DashboardContent() {
                         Pro Feature
                       </div>
                       <button
-                        onClick={() => navigateInApp('/pricing')}
+                        onClick={() => navigateInApp('/dashboard/pricing')}
                         className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 rounded-lg text-white font-medium transition inline-flex items-center gap-2"
                       >
                         Upgrade to Unlock
