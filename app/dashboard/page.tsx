@@ -123,9 +123,11 @@ function DashboardContent() {
   };
 
   // Check if subscription is required (trial expired and not active)
+  const DEMO_STORE_ID = '987c61dd-7696-47ca-bf05-37876953b0ca';
   const isSubscriptionRequired = () => {
     const store = stores[0];
     if (!store) return false;
+    if (store.id === DEMO_STORE_ID) return false; // Demo store always bypasses
     if (store.subscription_status === 'active') return false;
     const trialDays = getTrialDaysLeft();
     if (trialDays === null) return true;
@@ -353,6 +355,10 @@ function DashboardContent() {
       const data = await response.json();
       if (data.confirmationUrl) {
         redirectToOAuth(data.confirmationUrl);
+      } else if (data.status === 'active') {
+        // Already subscribed — dismiss paywall and show success
+        setShowBillingRequired(false);
+        setShowUpgradeSuccess(true);
       } else if (data.needsOAuth) {
         redirectToOAuth(`/api/auth/shopify/install?shop=${shop}`);
       }
