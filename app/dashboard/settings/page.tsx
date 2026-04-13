@@ -191,7 +191,10 @@ function SettingsContent() {
           try {
             console.log('🔧 Settings: Loading subscription tier via XHR...');
             const tierXhr = new XMLHttpRequest();
-            tierXhr.open('GET', `/api/subscription/tier?store_id=${data.store.id}`, false);
+            let tierUrl = `/api/me/tier?store_id=${data.store.id}`;
+            const ft = new URLSearchParams(window.location.search).get('force_tier');
+            if (ft) tierUrl += `&force_tier=${ft}`;
+            tierXhr.open('GET', tierUrl, false);
             tierXhr.send();
             if (tierXhr.status === 200) {
               const tierData = JSON.parse(tierXhr.responseText);
@@ -1260,6 +1263,24 @@ function SettingsContent() {
             <p className="text-white/60 mb-6">
               Connect your ad accounts to automatically sync campaign spend data and calculate ROAS.
             </p>
+
+            {subscriptionTier === 'free' && (
+              <div className="mb-4 p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg">
+                <p className="text-orange-300 text-sm">
+                  Free plan: 1 ad account maximum.{' '}
+                  {adAccounts.filter(a => a.is_connected).length >= 1 && (
+                    <span className="text-orange-400 font-medium">Limit reached — </span>
+                  )}
+                  <a
+                    href="/pricing"
+                    className="text-orange-400 underline hover:text-orange-300"
+                  >
+                    Upgrade to Pro
+                  </a>
+                  {' '}for unlimited accounts.
+                </p>
+              </div>
+            )}
 
             <div className="space-y-4">
               {/* Facebook Ads */}

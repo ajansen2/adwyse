@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { exchangeTikTokCode, getTikTokAdvertiserInfo } from '@/lib/tiktok-ads';
+import { checkAdAccountLimit } from '@/lib/subscription-tiers';
 
 /**
  * Handle TikTok Ads OAuth callback
@@ -36,7 +37,10 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    // Get detailed info for each advertiser and save
+    // Get detailed info for each advertiser and save (respecting tier limits)
+    let connectedCount = 0;
+    let skippedDueToLimit = 0;
+
     for (const advertiser of advertisers) {
       // Try to get detailed advertiser info
       const detailedInfo = await getTikTokAdvertiserInfo(accessToken, advertiser.advertiserId);
@@ -52,7 +56,7 @@ export async function GET(request: NextRequest) {
         .maybeSingle();
 
       if (existing) {
-        // Update existing
+        // Update existing (doesn't count against limit)
         await supabase
           .from('ad_accounts')
           .update({
@@ -64,7 +68,15 @@ export async function GET(request: NextRequest) {
           .eq('id', existing.id);
 
         console.log(`✅ Updated TikTok account: ${advertiserName}`);
+        connectedCount++;
       } else {
+        // Check ad account limit before inserting new
+        const limitCheck = await checkAdAccountLimit(storeId);
+        if (!limitCheck.allowed) {
+          skippedDueToLimit++;
+          continue;
+        }
+
         // Insert new
         await supabase
           .from('ad_accounts')
@@ -78,10 +90,15 @@ export async function GET(request: NextRequest) {
           });
 
         console.log(`➕ Added TikTok account: ${advertiserName}`);
+        connectedCount++;
       }
     }
 
-    return returnHtmlResponse(true, `Connected ${advertisers.length} TikTok Ads account(s)`);
+    const message = skippedDueToLimit > 0
+      ? `Connected ${connectedCount} account(s). ${skippedDueToLimit} skipped — upgrade to Pro for more.`
+      : `Connected ${connectedCount} TikTok Ads account(s)`;
+
+    return returnHtmlResponse(true, message);
 
   } catch (error) {
     console.error('TikTok OAuth callback error:', error);

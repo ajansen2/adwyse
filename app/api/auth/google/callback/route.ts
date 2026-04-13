@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { exchangeGoogleCode, getGoogleAdsCustomers } from '@/lib/google-ads';
+import { checkAdAccountLimit } from '@/lib/subscription-tiers';
 
 /**
  * Handle Google Ads OAuth callback
@@ -52,7 +53,10 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    // Save each customer account
+    // Save each customer account (respecting tier limits)
+    let connectedCount = 0;
+    let skippedDueToLimit = 0;
+
     for (const customer of customers) {
       // Check if already exists
       const { data: existing } = await supabase
@@ -64,7 +68,7 @@ export async function GET(request: NextRequest) {
         .maybeSingle();
 
       if (existing) {
-        // Update existing
+        // Update existing (doesn't count against limit)
         await supabase
           .from('ad_accounts')
           .update({
@@ -78,7 +82,15 @@ export async function GET(request: NextRequest) {
           .eq('id', existing.id);
 
         console.log(`✅ Updated Google Ads account: ${customer.descriptiveName}`);
+        connectedCount++;
       } else {
+        // Check ad account limit before inserting new
+        const limitCheck = await checkAdAccountLimit(storeId);
+        if (!limitCheck.allowed) {
+          skippedDueToLimit++;
+          continue;
+        }
+
         // Insert new
         await supabase
           .from('ad_accounts')
@@ -94,10 +106,15 @@ export async function GET(request: NextRequest) {
           });
 
         console.log(`➕ Added Google Ads account: ${customer.descriptiveName}`);
+        connectedCount++;
       }
     }
 
-    return returnHtmlResponse(true, `Connected ${customers.length} Google Ads account(s)`);
+    const message = skippedDueToLimit > 0
+      ? `Connected ${connectedCount} account(s). ${skippedDueToLimit} skipped — upgrade to Pro for more.`
+      : `Connected ${connectedCount} Google Ads account(s)`;
+
+    return returnHtmlResponse(true, message);
 
   } catch (error: any) {
     console.error('Google OAuth callback error:', error);
