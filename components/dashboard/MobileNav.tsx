@@ -65,7 +65,7 @@ const navItems = [
 export function MobileNav({ activePage }: MobileNavProps) {
   const { isPro, loading } = useTier();
   const visibleItems = navItems.filter((item) => {
-    if ((item as any).proOnly && !isPro && !loading) return false;
+    if ((item as any).proOnly && !isPro) return false;
     return true;
   });
   return (

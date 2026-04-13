@@ -2,8 +2,9 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Sidebar, MobileNav } from '@/components/dashboard';
+import { Sidebar, MobileNav, UpgradeGate } from '@/components/dashboard';
 import { MetricCard } from '@/components/ui';
+import { useTier } from '@/lib/use-tier';
 
 interface Creative {
   platform_ad_id: string;
@@ -39,6 +40,7 @@ interface Summary {
 }
 
 function CreativesContent() {
+  const { isPro, loading: tierLoading } = useTier();
   const [loading, setLoading] = useState(true);
   const [creatives, setCreatives] = useState<Creative[]>([]);
   const [fatigue, setFatigue] = useState<FatigueAlert[]>([]);
@@ -100,7 +102,26 @@ function CreativesContent() {
     }
   };
 
-  if (loading) {
+  if (!tierLoading && !isPro) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900">
+        <Sidebar activePage="creatives" />
+        <main className="lg:ml-64 min-h-screen">
+          <UpgradeGate
+            feature="Ad Creatives"
+            description="See performance at the creative level — fatigue alerts, top performers, and spend breakdowns."
+            bullets={[
+              'Creative fatigue detection with CTR/ROAS trends',
+              'Top performing creatives ranked by ROAS',
+              'Spend and revenue per creative',
+            ]}
+          />
+        </main>
+      </div>
+    );
+  }
+
+  if (loading || tierLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">

@@ -2,8 +2,9 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Sidebar, MobileNav } from '@/components/dashboard';
+import { Sidebar, MobileNav, UpgradeGate } from '@/components/dashboard';
 import { MetricCard, DashboardSkeleton, PlatformBadge } from '@/components/ui';
+import { useTier } from '@/lib/use-tier';
 
 type AttributionModel = 'last_click' | 'first_click' | 'linear' | 'time_decay' | 'position_based';
 
@@ -121,6 +122,7 @@ interface TouchpointData {
 }
 
 function AttributionContent() {
+  const { isPro, loading: tierLoading } = useTier();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [storeId, setStoreId] = useState<string | null>(null);
@@ -225,7 +227,18 @@ function AttributionContent() {
     }).format(value);
   };
 
-  if (loading) {
+  if (!tierLoading && !isPro) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900">
+        <Sidebar activePage="attribution" />
+        <main className="lg:ml-64 min-h-screen">
+          <UpgradeGate feature="Multi-touch Attribution" description="See how each touchpoint contributes to conversions with 5 attribution models." bullets={['Last click, first click, linear, time decay, position-based', 'Channel-level attribution breakdown', 'Touchpoint journey visualization']} />
+        </main>
+      </div>
+    );
+  }
+
+  if (loading || tierLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900">
         <Sidebar activePage="attribution" />

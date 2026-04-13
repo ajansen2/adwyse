@@ -2,10 +2,11 @@
 
 import { useEffect, useState, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Sidebar, MobileNav } from '@/components/dashboard';
+import { Sidebar, MobileNav, UpgradeGate } from '@/components/dashboard';
 import { MetricCard } from '@/components/ui';
 import { CohortChart } from '@/components/charts/CohortChart';
 import { downloadCSV, ltvExportColumns } from '@/lib/export-utils';
+import { useTier } from '@/lib/use-tier';
 import {
   BarChart,
   Bar,
@@ -190,6 +191,7 @@ function generateDemoLTVData(): LTVMetrics {
 }
 
 function LTVContent() {
+  const { isPro, loading: tierLoading } = useTier();
   const [initialLoading, setInitialLoading] = useState(true);
   const [metrics, setMetrics] = useState<LTVMetrics | null>(null);
   const [storeId, setStoreId] = useState<string | null>(null);
@@ -317,7 +319,18 @@ function LTVContent() {
     }
   };
 
-  if (initialLoading) {
+  if (!tierLoading && !isPro) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900">
+        <Sidebar activePage="ltv" />
+        <main className="lg:ml-64 min-h-screen">
+          <UpgradeGate feature="Customer LTV" description="Track customer lifetime value, repeat purchase rates, and revenue per customer." bullets={['Average LTV and purchase frequency', 'Customer value distribution', 'Cohort-based retention tracking']} />
+        </main>
+      </div>
+    );
+  }
+
+  if (initialLoading || tierLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">

@@ -151,7 +151,7 @@ const navItems = [
 export function Sidebar({ activePage, storeId }: SidebarProps) {
   const { isPro, loading } = useTier(storeId);
   const visibleItems = navItems.filter((item) => {
-    if ((item as any).proOnly && !isPro && !loading) return false;
+    if ((item as any).proOnly && !isPro) return false;
     return true;
   });
 

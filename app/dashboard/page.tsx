@@ -79,7 +79,7 @@ const ENABLE_EXTRA_COMPONENTS = true;
 function DashboardContent() {
   // Tier gating — free users only see basic widgets
   const { isPro: tierIsPro, loading: tierLoading, tier: tierValue } = useTier();
-  const showPro = tierIsPro || tierLoading;
+  const showPro = tierIsPro;
 
   // Sync useTier() result into subscriptionTier state for badge/banners
   useEffect(() => {

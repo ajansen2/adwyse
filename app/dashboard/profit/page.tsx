@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useMemo, Suspense, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Sidebar, MobileNav } from '@/components/dashboard';
+import { Sidebar, MobileNav, UpgradeGate } from '@/components/dashboard';
 import { MetricCard, DashboardSkeleton } from '@/components/ui';
+import { useTier } from '@/lib/use-tier';
 
 type DateRangeOption = '7d' | '14d' | '30d' | '90d' | 'all';
 
@@ -126,6 +127,7 @@ function generateDemoProfitData(dateRange: DateRangeOption): {
 }
 
 function ProfitContent() {
+  const { isPro, loading: tierLoading } = useTier();
   const searchParams = useSearchParams();
   const [initialLoading, setInitialLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
@@ -405,7 +407,18 @@ function ProfitContent() {
     return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
   };
 
-  if (initialLoading && !profitSummary) {
+  if (!tierLoading && !isPro) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900">
+        <Sidebar activePage="profit" />
+        <main className="lg:ml-64 min-h-screen">
+          <UpgradeGate feature="Profit Tracking" description="Track COGS, margins, and true profit per order and campaign." bullets={['Revenue vs ad spend vs COGS breakdown', 'Profit margin trends over time', 'Per-campaign profitability analysis']} />
+        </main>
+      </div>
+    );
+  }
+
+  if ((initialLoading || tierLoading) && !profitSummary) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900">
         <Sidebar activePage="profit" />
