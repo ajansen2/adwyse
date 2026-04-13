@@ -1,16 +1,11 @@
 "use client";
 
 import {
-  Add01Icon,
-  MinusPlus01Icon,
-  MinusSignIcon,
   Tick02Icon,
-  UserGroupIcon,
-  UserStoryIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import NumberFlow from "@number-flow/react";
-import { AnimatePresence, motion, LayoutGroup } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 
 const plans = [
@@ -63,7 +58,6 @@ function PricingCard() {
     "monthly"
   );
   const [selectedPlan, setSelectedPlan] = useState("pro");
-  const [storeCount, setStoreCount] = useState(1);
 
   const handleUpgrade = () => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -78,7 +72,6 @@ function PricingCard() {
     if (shop) params.set('shop', shop);
     params.set('plan', 'pro');
     params.set('billing_cycle', billingCycle);
-    params.set('stores', storeCount.toString());
     window.location.href = `/api/billing/subscribe?${params.toString()}`;
   };
 
@@ -233,55 +226,6 @@ function PricingCard() {
                             ))}
                           </div>
 
-                          {plan.id === "pro" && (
-                            <>
-                              <div className="h-px bg-muted" />
-
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-12 h-12 rounded-full bg-muted shrink-0 flex items-center justify-center">
-                                    <HugeiconsIcon
-                                      icon={UserStoryIcon}
-                                      size={30}
-                                      className="text-muted-foreground"
-                                    />
-                                  </div>
-                                  <div className="flex flex-col">
-                                    <span className="text-base font-medium  text-foreground leading-none">
-                                      Stores
-                                    </span>
-                                    <span className="text-sm text-muted-foreground mt-0.5">
-                                      Starting at {storeCount} store
-                                    </span>
-                                  </div>
-                                </div>
-
-                                <div className="flex items-center gap-4 bg-muted p-1.5 rounded-xl border border-border">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setStoreCount(Math.max(1, storeCount - 1));
-                                    }}
-                                    className="p-1.5 rounded-lg hover:bg-background hover:shadow-sm transition-all text-muted-foreground/60 hover:text-foreground active:scale-95"
-                                  >
-                                    <HugeiconsIcon icon={MinusSignIcon} size={14} />
-                                  </button>
-                                  <span className="text-sm  w-4 text-center tabular-nums text-foreground/80">
-                                    <NumberFlow value={storeCount} />
-                                  </span>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setStoreCount(storeCount + 1);
-                                    }}
-                                    className="p-1.5 rounded-lg hover:bg-background hover:shadow-sm transition-all text-muted-foreground/60 hover:text-foreground active:scale-95"
-                                  >
-                                    <HugeiconsIcon icon={Add01Icon} size={16} />
-                                  </button>
-                                </div>
-                              </div>
-                            </>
-                          )}
                         </div>
                       </motion.div>
                     )}
@@ -295,14 +239,6 @@ function PricingCard() {
 
       {/* CTA Button */}
       <div className="flex flex-col gap-3">
-        {selectedPlan === "pro" && storeCount > 1 && (
-          <div className="flex justify-between items-center text-sm text-muted-foreground px-1">
-            <span>Total ({storeCount} stores)</span>
-            <span className="text-foreground font-medium">
-              US${(billingCycle === "monthly" ? 99 : 79) * storeCount}.00/mo
-            </span>
-          </div>
-        )}
         <motion.button
           onClick={handleUpgrade}
           whileHover={{ scale: 1.02 }}

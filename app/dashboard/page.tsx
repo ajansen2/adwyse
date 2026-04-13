@@ -95,7 +95,7 @@ function DashboardContent() {
   const [latestInsight, setLatestInsight] = useState<any>(null);
   const [funnelData, setFunnelData] = useState<{name: string; value: number}[]>([]);
   const [generatingInsight, setGeneratingInsight] = useState(false);
-  const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'trial' | 'pro'>('trial');
+  const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'trial' | 'pro'>('free');
   const [tierLimits, setTierLimits] = useState<{adAccounts: number; ordersPerMonth: number; aiInsights: boolean; dataRetentionDays?: number} | null>(null);
   const [ordersLimitInfo, setOrdersLimitInfo] = useState<{ordersReturned: number; ordersPerMonth: number; dataRetentionDays: number} | null>(null);
   const [dateRangeOption, setDateRangeOption] = useState<DateRangeOption>('30d');
@@ -684,7 +684,10 @@ function DashboardContent() {
 
               // Fetch subscription tier info
               const tierXhr = new XMLHttpRequest();
-              tierXhr.open('GET', `/api/subscription/tier?store_id=${storeId}`, false);
+              let tierUrl = `/api/me/tier?store_id=${storeId}`;
+              const ft = new URLSearchParams(window.location.search).get('force_tier');
+              if (ft) tierUrl += `&force_tier=${ft}`;
+              tierXhr.open('GET', tierUrl, false);
               tierXhr.send();
 
               if (tierXhr.status === 200) {
@@ -1221,7 +1224,7 @@ function DashboardContent() {
                 </div>
               </div>
               <button
-                onClick={() => navigateInApp('/dashboard/settings?upgrade=true')}
+                onClick={() => navigateInApp('/pricing')}
                 className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 rounded-lg text-white font-semibold hover:shadow-lg hover:shadow-amber-500/25 transition flex items-center gap-2"
               >
                 Upgrade to Pro
@@ -1257,7 +1260,7 @@ function DashboardContent() {
                 </div>
               </div>
               <button
-                onClick={() => navigateInApp('/dashboard/settings?upgrade=true')}
+                onClick={() => navigateInApp('/pricing')}
                 className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 rounded text-red-200 text-xs font-medium transition"
               >
                 Upgrade
@@ -1630,7 +1633,7 @@ function DashboardContent() {
                         Pro Feature
                       </div>
                       <button
-                        onClick={() => navigateInApp('/dashboard/settings?upgrade=true')}
+                        onClick={() => navigateInApp('/pricing')}
                         className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 rounded-lg text-white font-medium transition inline-flex items-center gap-2"
                       >
                         Upgrade to Unlock
