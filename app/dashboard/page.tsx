@@ -476,52 +476,9 @@ function DashboardContent() {
                 const billingStatus = searchParams.get('billing');
                 const isReturningFromBilling = billingStatus === 'success' || searchParams.get('charge_id');
 
-                if (store.subscription_status !== 'active' && !isReturningFromBilling) {
-                  console.log('💰 Checking billing status for store:', store.id);
-                  console.log('💰 Current subscription_status:', store.subscription_status);
-
-                  try {
-                    const billingResponse = await fetch('/api/billing/create', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ storeId: store.id, shop })
-                    });
-                    const billingData = await billingResponse.json();
-
-                    console.log('💰 Billing create response:', billingData);
-
-                    if (billingData.confirmationUrl) {
-                      console.log('💰 Redirecting to billing approval:', billingData.confirmationUrl);
-                      setLoadingMessage('Redirecting to billing...');
-                      // Use App Bridge redirect for embedded apps
-                      redirectToOAuth(billingData.confirmationUrl);
-                      return;
-                    } else if (billingData.status === 'active') {
-                      console.log('✅ Billing already active');
-                      // Update local store data
-                      store.subscription_status = 'active';
-                    } else if (billingData.error || billingData.needsOAuth || !billingResponse.ok) {
-                      // Billing failed - might need to re-authenticate
-                      console.error('❌ Billing creation failed:', billingData.error, 'Status:', billingResponse.status);
-
-                      // If we need OAuth (401/403 or explicit flag), redirect to install flow
-                      if (billingData.needsOAuth ||
-                          billingResponse.status === 401 ||
-                          billingResponse.status === 403 ||
-                          billingData.error?.includes('OAuth required')) {
-                        console.log('🔄 Access token invalid, redirecting to OAuth install...');
-                        setLoadingMessage('Connecting to Shopify...');
-                        const installUrl = `/api/auth/shopify/install?shop=${encodeURIComponent(shop)}`;
-                        // Use App Bridge redirect for proper iframe handling
-                        redirectToOAuth(installUrl);
-                        return;
-                      }
-                    }
-                  } catch (error) {
-                    console.error('❌ Billing check error:', error);
-                  }
-                } else if (isReturningFromBilling) {
-                  console.log('✅ Returning from billing flow, skipping billing check');
+                // Merchants start on free tier — upgrade to Pro from dashboard
+                if (store.subscription_status !== 'active') {
+                  console.log('📋 Store on free tier, subscription_status:', store.subscription_status);
                 }
               }
             } else if (xhr.status === 404) {
@@ -540,37 +497,7 @@ function DashboardContent() {
                   merchantData = installData.merchant as Merchant;
                   if (installData.store) {
                     setStores([installData.store as Store]);
-
-                    // New install - redirect to billing approval
-                    console.log('💰 New install - creating billing charge...');
-                    try {
-                      const billingResponse = await fetch('/api/billing/create', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ storeId: installData.store.id, shop })
-                      });
-                      const billingData = await billingResponse.json();
-
-                      console.log('💰 New install billing response:', billingData);
-
-                      if (billingData.confirmationUrl) {
-                        console.log('💰 Redirecting to billing approval:', billingData.confirmationUrl);
-                        setLoadingMessage('Redirecting to billing...');
-                        redirectToOAuth(billingData.confirmationUrl);
-                        return;
-                      } else if (billingData.error || billingData.needsOAuth || !billingResponse.ok) {
-                        // Billing failed - need OAuth
-                        console.error('❌ New install billing failed:', billingData.error, 'Status:', billingResponse.status);
-                        // Store was created without valid access token - redirect to OAuth
-                        console.log('🔄 Redirecting to OAuth install for new store...');
-                        setLoadingMessage('Connecting to Shopify...');
-                        const installUrl = `/api/auth/shopify/install?shop=${encodeURIComponent(shop)}`;
-                        redirectToOAuth(installUrl);
-                        return;
-                      }
-                    } catch (error) {
-                      console.error('❌ Billing create error:', error);
-                    }
+                    console.log('✅ New install on free tier — merchant can upgrade from dashboard');
                   }
                 } else {
                   console.error('❌ Failed to create merchant/store');
