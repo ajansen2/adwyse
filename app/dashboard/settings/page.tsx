@@ -2357,25 +2357,6 @@ function SettingsContent() {
             </div>
           </div>
 
-          {/* Danger Zone */}
-          <div className="bg-red-500/10 border-2 border-red-500/50 rounded-xl p-6">
-            <h2 className="text-xl font-bold text-red-400 mb-4">Danger Zone</h2>
-            <p className="text-white/60 mb-4">
-              Uninstalling will remove all data and disconnect your store.
-            </p>
-            <button
-              onClick={() => {
-                const shop = store?.shop_domain;
-                if (shop) {
-                  const storeName = shop.replace('.myshopify.com', '');
-                  window.top?.location.assign(`https://admin.shopify.com/store/${storeName}/settings/apps?tab=installed`);
-                }
-              }}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition"
-            >
-              Uninstall App
-            </button>
-          </div>
         </div>
       </main>
       <MobileNav activePage="settings" />
