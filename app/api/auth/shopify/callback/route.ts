@@ -2,6 +2,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 
+/**
+ * Returns an HTML page that redirects window.top (breaks out of Shopify's iframe).
+ * Required for embedded apps — NextResponse.redirect() stays inside the iframe
+ * and Shopify's billing approval page never renders, causing the charge to expire.
+ */
+function topLevelRedirectHTML(url: string, message: string = 'Redirecting...'): string {
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8" /><title>${message}</title>
+<style>body{background:#0a0a0a;color:white;font-family:-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}.loader{text-align:center}.spinner{width:40px;height:40px;border:3px solid #333;border-top:3px solid #8b5cf6;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 16px}@keyframes spin{to{transform:rotate(360deg)}}</style>
+</head>
+<body><div class="loader"><div class="spinner"></div><p>${message}</p></div>
+<script>if(window.top&&window.top!==window.self){window.top.location.href=${JSON.stringify(url)}}else{window.location.href=${JSON.stringify(url)}}</script>
+</body></html>`;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -476,11 +492,11 @@ export async function GET(request: NextRequest) {
           .update({ subscription_status: 'active', billing_charge_id: active.id })
           .eq('id', store.id);
 
-        const response = NextResponse.redirect(`https://admin.shopify.com/store/${shopName}/apps/${clientId}`);
-        response.cookies.delete('shopify_oauth_state');
-        response.cookies.delete('shopify_oauth_merchant_id');
-        response.cookies.delete('shopify_oauth_shop');
-        return response;
+        const appRedirectUrl = `https://admin.shopify.com/store/${shopName}/apps/${clientId}`;
+        return new NextResponse(
+          topLevelRedirectHTML(appRedirectUrl, 'Loading AdWyse...'),
+          { status: 200, headers: { 'Content-Type': 'text/html' } }
+        );
       }
     }
 
@@ -550,39 +566,44 @@ export async function GET(request: NextRequest) {
 
       if (isManagedPricing) {
         console.log('💰 Managed Pricing App - billing handled by Shopify, redirecting to app');
-        const response = NextResponse.redirect(`https://admin.shopify.com/store/${shopName}/apps/${clientId}`);
-        response.cookies.delete('shopify_oauth_state');
-        response.cookies.delete('shopify_oauth_merchant_id');
-        response.cookies.delete('shopify_oauth_shop');
-        return response;
+        const appRedirectUrl = `https://admin.shopify.com/store/${shopName}/apps/${clientId}`;
+        return new NextResponse(
+          topLevelRedirectHTML(appRedirectUrl, 'Loading AdWyse...'),
+          { status: 200, headers: { 'Content-Type': 'text/html' } }
+        );
       }
     }
 
     if (confirmationUrl) {
-      console.log('✅ Subscription created, redirecting to approval');
-      const response = NextResponse.redirect(confirmationUrl);
-      response.cookies.delete('shopify_oauth_state');
-      response.cookies.delete('shopify_oauth_merchant_id');
-      response.cookies.delete('shopify_oauth_shop');
-      return response;
+      console.log('✅ Subscription created, redirecting to billing approval (top-level)');
+      return new NextResponse(
+        topLevelRedirectHTML(confirmationUrl, 'Redirecting to billing approval...'),
+        { status: 200, headers: { 'Content-Type': 'text/html' } }
+      );
     }
 
-    // Billing failed - redirect to app anyway
+    // Billing failed - redirect to app with billing_required flag so dashboard shows a banner
     console.error('❌ Billing creation failed - no confirmation URL');
-    const response = NextResponse.redirect(`https://admin.shopify.com/store/${shopName}/apps/${clientId}?billing_error=true`);
-    response.cookies.delete('shopify_oauth_state');
-    response.cookies.delete('shopify_oauth_merchant_id');
-    response.cookies.delete('shopify_oauth_shop');
-    return response;
+    const billingFailUrl = `https://admin.shopify.com/store/${shopName}/apps/${clientId}?billing_required=true&billing_error=true`;
+    return new NextResponse(
+      topLevelRedirectHTML(billingFailUrl, 'Loading AdWyse...'),
+      { status: 200, headers: { 'Content-Type': 'text/html' } }
+    );
   } catch (error) {
     console.error('Shopify OAuth callback error:', error);
-    // Redirect to Shopify admin app page on error
+    // Redirect to Shopify admin app page on error (top-level for embedded apps)
     const shopParam = request.nextUrl.searchParams.get('shop');
     if (shopParam) {
       const shopName = shopParam.replace('.myshopify.com', '');
       const shopifyAdminUrl = `https://admin.shopify.com/store/${shopName}/apps/${process.env.SHOPIFY_API_KEY}?error=oauth_failed`;
-      return NextResponse.redirect(shopifyAdminUrl);
+      return new NextResponse(
+        topLevelRedirectHTML(shopifyAdminUrl, 'Redirecting...'),
+        { status: 200, headers: { 'Content-Type': 'text/html' } }
+      );
     }
-    return NextResponse.redirect(new URL('/dashboard?error=oauth_failed', request.url));
+    return new NextResponse(
+      topLevelRedirectHTML(new URL('/dashboard?error=oauth_failed', request.url).toString(), 'Redirecting...'),
+      { status: 200, headers: { 'Content-Type': 'text/html' } }
+    );
   }
 }
