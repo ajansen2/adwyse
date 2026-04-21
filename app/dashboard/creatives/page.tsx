@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { Sidebar, MobileNav, UpgradeGate } from '@/components/dashboard';
 import { MetricCard } from '@/components/ui';
 import { useTier } from '@/lib/use-tier';
+import { authenticatedFetch } from '@/lib/shopify-app-bridge';
 
 interface Creative {
   platform_ad_id: string;
@@ -57,19 +58,13 @@ function CreativesContent() {
         }
 
         // Get store ID from shop
-        const lookupXhr = new XMLHttpRequest();
-        lookupXhr.open('GET', `/api/stores/lookup?shop=${encodeURIComponent(shop)}`, false);
-        lookupXhr.send();
-
-        if (lookupXhr.status === 200) {
-          const data = JSON.parse(lookupXhr.responseText);
+        const lookupRes = await authenticatedFetch(`/api/stores/lookup?shop=${encodeURIComponent(shop)}`);
+        if (lookupRes.ok) {
+          const data = await lookupRes.json();
           if (data.store) {
-            const xhr = new XMLHttpRequest();
-            xhr.open('GET', `/api/creatives/list?store_id=${data.store.id}`, false);
-            xhr.send();
-
-            if (xhr.status === 200) {
-              const creativesData = JSON.parse(xhr.responseText);
+            const creativesRes = await authenticatedFetch(`/api/creatives/list?store_id=${data.store.id}`);
+            if (creativesRes.ok) {
+              const creativesData = await creativesRes.json();
               setCreatives(creativesData.creatives || []);
               setFatigue(creativesData.fatigue || []);
               setSummary(creativesData.summary || null);

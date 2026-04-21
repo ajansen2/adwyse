@@ -263,3 +263,12 @@ export function redirectToOAuth(url: string) {
   console.log('🔄 Final fallback: direct iframe redirect');
   window.location.href = url;
 }
+
+export async function authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const token = await getShopifySessionToken();
+  const headers = new Headers(options.headers);
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+  return fetch(url, { ...options, headers });
+}

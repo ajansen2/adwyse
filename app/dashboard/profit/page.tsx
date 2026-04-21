@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { Sidebar, MobileNav, UpgradeGate } from '@/components/dashboard';
 import { MetricCard, DashboardSkeleton } from '@/components/ui';
 import { useTier } from '@/lib/use-tier';
+import { authenticatedFetch } from '@/lib/shopify-app-bridge';
 
 type DateRangeOption = '7d' | '14d' | '30d' | '90d' | 'all';
 
@@ -194,12 +195,9 @@ function ProfitContent() {
           return;
         }
 
-        const xhr = new XMLHttpRequest();
-        xhr.open('GET', `/api/stores/lookup?shop=${encodeURIComponent(shop)}`, false);
-        xhr.send();
-
-        if (xhr.status === 200) {
-          const data = JSON.parse(xhr.responseText);
+        const lookupRes = await authenticatedFetch(`/api/stores/lookup?shop=${encodeURIComponent(shop)}`);
+        if (lookupRes.ok) {
+          const data = await lookupRes.json();
           const storeData = data.store || data.merchant;
           if (storeData) {
             setStoreId(storeData.id);
@@ -237,7 +235,7 @@ function ProfitContent() {
           setProductProfitability(demoData.products);
         } else {
           // Load real profit summary
-          const summaryRes = await fetch(
+          const summaryRes = await authenticatedFetch(
             `/api/profit/summary?storeId=${storeId}&startDate=${dateRangeParams.startDate || ''}&endDate=${dateRangeParams.endDate || ''}`
           );
           if (summaryRes.ok) {
@@ -246,14 +244,14 @@ function ProfitContent() {
           }
 
           // Load product costs
-          const costsRes = await fetch(`/api/products/costs?storeId=${storeId}&limit=100`);
+          const costsRes = await authenticatedFetch(`/api/products/costs?storeId=${storeId}&limit=100`);
           if (costsRes.ok) {
             const data = await costsRes.json();
             setProductCosts(data.costs || []);
           }
 
           // Load product profitability
-          const profitRes = await fetch(
+          const profitRes = await authenticatedFetch(
             `/api/profit/products?storeId=${storeId}&startDate=${dateRangeParams.startDate || ''}&endDate=${dateRangeParams.endDate || ''}`
           );
           if (profitRes.ok) {
@@ -278,7 +276,7 @@ function ProfitContent() {
     if (!storeId || !costForm.productId || !costForm.costPerUnit) return;
 
     try {
-      const res = await fetch('/api/products/costs', {
+      const res = await authenticatedFetch('/api/products/costs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -294,7 +292,7 @@ function ProfitContent() {
 
       if (res.ok) {
         // Refresh costs
-        const costsRes = await fetch(`/api/products/costs?storeId=${storeId}&limit=100`);
+        const costsRes = await authenticatedFetch(`/api/products/costs?storeId=${storeId}&limit=100`);
         if (costsRes.ok) {
           const data = await costsRes.json();
           setProductCosts(data.costs || []);
@@ -312,7 +310,7 @@ function ProfitContent() {
     if (!storeId || !confirm('Are you sure you want to delete this cost?')) return;
 
     try {
-      const res = await fetch(`/api/products/costs?id=${costId}&storeId=${storeId}`, {
+      const res = await authenticatedFetch(`/api/products/costs?id=${costId}&storeId=${storeId}`, {
         method: 'DELETE'
       });
 
@@ -335,7 +333,7 @@ function ProfitContent() {
       formData.append('file', file);
       formData.append('storeId', storeId);
 
-      const res = await fetch('/api/products/costs/import', {
+      const res = await authenticatedFetch('/api/products/costs/import', {
         method: 'POST',
         body: formData
       });
@@ -344,7 +342,7 @@ function ProfitContent() {
       if (res.ok) {
         alert(`Imported ${data.imported} product costs successfully!`);
         // Refresh costs
-        const costsRes = await fetch(`/api/products/costs?storeId=${storeId}&limit=100`);
+        const costsRes = await authenticatedFetch(`/api/products/costs?storeId=${storeId}&limit=100`);
         if (costsRes.ok) {
           const costsData = await costsRes.json();
           setProductCosts(costsData.costs || []);
@@ -367,7 +365,7 @@ function ProfitContent() {
 
     setSyncing(true);
     try {
-      const res = await fetch('/api/products/costs/import', {
+      const res = await authenticatedFetch('/api/products/costs/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ storeId, action: 'shopify_sync' })
@@ -377,7 +375,7 @@ function ProfitContent() {
       if (res.ok) {
         alert(`Synced ${data.synced} product costs from Shopify!`);
         // Refresh costs
-        const costsRes = await fetch(`/api/products/costs?storeId=${storeId}&limit=100`);
+        const costsRes = await authenticatedFetch(`/api/products/costs?storeId=${storeId}&limit=100`);
         if (costsRes.ok) {
           const costsData = await costsRes.json();
           setProductCosts(costsData.costs || []);

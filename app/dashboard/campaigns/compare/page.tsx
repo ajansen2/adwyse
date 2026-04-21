@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Sidebar, MobileNav } from '@/components/dashboard';
 import { PlatformBadge, DashboardSkeleton } from '@/components/ui';
-import { navigateInApp } from '@/lib/shopify-app-bridge';
+import { navigateInApp, authenticatedFetch } from '@/lib/shopify-app-bridge';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend } from 'recharts';
 
 interface Campaign {
@@ -43,21 +43,15 @@ function CompareContent() {
           return;
         }
 
-        const xhr = new XMLHttpRequest();
-        xhr.open('GET', `/api/stores/lookup?shop=${encodeURIComponent(shop)}`, false);
-        xhr.send();
-
-        if (xhr.status === 200) {
-          const data = JSON.parse(xhr.responseText);
+        const lookupRes = await authenticatedFetch(`/api/stores/lookup?shop=${encodeURIComponent(shop)}`);
+        if (lookupRes.ok) {
+          const data = await lookupRes.json();
           const storeData = data.store || data.merchant;
 
           if (storeData) {
-            const campaignsXhr = new XMLHttpRequest();
-            campaignsXhr.open('GET', `/api/campaigns/list?merchant_id=${storeData.id}`, false);
-            campaignsXhr.send();
-
-            if (campaignsXhr.status === 200) {
-              const campaignsData = JSON.parse(campaignsXhr.responseText);
+            const campaignsRes = await authenticatedFetch(`/api/campaigns/list?merchant_id=${storeData.id}`);
+            if (campaignsRes.ok) {
+              const campaignsData = await campaignsRes.json();
               const loaded = campaignsData.campaigns || [];
               setCampaigns(loaded);
 

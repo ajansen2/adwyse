@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getSupabaseClient } from '@/lib/supabase-client';
-import { initializeAppBridge, isEmbeddedInShopify, navigateInApp, getShopifySessionToken } from '@/lib/shopify-app-bridge';
+import { initializeAppBridge, isEmbeddedInShopify, navigateInApp, getShopifySessionToken, authenticatedFetch } from '@/lib/shopify-app-bridge';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -63,7 +63,7 @@ function AnalyticsPageContent() {
         const sessionToken = await getShopifySessionToken();
         if (sessionToken) {
           try {
-            await fetch('/api/health');
+            await authenticatedFetch('/api/health');
             console.log('✅ Session token sent via App Bridge (Analytics)');
           } catch (error) {
             console.log('Health check failed (non-critical):', error);
@@ -83,16 +83,13 @@ function AnalyticsPageContent() {
         try {
           console.log('🔍 About to fetch /api/stores/lookup?shop=' + shop);
 
-          // Use XMLHttpRequest instead of fetch to avoid App Bridge interception
-          const xhr = new XMLHttpRequest();
-          xhr.open('GET', `/api/stores/lookup?shop=${encodeURIComponent(shop)}`, false); // Synchronous
-          xhr.send();
+          const lookupRes = await authenticatedFetch(`/api/stores/lookup?shop=${encodeURIComponent(shop)}`);
+          const data = await lookupRes.json();
 
-          console.log('🔍 XHR response status:', xhr.status);
-          const data = JSON.parse(xhr.responseText);
-          console.log('🔍 XHR response data:', data);
+          console.log('🔍 Lookup response status:', lookupRes.status);
+          console.log('🔍 Lookup response data:', data);
 
-          if (xhr.status === 200 && data.merchant) {
+          if (lookupRes.status === 200 && data.merchant) {
             console.log('✅ Got merchant data:', data.merchant.id);
             merchantData = data.merchant as Merchant;
 
@@ -170,13 +167,10 @@ function AnalyticsPageContent() {
       try {
         console.log('🔍 About to fetch carts for merchant:', (merchantData as Merchant).id);
 
-        // Use XMLHttpRequest to avoid App Bridge interception
-        const cartsXhr = new XMLHttpRequest();
-        cartsXhr.open('GET', `/api/carts/list?merchant_id=${(merchantData as Merchant).id}`, false);
-        cartsXhr.send();
+        const cartsRes = await authenticatedFetch(`/api/carts/list?merchant_id=${(merchantData as Merchant).id}`);
+        const cartsJson = await cartsRes.json();
 
-        console.log('🔍 Carts XHR status:', cartsXhr.status);
-        const cartsJson = JSON.parse(cartsXhr.responseText);
+        console.log('🔍 Carts response status:', cartsRes.status);
         console.log('🔍 Carts response:', cartsJson);
 
         if (cartsJson.carts) {

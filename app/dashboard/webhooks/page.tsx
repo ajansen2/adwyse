@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Sidebar, MobileNav } from '@/components/dashboard';
 import { MetricCard } from '@/components/ui';
+import { authenticatedFetch } from '@/lib/shopify-app-bridge';
 
 interface WebhookEvent {
   id: string;
@@ -45,12 +46,9 @@ function WebhooksContent() {
         return;
       }
 
-      const xhr = new XMLHttpRequest();
-      xhr.open('GET', `/api/webhooks/metrics?shop=${encodeURIComponent(shop)}&limit=200`, false);
-      xhr.send();
-
-      if (xhr.status === 200) {
-        const data = JSON.parse(xhr.responseText);
+      const res = await authenticatedFetch(`/api/webhooks/metrics?shop=${encodeURIComponent(shop)}&limit=200`);
+      if (res.ok) {
+        const data = await res.json();
         setSummary(data.summary);
         setTopicBreakdown(data.topicBreakdown);
         setEvents(data.events);

@@ -7,6 +7,7 @@ import { MetricCard } from '@/components/ui';
 import { CohortChart } from '@/components/charts/CohortChart';
 import { downloadCSV, ltvExportColumns } from '@/lib/export-utils';
 import { useTier } from '@/lib/use-tier';
+import { authenticatedFetch } from '@/lib/shopify-app-bridge';
 import {
   BarChart,
   Bar,
@@ -208,16 +209,13 @@ function LTVContent() {
         }
 
         // First get store ID
-        const storeXhr = new XMLHttpRequest();
-        storeXhr.open('GET', `/api/stores/lookup?shop=${encodeURIComponent(shop)}`, false);
-        storeXhr.send();
-
-        if (storeXhr.status !== 200) {
+        const storeRes = await authenticatedFetch(`/api/stores/lookup?shop=${encodeURIComponent(shop)}`);
+        if (!storeRes.ok) {
           setInitialLoading(false);
           return;
         }
 
-        const storeData = JSON.parse(storeXhr.responseText);
+        const storeData = await storeRes.json();
         if (!storeData.store?.id) {
           setInitialLoading(false);
           return;
@@ -234,12 +232,9 @@ function LTVContent() {
         }
 
         // Load LTV metrics from API
-        const xhr = new XMLHttpRequest();
-        xhr.open('GET', `/api/ltv?store_id=${storeData.store.id}`, false);
-        xhr.send();
-
-        if (xhr.status === 200) {
-          const data = JSON.parse(xhr.responseText);
+        const ltvRes = await authenticatedFetch(`/api/ltv?store_id=${storeData.store.id}`);
+        if (ltvRes.ok) {
+          const data = await ltvRes.json();
           setMetrics(data);
         }
       } catch (error) {

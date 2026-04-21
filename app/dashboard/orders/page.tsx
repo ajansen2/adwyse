@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Sidebar, MobileNav } from '@/components/dashboard';
 import { MetricCard, DataTable, PlatformBadge, DashboardSkeleton, type Column } from '@/components/ui';
+import { authenticatedFetch } from '@/lib/shopify-app-bridge';
 
 type DateRangeOption = '7d' | '14d' | '30d' | '90d' | 'all' | 'custom';
 
@@ -89,20 +90,14 @@ function OrdersContent() {
           return;
         }
 
-        const xhr = new XMLHttpRequest();
-        xhr.open('GET', `/api/stores/lookup?shop=${encodeURIComponent(shop)}`, false);
-        xhr.send();
-
-        if (xhr.status === 200) {
-          const data = JSON.parse(xhr.responseText);
+        const lookupRes = await authenticatedFetch(`/api/stores/lookup?shop=${encodeURIComponent(shop)}`);
+        if (lookupRes.ok) {
+          const data = await lookupRes.json();
 
           if (data.merchant) {
-            const ordersXhr = new XMLHttpRequest();
-            ordersXhr.open('GET', `/api/orders/list?merchant_id=${data.merchant.id}`, false);
-            ordersXhr.send();
-
-            if (ordersXhr.status === 200) {
-              const ordersData = JSON.parse(ordersXhr.responseText);
+            const ordersRes = await authenticatedFetch(`/api/orders/list?merchant_id=${data.merchant.id}`);
+            if (ordersRes.ok) {
+              const ordersData = await ordersRes.json();
               setOrders(ordersData.orders || []);
             }
           }

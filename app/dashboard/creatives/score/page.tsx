@@ -6,6 +6,7 @@ import { Sidebar, MobileNav, UpgradeGate } from '@/components/dashboard';
 import { DashboardSkeleton } from '@/components/ui';
 import { Trophy, TrendingDown, AlertTriangle, Sparkles, Info } from 'lucide-react';
 import { useTier } from '@/lib/use-tier';
+import { authenticatedFetch } from '@/lib/shopify-app-bridge';
 
 const DEMO_STORE_ID = '987c61dd-7696-47ca-bf05-37876953b0ca';
 
@@ -61,7 +62,7 @@ function CreativeScoreContent() {
         const shop = searchParams.get('shop');
         let storeId: string | null = null;
         if (shop) {
-          const r = await fetch(`/api/stores/lookup?shop=${encodeURIComponent(shop)}`);
+          const r = await authenticatedFetch(`/api/stores/lookup?shop=${encodeURIComponent(shop)}`);
           if (r.ok) {
             const d = await r.json();
             const s = d.store || d.merchant;
@@ -70,7 +71,7 @@ function CreativeScoreContent() {
         }
         if (!storeId) storeId = DEMO_STORE_ID;
 
-        const res = await fetch(`/api/creatives/score?store_id=${storeId}`);
+        const res = await authenticatedFetch(`/api/creatives/score?store_id=${storeId}`);
         if (res.ok) {
           const data = await res.json();
           setScored(data.scored || []);

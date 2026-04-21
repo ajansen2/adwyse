@@ -6,6 +6,7 @@ import { Sidebar, MobileNav, UpgradeGate } from '@/components/dashboard';
 import { DashboardSkeleton } from '@/components/ui';
 import { Users, TrendingUp, DollarSign, Info } from 'lucide-react';
 import { useTier } from '@/lib/use-tier';
+import { authenticatedFetch } from '@/lib/shopify-app-bridge';
 
 interface Cohort {
   cohortMonth: string;
@@ -41,7 +42,7 @@ function CohortsContent() {
         let storeId: string | null = null;
 
         if (shop) {
-          const lookup = await fetch(`/api/stores/lookup?shop=${encodeURIComponent(shop)}`);
+          const lookup = await authenticatedFetch(`/api/stores/lookup?shop=${encodeURIComponent(shop)}`);
           if (lookup.ok) {
             const data = await lookup.json();
             const s = data.store || data.merchant;
@@ -51,7 +52,7 @@ function CohortsContent() {
 
         if (!storeId) storeId = DEMO_STORE_ID;
 
-        const res = await fetch(`/api/metrics/cohorts?store_id=${storeId}`);
+        const res = await authenticatedFetch(`/api/metrics/cohorts?store_id=${storeId}`);
         if (res.ok) {
           const data = await res.json();
           setCohorts(data.cohorts || []);

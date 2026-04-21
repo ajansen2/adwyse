@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { Sidebar, MobileNav, UpgradeGate } from '@/components/dashboard';
 import { useTier } from '@/lib/use-tier';
+import { authenticatedFetch } from '@/lib/shopify-app-bridge';
 import {
   Eye,
   Plus,
@@ -105,7 +106,7 @@ function CompetitorSpyContent() {
 
         // Try shop param first (embedded Shopify app flow)
         if (shop) {
-          const lookupRes = await fetch(`/api/stores/lookup?shop=${encodeURIComponent(shop)}`);
+          const lookupRes = await authenticatedFetch(`/api/stores/lookup?shop=${encodeURIComponent(shop)}`);
           if (lookupRes.ok) {
             const lookupData = await lookupRes.json();
             const storeData = lookupData.store || lookupData.merchant;
@@ -142,14 +143,14 @@ function CompetitorSpyContent() {
         setStores([{ id: storeId, store_name: storeName }]);
 
         // Fetch competitors
-        const response = await fetch(`/api/competitors?store_id=${storeId}`);
+        const response = await authenticatedFetch(`/api/competitors?store_id=${storeId}`);
         if (response.ok) {
           const data = await response.json();
           setCompetitors(data.competitors || []);
         }
 
         // Fetch demo ads
-        const adsResponse = await fetch('/api/competitor-ads');
+        const adsResponse = await authenticatedFetch('/api/competitor-ads');
         if (adsResponse.ok) {
           const adsData = await adsResponse.json();
           setAds(adsData.ads || []);
@@ -169,7 +170,7 @@ function CompetitorSpyContent() {
 
     setSaving(true);
     try {
-      const response = await fetch('/api/competitors', {
+      const response = await authenticatedFetch('/api/competitors', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -199,7 +200,7 @@ function CompetitorSpyContent() {
     if (!stores[0]) return;
 
     try {
-      const response = await fetch(`/api/competitors?id=${id}&store_id=${stores[0].id}`, {
+      const response = await authenticatedFetch(`/api/competitors?id=${id}&store_id=${stores[0].id}`, {
         method: 'DELETE',
       });
 
@@ -225,7 +226,7 @@ function CompetitorSpyContent() {
 
     try {
       const sid = stores[0]?.id || '';
-      const res = await fetch(
+      const res = await authenticatedFetch(
         `/api/competitor-ads?query=${encodeURIComponent(competitorName)}&limit=20&store_id=${sid}`
       );
       if (res.status === 403) {

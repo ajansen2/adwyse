@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { Sidebar, MobileNav, UpgradeGate } from '@/components/dashboard';
 import { MetricCard, DashboardSkeleton, PlatformBadge } from '@/components/ui';
 import { useTier } from '@/lib/use-tier';
+import { authenticatedFetch } from '@/lib/shopify-app-bridge';
 
 type AttributionModel = 'last_click' | 'first_click' | 'linear' | 'time_decay' | 'position_based';
 
@@ -140,12 +141,9 @@ function AttributionContent() {
           return;
         }
 
-        const xhr = new XMLHttpRequest();
-        xhr.open('GET', `/api/stores/lookup?shop=${encodeURIComponent(shop)}`, false);
-        xhr.send();
-
-        if (xhr.status === 200) {
-          const data = JSON.parse(xhr.responseText);
+        const lookupRes = await authenticatedFetch(`/api/stores/lookup?shop=${encodeURIComponent(shop)}`);
+        if (lookupRes.ok) {
+          const data = await lookupRes.json();
           const storeData = data.store || data.merchant;
           if (storeData) {
             setStoreId(storeData.id);
@@ -176,7 +174,7 @@ function AttributionContent() {
         }
 
         // Load attribution summary
-        const res = await fetch(`/api/attribution/summary?storeId=${storeId}&model=${selectedModel}`);
+        const res = await authenticatedFetch(`/api/attribution/summary?storeId=${storeId}&model=${selectedModel}`);
         if (res.ok) {
           const data = await res.json();
           setAttributionData(data);
@@ -191,7 +189,7 @@ function AttributionContent() {
         }
 
         // Load recent touchpoints
-        const touchpointRes = await fetch(`/api/attribution/touchpoints?storeId=${storeId}&limit=50`);
+        const touchpointRes = await authenticatedFetch(`/api/attribution/touchpoints?storeId=${storeId}&limit=50`);
         if (touchpointRes.ok) {
           const data = await touchpointRes.json();
           setTouchpoints(data.touchpoints || []);

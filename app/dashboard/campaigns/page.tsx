@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Sidebar, MobileNav } from '@/components/dashboard';
 import { MetricCard, DataTable, PlatformBadge, EmptyState, EmptyStateIcons, DashboardSkeleton, type Column } from '@/components/ui';
-import { navigateInApp } from '@/lib/shopify-app-bridge';
+import { navigateInApp, authenticatedFetch } from '@/lib/shopify-app-bridge';
 
 type DateRangeOption = '7d' | '14d' | '30d' | '90d' | 'all' | 'custom';
 
@@ -82,21 +82,15 @@ function CampaignsContent() {
           return;
         }
 
-        const xhr = new XMLHttpRequest();
-        xhr.open('GET', `/api/stores/lookup?shop=${encodeURIComponent(shop)}`, false);
-        xhr.send();
-
-        if (xhr.status === 200) {
-          const data = JSON.parse(xhr.responseText);
+        const lookupRes = await authenticatedFetch(`/api/stores/lookup?shop=${encodeURIComponent(shop)}`);
+        if (lookupRes.ok) {
+          const data = await lookupRes.json();
           const storeData = data.store || data.merchant;
 
           if (storeData) {
-            const campaignsXhr = new XMLHttpRequest();
-            campaignsXhr.open('GET', `/api/campaigns/list?merchant_id=${storeData.id}`, false);
-            campaignsXhr.send();
-
-            if (campaignsXhr.status === 200) {
-              const campaignsData = JSON.parse(campaignsXhr.responseText);
+            const campaignsRes = await authenticatedFetch(`/api/campaigns/list?merchant_id=${storeData.id}`);
+            if (campaignsRes.ok) {
+              const campaignsData = await campaignsRes.json();
               setCampaigns(campaignsData.campaigns || []);
             }
           }

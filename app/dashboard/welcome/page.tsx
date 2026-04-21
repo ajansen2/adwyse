@@ -8,14 +8,18 @@ export default function WelcomePage() {
   const [storeName, setStoreName] = useState<string>('')
 
   useEffect(() => {
-    // Get store name from localStorage if available
-    const store = localStorage.getItem('shopify_store_domain')
-    if (store) {
-      setStoreName(store.replace('.myshopify.com', ''))
-    }
+    try {
+      // Get store name from localStorage if available
+      const store = localStorage.getItem('shopify_store_domain')
+      if (store) {
+        setStoreName(store.replace('.myshopify.com', ''))
+      }
 
-    // Mark welcome as seen
-    localStorage.setItem('welcome_seen', 'true')
+      // Mark welcome as seen
+      localStorage.setItem('welcome_seen', 'true')
+    } catch (e) {
+      // localStorage may not be available in embedded context
+    }
   }, [])
 
   const goToDashboard = () => {

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { Sidebar, MobileNav } from '@/components/dashboard';
+import { authenticatedFetch } from '@/lib/shopify-app-bridge';
 
 interface Store {
   id: string;
@@ -123,19 +124,17 @@ function SettingsContent() {
         }
 
         // Use synchronous XHR (works better in Shopify iframe than fetch)
-        console.log('🔧 Settings: Fetching store lookup via XHR...');
-        const xhr = new XMLHttpRequest();
-        xhr.open('GET', `/api/stores/lookup?shop=${encodeURIComponent(shop)}`, false);
-        xhr.send();
-        console.log('🔧 Settings: XHR response status:', xhr.status);
+        console.log('🔧 Settings: Fetching store lookup...');
+        const lookupRes = await authenticatedFetch(`/api/stores/lookup?shop=${encodeURIComponent(shop)}`);
+        console.log('🔧 Settings: Lookup response status:', lookupRes.status);
 
-        if (xhr.status !== 200) {
-          console.error('🔧 Settings: Store lookup failed:', xhr.status);
+        if (!lookupRes.ok) {
+          console.error('🔧 Settings: Store lookup failed:', lookupRes.status);
           setLoading(false);
           return;
         }
 
-        const data = JSON.parse(xhr.responseText);
+        const data = await lookupRes.json();
         console.log('🔧 Settings: Store data received:', data.store ? 'yes' : 'no');
 
         if (data.store) {
@@ -156,12 +155,10 @@ function SettingsContent() {
 
           // Load email report settings via XHR (works better in iframe)
           try {
-            console.log('🔧 Settings: Loading report settings via XHR...');
-            const reportXhr = new XMLHttpRequest();
-            reportXhr.open('GET', `/api/reports/settings?store_id=${data.store.id}`, false);
-            reportXhr.send();
-            if (reportXhr.status === 200) {
-              const reportData = JSON.parse(reportXhr.responseText);
+            console.log('🔧 Settings: Loading report settings...');
+            const reportRes = await authenticatedFetch(`/api/reports/settings?store_id=${data.store.id}`);
+            if (reportRes.ok) {
+              const reportData = await reportRes.json();
               setEmailReportFrequency(reportData.frequency || 'none');
               console.log('🔧 Settings: Report settings loaded:', reportData.frequency);
             }
@@ -171,12 +168,10 @@ function SettingsContent() {
 
           // Load alert settings via XHR
           try {
-            console.log('🔧 Settings: Loading alert settings via XHR...');
-            const alertXhr = new XMLHttpRequest();
-            alertXhr.open('GET', `/api/alerts/settings?store_id=${data.store.id}`, false);
-            alertXhr.send();
-            if (alertXhr.status === 200) {
-              const alertData = JSON.parse(alertXhr.responseText);
+            console.log('🔧 Settings: Loading alert settings...');
+            const alertRes = await authenticatedFetch(`/api/alerts/settings?store_id=${data.store.id}`);
+            if (alertRes.ok) {
+              const alertData = await alertRes.json();
               setRoasAlertEnabled(alertData.roas_alert_enabled || false);
               setRoasThreshold(alertData.roas_threshold || 1.5);
               setSpendAlertEnabled(alertData.spend_alert_enabled || false);
@@ -189,15 +184,13 @@ function SettingsContent() {
 
           // Load subscription tier
           try {
-            console.log('🔧 Settings: Loading subscription tier via XHR...');
-            const tierXhr = new XMLHttpRequest();
+            console.log('🔧 Settings: Loading subscription tier...');
             let tierUrl = `/api/me/tier?store_id=${data.store.id}`;
             const ft = new URLSearchParams(window.location.search).get('force_tier');
             if (ft) tierUrl += `&force_tier=${ft}`;
-            tierXhr.open('GET', tierUrl, false);
-            tierXhr.send();
-            if (tierXhr.status === 200) {
-              const tierData = JSON.parse(tierXhr.responseText);
+            const tierRes = await authenticatedFetch(tierUrl);
+            if (tierRes.ok) {
+              const tierData = await tierRes.json();
               setSubscriptionTier(tierData.tier || 'pro');
               console.log('🔧 Settings: Subscription tier:', tierData.tier);
             }
@@ -207,12 +200,10 @@ function SettingsContent() {
 
           // Load Slack settings via XHR
           try {
-            console.log('🔧 Settings: Loading Slack settings via XHR...');
-            const slackXhr = new XMLHttpRequest();
-            slackXhr.open('GET', `/api/slack/settings?store_id=${data.store.id}`, false);
-            slackXhr.send();
-            if (slackXhr.status === 200) {
-              const slackData = JSON.parse(slackXhr.responseText);
+            console.log('🔧 Settings: Loading Slack settings...');
+            const slackRes = await authenticatedFetch(`/api/slack/settings?store_id=${data.store.id}`);
+            if (slackRes.ok) {
+              const slackData = await slackRes.json();
               setSlackEnabled(slackData.enabled || false);
               setSlackWebhookUrl(slackData.webhookUrl || '');
               setSlackDailySummary(slackData.dailySummary || false);
@@ -224,11 +215,9 @@ function SettingsContent() {
 
           // Load Meta CAPI settings
           try {
-            const capiXhr = new XMLHttpRequest();
-            capiXhr.open('GET', `/api/meta-capi/settings?store_id=${data.store.id}`, false);
-            capiXhr.send();
-            if (capiXhr.status === 200) {
-              const c = JSON.parse(capiXhr.responseText);
+            const capiRes = await authenticatedFetch(`/api/meta-capi/settings?store_id=${data.store.id}`);
+            if (capiRes.ok) {
+              const c = await capiRes.json();
               setCapiEnabled(c.enabled || false);
               setCapiPixelId(c.pixelId || '');
               setCapiToken(c.tokenMasked || '');
@@ -240,12 +229,10 @@ function SettingsContent() {
 
           // Load attribution model
           try {
-            console.log('🔧 Settings: Loading attribution model via XHR...');
-            const attrXhr = new XMLHttpRequest();
-            attrXhr.open('GET', `/api/settings/attribution?store_id=${data.store.id}`, false);
-            attrXhr.send();
-            if (attrXhr.status === 200) {
-              const attrData = JSON.parse(attrXhr.responseText);
+            console.log('🔧 Settings: Loading attribution model...');
+            const attrRes = await authenticatedFetch(`/api/settings/attribution?store_id=${data.store.id}`);
+            if (attrRes.ok) {
+              const attrData = await attrRes.json();
               setAttributionModel(attrData.attribution_model || 'last_click');
               console.log('🔧 Settings: Attribution model:', attrData.attribution_model);
             }
@@ -255,12 +242,10 @@ function SettingsContent() {
 
           // Load goals
           try {
-            console.log('🔧 Settings: Loading goals via XHR...');
-            const goalsXhr = new XMLHttpRequest();
-            goalsXhr.open('GET', `/api/goals?store_id=${data.store.id}`, false);
-            goalsXhr.send();
-            if (goalsXhr.status === 200) {
-              const goalsData = JSON.parse(goalsXhr.responseText);
+            console.log('🔧 Settings: Loading goals...');
+            const goalsRes = await authenticatedFetch(`/api/goals?store_id=${data.store.id}`);
+            if (goalsRes.ok) {
+              const goalsData = await goalsRes.json();
               const goals = goalsData.goals || [];
               goals.forEach((goal: any) => {
                 if (goal.goal_type === 'revenue') setRevenueGoal(goal.target_value);
@@ -287,23 +272,24 @@ function SettingsContent() {
     loadStore();
   }, [supabase]);
 
-  const handleSaveAlertSettings = () => {
+  const handleSaveAlertSettings = async () => {
     if (!store) return;
 
     setSavingAlertSettings(true);
     try {
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', '/api/alerts/settings', false);
-      xhr.setRequestHeader('Content-Type', 'application/json');
-      xhr.send(JSON.stringify({
-        storeId: store.id,
-        roas_alert_enabled: roasAlertEnabled,
-        roas_threshold: roasThreshold,
-        spend_alert_enabled: spendAlertEnabled,
-        spend_threshold: spendThreshold,
-      }));
+      const res = await authenticatedFetch('/api/alerts/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          storeId: store.id,
+          roas_alert_enabled: roasAlertEnabled,
+          roas_threshold: roasThreshold,
+          spend_alert_enabled: spendAlertEnabled,
+          spend_threshold: spendThreshold,
+        }),
+      });
 
-      if (xhr.status === 200) {
+      if (res.ok) {
         setSuccessMessage('Alert settings saved');
         setTimeout(() => setSuccessMessage(''), 3000);
       } else {
@@ -336,7 +322,7 @@ function SettingsContent() {
       }
 
       for (const goal of goalsToSave) {
-        await fetch('/api/goals', {
+        await authenticatedFetch('/api/goals', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -357,7 +343,7 @@ function SettingsContent() {
     }
   };
 
-  const handleSaveSlackSettings = () => {
+  const handleSaveSlackSettings = async () => {
     if (!store) return;
 
     // Validate webhook URL if enabling
@@ -369,21 +355,22 @@ function SettingsContent() {
 
     setSavingSlackSettings(true);
     try {
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', '/api/slack/settings', false);
-      xhr.setRequestHeader('Content-Type', 'application/json');
-      xhr.send(JSON.stringify({
-        storeId: store.id,
-        enabled: slackEnabled,
-        webhookUrl: slackWebhookUrl,
-        dailySummary: slackDailySummary,
-      }));
+      const res = await authenticatedFetch('/api/slack/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          storeId: store.id,
+          enabled: slackEnabled,
+          webhookUrl: slackWebhookUrl,
+          dailySummary: slackDailySummary,
+        }),
+      });
 
-      if (xhr.status === 200) {
+      if (res.ok) {
         setSuccessMessage(slackEnabled ? 'Slack integration enabled' : 'Slack settings saved');
         setTimeout(() => setSuccessMessage(''), 3000);
       } else {
-        const data = JSON.parse(xhr.responseText);
+        const data = await res.json();
         setErrorMessage(data.error || 'Failed to save Slack settings');
         setTimeout(() => setErrorMessage(''), 5000);
       }
@@ -396,27 +383,28 @@ function SettingsContent() {
     }
   };
 
-  const handleTestSlack = () => {
+  const handleTestSlack = async () => {
     if (!store || !slackWebhookUrl) return;
 
     setTestingSlack(true);
     try {
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', '/api/slack/settings', false);
-      xhr.setRequestHeader('Content-Type', 'application/json');
-      xhr.send(JSON.stringify({
-        storeId: store.id,
-        enabled: true,
-        webhookUrl: slackWebhookUrl,
-        dailySummary: slackDailySummary,
-      }));
+      const res = await authenticatedFetch('/api/slack/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          storeId: store.id,
+          enabled: true,
+          webhookUrl: slackWebhookUrl,
+          dailySummary: slackDailySummary,
+        }),
+      });
 
-      if (xhr.status === 200) {
+      if (res.ok) {
         setSlackEnabled(true);
         setSuccessMessage('Slack connected! Check your channel for a test message.');
         setTimeout(() => setSuccessMessage(''), 5000);
       } else {
-        const data = JSON.parse(xhr.responseText);
+        const data = await res.json();
         setErrorMessage(data.error || 'Failed to connect Slack');
         setTimeout(() => setErrorMessage(''), 5000);
       }
@@ -434,7 +422,7 @@ function SettingsContent() {
     setSavingCapi(true);
     setCapiTestResult(null);
     try {
-      const res = await fetch('/api/meta-capi/settings', {
+      const res = await authenticatedFetch('/api/meta-capi/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -466,7 +454,7 @@ function SettingsContent() {
     setTestingCapi(true);
     setCapiTestResult(null);
     try {
-      const res = await fetch('/api/meta-capi/test', {
+      const res = await authenticatedFetch('/api/meta-capi/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ storeId: store.id }),
@@ -490,17 +478,18 @@ function SettingsContent() {
     }
   };
 
-  const handleSaveEmailSettings = (frequency: 'none' | 'weekly' | 'monthly') => {
+  const handleSaveEmailSettings = async (frequency: 'none' | 'weekly' | 'monthly') => {
     if (!store) return;
 
     setSavingEmailSettings(true);
     try {
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', '/api/reports/settings', false);
-      xhr.setRequestHeader('Content-Type', 'application/json');
-      xhr.send(JSON.stringify({ storeId: store.id, frequency }));
+      const res = await authenticatedFetch('/api/reports/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storeId: store.id, frequency }),
+      });
 
-      if (xhr.status === 200) {
+      if (res.ok) {
         setEmailReportFrequency(frequency);
         setSuccessMessage(`Email reports ${frequency === 'none' ? 'disabled' : `set to ${frequency}`}`);
         setTimeout(() => setSuccessMessage(''), 3000);
@@ -523,7 +512,7 @@ function SettingsContent() {
     setSendingTestEmail(true);
     setTestEmailSent(false);
     try {
-      const response = await fetch('/api/reports/test', {
+      const response = await authenticatedFetch('/api/reports/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -560,7 +549,7 @@ function SettingsContent() {
     setSendingTestAlert(true);
     setTestAlertSent(false);
     try {
-      const response = await fetch('/api/alerts/test', {
+      const response = await authenticatedFetch('/api/alerts/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -598,7 +587,7 @@ function SettingsContent() {
     setUpgrading(true);
     try {
       const shop = getUrlParam('shop');
-      const response = await fetch('/api/billing/create', {
+      const response = await authenticatedFetch('/api/billing/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ storeId: store.id, shop })
@@ -641,7 +630,7 @@ function SettingsContent() {
     setPixelVerified(null);
 
     try {
-      const response = await fetch(`/api/pixel/verify?store_id=${store.id}`);
+      const response = await authenticatedFetch(`/api/pixel/verify?store_id=${store.id}`);
       const data = await response.json();
       setPixelVerified(data.verified || false);
     } catch {
@@ -669,7 +658,7 @@ function SettingsContent() {
         clientTimestamp: new Date().toISOString()
       };
 
-      const response = await fetch('/api/pixel/event', {
+      const response = await authenticatedFetch('/api/pixel/event', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(testPayload)
@@ -695,20 +684,21 @@ function SettingsContent() {
     }
   };
 
-  const handleSaveAttributionModel = () => {
+  const handleSaveAttributionModel = async () => {
     if (!store) return;
 
     setSavingAttributionModel(true);
     try {
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', '/api/settings/attribution', false);
-      xhr.setRequestHeader('Content-Type', 'application/json');
-      xhr.send(JSON.stringify({
-        storeId: store.id,
-        attribution_model: attributionModel,
-      }));
+      const res = await authenticatedFetch('/api/settings/attribution', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          storeId: store.id,
+          attribution_model: attributionModel,
+        }),
+      });
 
-      if (xhr.status === 200) {
+      if (res.ok) {
         setSuccessMessage('Attribution model saved');
         setTimeout(() => setSuccessMessage(''), 3000);
       } else {
@@ -806,39 +796,18 @@ function SettingsContent() {
     setSyncingTikTok(true);
 
     try {
-      const apiUrl = window.location.origin + '/api/sync/tiktok';
-
-      const result = await new Promise<{ok: boolean, status: number, data: any}>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', apiUrl, true);
-        xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.timeout = 30000;
-
-        xhr.onload = function() {
-          try {
-            const data = JSON.parse(xhr.responseText);
-            resolve({ ok: xhr.status >= 200 && xhr.status < 300, status: xhr.status, data });
-          } catch (e) {
-            resolve({ ok: false, status: xhr.status, data: { error: 'Failed to parse response' } });
-          }
-        };
-
-        xhr.onerror = function() {
-          reject(new Error('Network error - request failed'));
-        };
-
-        xhr.ontimeout = function() {
-          reject(new Error('Request timed out. Please try again.'));
-        };
-
-        xhr.send(JSON.stringify({ storeId: store.id }));
+      const response = await authenticatedFetch('/api/sync/tiktok', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storeId: store.id }),
       });
+      const data = await response.json();
 
-      if (result.ok) {
-        setSuccessMessage(result.data.message || 'TikTok Ads campaigns synced successfully!');
+      if (response.ok) {
+        setSuccessMessage(data.message || 'TikTok Ads campaigns synced successfully!');
         setTimeout(() => setSuccessMessage(''), 5000);
       } else {
-        setErrorMessage(result.data.error || 'Failed to sync TikTok Ads campaigns');
+        setErrorMessage(data.error || 'Failed to sync TikTok Ads campaigns');
         setTimeout(() => setErrorMessage(''), 5000);
       }
     } catch (error: any) {
@@ -869,39 +838,18 @@ function SettingsContent() {
     setSyncingGoogle(true);
 
     try {
-      const apiUrl = window.location.origin + '/api/sync/google';
-
-      const result = await new Promise<{ok: boolean, status: number, data: any}>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', apiUrl, true);
-        xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.timeout = 30000;
-
-        xhr.onload = function() {
-          try {
-            const data = JSON.parse(xhr.responseText);
-            resolve({ ok: xhr.status >= 200 && xhr.status < 300, status: xhr.status, data });
-          } catch (e) {
-            resolve({ ok: false, status: xhr.status, data: { error: 'Failed to parse response' } });
-          }
-        };
-
-        xhr.onerror = function() {
-          reject(new Error('Network error - request failed'));
-        };
-
-        xhr.ontimeout = function() {
-          reject(new Error('Request timed out. Please try again.'));
-        };
-
-        xhr.send(JSON.stringify({ storeId: store.id }));
+      const response = await authenticatedFetch('/api/sync/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storeId: store.id }),
       });
+      const data = await response.json();
 
-      if (result.ok) {
-        setSuccessMessage(result.data.message || 'Google Ads campaigns synced successfully!');
+      if (response.ok) {
+        setSuccessMessage(data.message || 'Google Ads campaigns synced successfully!');
         setTimeout(() => setSuccessMessage(''), 5000);
       } else {
-        setErrorMessage(result.data.error || 'Failed to sync Google Ads campaigns');
+        setErrorMessage(data.error || 'Failed to sync Google Ads campaigns');
         setTimeout(() => setErrorMessage(''), 5000);
       }
     } catch (error: any) {
@@ -924,40 +872,18 @@ function SettingsContent() {
     setSyncing(true);
 
     try {
-      const apiUrl = window.location.origin + '/api/sync/facebook';
-
-      // Use XMLHttpRequest for better compatibility with Shopify iframe
-      const result = await new Promise<{ok: boolean, status: number, data: any}>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', apiUrl, true);
-        xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.timeout = 30000; // 30 second timeout
-
-        xhr.onload = function() {
-          try {
-            const data = JSON.parse(xhr.responseText);
-            resolve({ ok: xhr.status >= 200 && xhr.status < 300, status: xhr.status, data });
-          } catch (e) {
-            resolve({ ok: false, status: xhr.status, data: { error: 'Failed to parse response' } });
-          }
-        };
-
-        xhr.onerror = function() {
-          reject(new Error('Network error - request failed'));
-        };
-
-        xhr.ontimeout = function() {
-          reject(new Error('Request timed out. Please try again.'));
-        };
-
-        xhr.send(JSON.stringify({ storeId: store.id }));
+      const response = await authenticatedFetch('/api/sync/facebook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storeId: store.id }),
       });
+      const data = await response.json();
 
-      if (result.ok) {
-        setSuccessMessage(result.data.message || 'Facebook campaigns synced successfully!');
+      if (response.ok) {
+        setSuccessMessage(data.message || 'Facebook campaigns synced successfully!');
         setTimeout(() => setSuccessMessage(''), 5000);
       } else {
-        setErrorMessage(result.data.error || 'Failed to sync Facebook campaigns');
+        setErrorMessage(data.error || 'Failed to sync Facebook campaigns');
         setTimeout(() => setErrorMessage(''), 5000);
       }
     } catch (error: any) {
@@ -972,7 +898,7 @@ function SettingsContent() {
   const checkDemoData = async () => {
     if (!store) return;
     try {
-      const response = await fetch(`/api/demo/seed?store_id=${store.id}`);
+      const response = await authenticatedFetch(`/api/demo/seed?store_id=${store.id}`);
       const data = await response.json();
       if (data.counts) {
         setDemoDataCounts(data.counts);
@@ -986,7 +912,7 @@ function SettingsContent() {
     if (!store) return;
     setSeedingDemo(true);
     try {
-      const response = await fetch(`/api/demo/seed?store_id=${store.id}&days=60&orders=150`, {
+      const response = await authenticatedFetch(`/api/demo/seed?store_id=${store.id}&days=60&orders=150`, {
         method: 'POST',
       });
       const data = await response.json();
@@ -1011,7 +937,7 @@ function SettingsContent() {
     if (!confirm('Are you sure you want to clear all demo data? This cannot be undone.')) return;
     setClearingDemo(true);
     try {
-      const response = await fetch(`/api/demo/seed?store_id=${store.id}`, {
+      const response = await authenticatedFetch(`/api/demo/seed?store_id=${store.id}`, {
         method: 'DELETE',
       });
       const data = await response.json();

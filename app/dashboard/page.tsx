@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getSupabaseClient } from '@/lib/supabase-client';
-import { initializeAppBridge, isEmbeddedInShopify, navigateInApp, getShopifySessionToken, redirectToOAuth } from '@/lib/shopify-app-bridge';
+import { initializeAppBridge, isEmbeddedInShopify, navigateInApp, getShopifySessionToken, redirectToOAuth, authenticatedFetch } from '@/lib/shopify-app-bridge';
 import Link from 'next/link';
 import { Sidebar, MobileNav, GettingStarted, ProfitSummary, AlertsWidget, GoalProgress, BudgetOptimizer, CompetitorSpy, QuickActions, AskAdWyse, NCRoasCard } from '@/components/dashboard';
 import { useTier } from '@/lib/use-tier';
@@ -169,7 +169,7 @@ function DashboardContent() {
     if (stores.length > 0 && !loading) {
       const storeId = stores[0].id;
 
-      fetch(`/api/analytics/funnel?store_id=${storeId}&days=0`)
+      authenticatedFetch(`/api/analytics/funnel?store_id=${storeId}&days=0`)
         .then(res => res.json())
         .then(data => {
           if (data.funnel && data.funnel.length > 0) {
@@ -187,19 +187,27 @@ function DashboardContent() {
   // Show onboarding only ONCE for new users
   useEffect(() => {
     if (stores.length > 0 && !loading) {
-      const storageKey = `adwyse_onboarding_${stores[0].id}`;
-      const hasSeenOnboarding = localStorage.getItem(storageKey);
-      if (hasSeenOnboarding !== 'true') {
-        setShowOnboarding(true);
-        // Immediately mark as seen to prevent re-showing on refresh
-        localStorage.setItem(storageKey, 'true');
+      try {
+        const storageKey = `adwyse_onboarding_${stores[0].id}`;
+        const hasSeenOnboarding = localStorage.getItem(storageKey);
+        if (hasSeenOnboarding !== 'true') {
+          setShowOnboarding(true);
+          // Immediately mark as seen to prevent re-showing on refresh
+          localStorage.setItem(storageKey, 'true');
+        }
+      } catch (e) {
+        // localStorage may not be available in embedded context
       }
     }
   }, [stores, loading]);
 
   const completeOnboarding = () => {
     if (stores[0]) {
-      localStorage.setItem(`adwyse_onboarding_${stores[0].id}`, 'true');
+      try {
+        localStorage.setItem(`adwyse_onboarding_${stores[0].id}`, 'true');
+      } catch (e) {
+        // localStorage may not be available in embedded context
+      }
     }
     setShowOnboarding(false);
     setOnboardingStep(1);
@@ -354,7 +362,7 @@ function DashboardContent() {
     setSubscribing(true);
     const shop = searchParams.get('shop') || store.shopify_domain;
     try {
-      const response = await fetch('/api/billing/create', {
+      const response = await authenticatedFetch('/api/billing/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ storeId: store.id, shop })
@@ -393,7 +401,7 @@ function DashboardContent() {
       console.log('  Store ID:', storeId);
 
       // Call billing callback to activate the charge
-      fetch(`/api/billing/callback?shop=${shop}&charge_id=${chargeId}&store_id=${storeId}`)
+      authenticatedFetch(`/api/billing/callback?shop=${shop}&charge_id=${chargeId}&store_id=${storeId}`)
         .then(response => {
           if (response.ok) {
             console.log('✅ Billing charge activated successfully');
@@ -437,7 +445,7 @@ function DashboardContent() {
           console.log('✅ Got Shopify session token');
 
           try {
-            const healthCheck = await fetch('/api/health');
+            const healthCheck = await authenticatedFetch('/api/health');
             const healthData = await healthCheck.json();
             console.log('✅ Health check with App Bridge session token:', healthData);
           } catch (error) {
@@ -455,15 +463,13 @@ function DashboardContent() {
           try {
             console.log('🔍 Fetching store data for:', shop);
 
-            const xhr = new XMLHttpRequest();
-            xhr.open('GET', `/api/stores/lookup?shop=${encodeURIComponent(shop)}`, false);
-            xhr.send();
+            const lookupRes = await authenticatedFetch(`/api/stores/lookup?shop=${encodeURIComponent(shop)}`);
+            const data = await lookupRes.json();
 
-            console.log('🔍 XHR response status:', xhr.status);
-            const data = JSON.parse(xhr.responseText);
-            console.log('🔍 XHR response data:', data);
+            console.log('🔍 Lookup response status:', lookupRes.status);
+            console.log('🔍 Lookup response data:', data);
 
-            if (xhr.status === 200 && data.merchant) {
+            if (lookupRes.status === 200 && data.merchant) {
               console.log('✅ Got merchant data:', data.merchant.id);
               merchantData = data.merchant as Merchant;
 
@@ -481,11 +487,11 @@ function DashboardContent() {
                   console.log('📋 Store on free tier, subscription_status:', store.subscription_status);
                 }
               }
-            } else if (xhr.status === 404) {
+            } else if (lookupRes.status === 404) {
               console.log('⚠️  Store not found, creating records for first install:', shop);
 
               try {
-                const installResponse = await fetch('/api/shopify/install-embedded', {
+                const installResponse = await authenticatedFetch('/api/shopify/install-embedded', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ shop })
@@ -593,12 +599,9 @@ function DashboardContent() {
         try {
           console.log('🔍 Fetching orders for merchant:', (merchantData as Merchant).id);
 
-          const ordersXhr = new XMLHttpRequest();
-          ordersXhr.open('GET', `/api/orders/list?merchant_id=${(merchantData as Merchant).id}`, false);
-          ordersXhr.send();
-
-          if (ordersXhr.status === 200) {
-            const ordersJson = JSON.parse(ordersXhr.responseText);
+          const ordersRes = await authenticatedFetch(`/api/orders/list?merchant_id=${(merchantData as Merchant).id}`);
+          if (ordersRes.ok) {
+            const ordersJson = await ordersRes.json();
             if (ordersJson.orders) {
               setOrders(ordersJson.orders);
             }
@@ -610,12 +613,9 @@ function DashboardContent() {
 
           // Get campaigns
           let fetchedCampaigns: any[] = [];
-          const campaignsXhr = new XMLHttpRequest();
-          campaignsXhr.open('GET', `/api/campaigns/list?merchant_id=${(merchantData as Merchant).id}`, false);
-          campaignsXhr.send();
-
-          if (campaignsXhr.status === 200) {
-            const campaignsJson = JSON.parse(campaignsXhr.responseText);
+          const campaignsRes = await authenticatedFetch(`/api/campaigns/list?merchant_id=${(merchantData as Merchant).id}`);
+          if (campaignsRes.ok) {
+            const campaignsJson = await campaignsRes.json();
             if (campaignsJson.campaigns) {
               fetchedCampaigns = campaignsJson.campaigns;
               setCampaigns(campaignsJson.campaigns);
@@ -626,27 +626,21 @@ function DashboardContent() {
           if (stores.length > 0 || embedded) {
             const storeId = stores[0]?.id || searchParams.get('store_id');
             if (storeId) {
-              const insightsXhr = new XMLHttpRequest();
-              insightsXhr.open('GET', `/api/insights/list?store_id=${storeId}`, false);
-              insightsXhr.send();
-
-              if (insightsXhr.status === 200) {
-                const insightsJson = JSON.parse(insightsXhr.responseText);
+              const insightsRes = await authenticatedFetch(`/api/insights/list?store_id=${storeId}`);
+              if (insightsRes.ok) {
+                const insightsJson = await insightsRes.json();
                 if (insightsJson.insights && insightsJson.insights.length > 0) {
                   setLatestInsight(insightsJson.insights[0]);
                 }
               }
 
               // Fetch subscription tier info
-              const tierXhr = new XMLHttpRequest();
               let tierUrl = `/api/me/tier?store_id=${storeId}`;
               const ft = new URLSearchParams(window.location.search).get('force_tier');
               if (ft) tierUrl += `&force_tier=${ft}`;
-              tierXhr.open('GET', tierUrl, false);
-              tierXhr.send();
-
-              if (tierXhr.status === 200) {
-                const tierJson = JSON.parse(tierXhr.responseText);
+              const tierRes = await authenticatedFetch(tierUrl);
+              if (tierRes.ok) {
+                const tierJson = await tierRes.json();
                 if (tierJson.tier) {
                   setSubscriptionTier(tierJson.tier);
                   setTierLimits(tierJson.limits);
@@ -655,7 +649,7 @@ function DashboardContent() {
 
               // Sync customer segments in background (for Built for Shopify requirement)
               // This queries customerSegmentMembers API as required
-              fetch('/api/segments', {
+              authenticatedFetch('/api/segments', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ storeId }),
@@ -672,13 +666,13 @@ function DashboardContent() {
               setHasAdAccounts(fetchedCampaigns.length > 0);
 
               // Check pixel events
-              fetch(`/api/pixel/verify?store_id=${storeId}`)
+              authenticatedFetch(`/api/pixel/verify?store_id=${storeId}`)
                 .then(res => res.json())
                 .then(data => setHasPixelEvents(data.verified === true))
                 .catch(() => setHasPixelEvents(false));
 
               // Check alerts configuration
-              fetch(`/api/settings/alerts?store_id=${storeId}`)
+              authenticatedFetch(`/api/settings/alerts?store_id=${storeId}`)
                 .then(res => res.json())
                 .then(data => setHasAlerts(data.roas_alert_enabled || data.spend_alert_enabled))
                 .catch(() => setHasAlerts(false));
@@ -701,37 +695,17 @@ function DashboardContent() {
 
     setGeneratingInsight(true);
     try {
-      // Use XHR for better compatibility with Shopify iframe
-      const result = await new Promise<{ok: boolean, data: any}>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', '/api/insights/generate', true);
-        xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.timeout = 60000; // 60 second timeout for AI generation
-
-        xhr.onload = function() {
-          try {
-            const data = JSON.parse(xhr.responseText);
-            resolve({ ok: xhr.status >= 200 && xhr.status < 300, data });
-          } catch (e) {
-            resolve({ ok: false, data: { error: 'Failed to parse response' } });
-          }
-        };
-
-        xhr.onerror = function() {
-          reject(new Error('Network error'));
-        };
-
-        xhr.ontimeout = function() {
-          reject(new Error('Request timed out. AI generation may take a moment.'));
-        };
-
-        xhr.send(JSON.stringify({ storeId: stores[0].id }));
+      const response = await authenticatedFetch('/api/insights/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storeId: stores[0].id }),
       });
+      const data = await response.json();
 
-      if (result.ok && result.data.insight) {
-        setLatestInsight(result.data.insight);
+      if (response.ok && data.insight) {
+        setLatestInsight(data.insight);
       } else {
-        alert(result.data.error || 'Failed to generate insights');
+        alert(data.error || 'Failed to generate insights');
       }
     } catch (error: any) {
       console.error('Error generating insights:', error);
