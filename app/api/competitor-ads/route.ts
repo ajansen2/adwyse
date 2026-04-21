@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchCompetitorAds } from '@/lib/apify-ads';
 import { requireProFeature } from '@/lib/subscription-tiers';
+import { getAuthenticatedShop } from '@/lib/verify-session';
 
 /**
  * Competitor Ad Spy API
@@ -161,6 +162,9 @@ const demoCompetitorData: Record<string, CompetitorAd[]> = {
 };
 
 export async function GET(request: NextRequest) {
+  const shop = getAuthenticatedShop(request);
+  if (!shop) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const query = searchParams.get('query') || '';

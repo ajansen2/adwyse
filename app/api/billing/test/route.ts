@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
   const accessToken = store.access_token;
   const isTestCharge = shop.includes('-test') || shop.includes('development') || shop.includes('dev-');
   const shopName = shop.replace('.myshopify.com', '');
-  const clientId = '08fa8bc27e0e3ac857912c7e7ee289d0';
+  const clientId = process.env.SHOPIFY_API_KEY;
   const returnUrl = `https://admin.shopify.com/store/${shopName}/apps/${clientId}`;
 
   // Check for existing charges first

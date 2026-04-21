@@ -54,8 +54,7 @@ export async function GET(request: NextRequest) {
     const shop = request.nextUrl.searchParams.get('shop');
 
     if (!shop) {
-      // Redirect to a page where merchant can enter their Shopify store URL
-      return NextResponse.redirect(new URL('/dashboard/connect-store', request.url));
+      return NextResponse.json({ error: 'Missing shop parameter' }, { status: 400 });
     }
 
     // Generate state parameter for OAuth security

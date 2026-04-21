@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getProfitSummary } from '@/lib/profit-calculations';
+import { getAuthenticatedShop } from '@/lib/verify-session';
 
 /**
  * Profit Summary API
  * Returns profit metrics for a store
  */
 export async function GET(request: NextRequest) {
+  const shop = getAuthenticatedShop(request);
+  if (!shop) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
     const { searchParams } = new URL(request.url);
     const storeId = searchParams.get('storeId');

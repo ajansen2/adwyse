@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
 
     // WORKAROUND: Skip listAccessibleCustomers due to 501 error
     // Use hardcoded Manager Account ID for now
-    const managerAccountId = process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID || '7167233993';
+    const managerAccountId = process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID;
     console.log('📊 Using Manager Account ID directly:', managerAccountId);
 
     // Create customer object with hardcoded values

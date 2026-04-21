@@ -29,7 +29,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const apiKey = process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || '08fa8bc27e0e3ac857912c7e7ee289d0';
+  const apiKey = process.env.NEXT_PUBLIC_SHOPIFY_API_KEY;
 
   return (
     <html lang="en">

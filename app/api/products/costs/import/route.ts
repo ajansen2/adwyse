@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { bulkImportProductCosts, syncShopifyInventoryCosts } from '@/lib/profit-calculations';
 import { createClient } from '@supabase/supabase-js';
+import { getAuthenticatedShop } from '@/lib/verify-session';
 
 /**
  * Product Costs Import API
@@ -24,6 +25,9 @@ interface CSVCostRow {
 
 // POST - Import product costs from CSV or sync from Shopify
 export async function POST(request: NextRequest) {
+  const shop = getAuthenticatedShop(request);
+  if (!shop) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
     const contentType = request.headers.get('content-type') || '';
 

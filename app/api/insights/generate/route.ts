@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireProTier } from '@/lib/check-subscription';
 import { generateInsights, getRecentInsights, dismissInsight, markInsightActioned } from '@/lib/ai-insights';
+import { getAuthenticatedShop } from '@/lib/verify-session';
 
 /**
  * Generate AI insights for a store's campaigns using Claude
  * PRO FEATURE - requires active Pro subscription
  */
 export async function POST(request: NextRequest) {
+  const shop = getAuthenticatedShop(request);
+  if (!shop) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   console.log('🤖 [AI Insights] Starting generation...');
 
   try {

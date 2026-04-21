@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { buildChatContext } from '@/lib/chat-context';
 import { requireProFeature } from '@/lib/subscription-tiers';
+import { getAuthenticatedShop } from '@/lib/verify-session';
 
 const DEMO_STORE_ID = '987c61dd-7696-47ca-bf05-37876953b0ca';
 
@@ -55,6 +56,9 @@ Rules:
 Format responses in plain text or markdown bullets. Don't use code blocks or JSON unless the user asks.`;
 
 export async function POST(request: NextRequest) {
+  const shop = getAuthenticatedShop(request);
+  if (!shop) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
     const { messages, storeId } = await request.json();
 

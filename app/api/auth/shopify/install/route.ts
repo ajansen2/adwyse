@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     const redirectUri = `${appUrl}/api/auth/shopify/callback`;
 
     // Use PRODUCTION credentials (for App Store submission), fallback to hardcoded
-    const clientId = process.env.SHOPIFY_CLIENT_ID_PRODUCTION || process.env.SHOPIFY_CLIENT_ID_DEV || '08fa8bc27e0e3ac857912c7e7ee289d0';
+    const clientId = process.env.SHOPIFY_CLIENT_ID_PRODUCTION || process.env.SHOPIFY_CLIENT_ID_DEV;
 
     console.log('🚀 Starting OAuth for shop:', shop);
     console.log('📍 App URL:', appUrl);

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getAuthenticatedShop } from '@/lib/verify-session';
 
 const DEMO_STORE_ID = '987c61dd-7696-47ca-bf05-37876953b0ca';
 
@@ -66,6 +67,9 @@ function getDemoCompetitors(): Competitor[] {
 }
 
 export async function GET(request: NextRequest) {
+  const shop = getAuthenticatedShop(request);
+  if (!shop) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
     const storeId = request.nextUrl.searchParams.get('store_id');
 

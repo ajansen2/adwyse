@@ -5,6 +5,7 @@ import {
   recalculateAttribution,
   type AttributionModel
 } from '@/lib/attribution-engine';
+import { getAuthenticatedShop } from '@/lib/verify-session';
 
 /**
  * Attribution API
@@ -13,6 +14,9 @@ import {
 
 // GET - Get channel attribution
 export async function GET(request: NextRequest) {
+  const shop = getAuthenticatedShop(request);
+  if (!shop) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
     const { searchParams } = new URL(request.url);
     const storeId = searchParams.get('storeId');

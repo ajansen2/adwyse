@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { upsertProductCost } from '@/lib/profit-calculations';
+import { getAuthenticatedShop } from '@/lib/verify-session';
 
 /**
  * Product Costs CRUD API
@@ -9,6 +10,9 @@ import { upsertProductCost } from '@/lib/profit-calculations';
 
 // GET - List product costs for a store
 export async function GET(request: NextRequest) {
+  const shop = getAuthenticatedShop(request);
+  if (!shop) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
     const { searchParams } = new URL(request.url);
     const storeId = searchParams.get('storeId');
@@ -66,6 +70,9 @@ export async function GET(request: NextRequest) {
 
 // POST - Create or update a product cost
 export async function POST(request: NextRequest) {
+  const shopP = getAuthenticatedShop(request);
+  if (!shopP) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
     const body = await request.json();
     const {
