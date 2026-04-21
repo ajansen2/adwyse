@@ -36,11 +36,10 @@ export async function GET(request: NextRequest) {
     // Generate state parameter for OAuth security
     const state = crypto.randomBytes(32).toString('hex');
 
-    // Scopes we need for cart recovery
+    // Scopes for ad attribution analytics
     const scopes = [
-      'read_checkouts',          // Read abandoned checkouts
-      'read_customers',          // Read customer info (email, name)
-      'read_orders',             // Track recovered orders
+      'read_customers',          // Customer data for attribution
+      'read_orders',             // Order data for ROAS tracking
     ].join(',');
 
     // Get app URL from environment or construct from request
