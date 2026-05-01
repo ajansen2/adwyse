@@ -68,6 +68,8 @@ export function Footer() {
         </div>
         <div className="border-t border-white/10 pt-8 text-center text-zinc-600 text-sm">
           © {new Date().getFullYear()} AdWyse. All rights reserved.
+          <br />
+          Operated by Adam Jansen
         </div>
       </div>
     </footer>
