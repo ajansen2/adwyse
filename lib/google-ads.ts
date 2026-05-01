@@ -122,17 +122,14 @@ export async function getGoogleAdsCustomers(accessToken: string): Promise<Google
   console.log('🔵 [Google Ads] Developer token (first 10 chars):', developerToken?.substring(0, 10) + '...');
   console.log('🔵 [Google Ads] Access token (first 20 chars):', accessToken?.substring(0, 20) + '...');
 
-  // Manager Account ID (MCC) - required for API calls
-  const loginCustomerId = process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID || '7167233993';
-
-  console.log('🔵 [Google Ads] Using login-customer-id:', loginCustomerId);
+  // Note: listAccessibleCustomers does NOT require login-customer-id header
+  // Sending it can cause 501 errors
 
   const response = await fetch('https://googleads.googleapis.com/v18/customers:listAccessibleCustomers', {
     method: 'GET',
     headers: {
       'Authorization': `Bearer ${accessToken}`,
       'developer-token': developerToken!,
-      'login-customer-id': loginCustomerId,
     },
   });
 
