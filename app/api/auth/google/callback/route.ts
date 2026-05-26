@@ -136,6 +136,7 @@ function returnHtmlResponse(success: boolean, message: string) {
     <!DOCTYPE html>
     <html>
       <head>
+        <meta charset="utf-8">
         <title>${success ? 'Connected!' : 'Error'}</title>
         <style>
           body {
@@ -190,6 +191,6 @@ function returnHtmlResponse(success: boolean, message: string) {
   `;
 
   return new NextResponse(html, {
-    headers: { 'Content-Type': 'text/html' },
+    headers: { 'Content-Type': 'text/html; charset=utf-8' },
   });
 }

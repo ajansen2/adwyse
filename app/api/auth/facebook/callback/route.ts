@@ -144,7 +144,7 @@ export async function GET(request: NextRequest) {
       </html>
     `;
     return new NextResponse(html, {
-      headers: { 'Content-Type': 'text/html' },
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
     });
   } catch (error) {
     console.error('❌ Facebook OAuth callback error:', error);
@@ -167,7 +167,7 @@ export async function GET(request: NextRequest) {
       </html>
     `;
     return new NextResponse(html, {
-      headers: { 'Content-Type': 'text/html' },
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
     });
   }
 }
