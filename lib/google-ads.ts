@@ -3,6 +3,8 @@
  * Fetches campaign data (spend, impressions, clicks, conversions) from Google Ads API
  */
 
+const GOOGLE_ADS_API_VERSION = process.env.GOOGLE_ADS_API_VERSION || 'v21';
+
 interface GoogleAdsCampaign {
   id: string;
   name: string;
@@ -125,7 +127,7 @@ export async function getGoogleAdsCustomers(accessToken: string): Promise<Google
   // Note: listAccessibleCustomers does NOT require login-customer-id header
   // Sending it can cause 501 errors
 
-  const response = await fetch('https://googleads.googleapis.com/v21/customers:listAccessibleCustomers', {
+  const response = await fetch('https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers:listAccessibleCustomers', {
     method: 'GET',
     headers: {
       'Authorization': `Bearer ${accessToken}`,
@@ -199,7 +201,7 @@ export async function getGoogleAdsCustomers(accessToken: string): Promise<Google
 
     try {
       const customerResponse = await fetch(
-        `https://googleads.googleapis.com/v21/customers/${customerId}`,
+        `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${customerId}`,
         {
           method: 'GET',
           headers: {
@@ -255,7 +257,7 @@ export async function fetchGoogleAdsCampaigns(
 
   try {
     const response = await fetch(
-      `https://googleads.googleapis.com/v21/customers/${cleanCustomerId}/googleAds:searchStream`,
+      `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${cleanCustomerId}/googleAds:searchStream`,
       {
         method: 'POST',
         headers: {

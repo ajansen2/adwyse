@@ -3,6 +3,8 @@
  * Fetches campaign data (spend, impressions, clicks, conversions) from Facebook Marketing API
  */
 
+const META_GRAPH_VERSION = process.env.META_GRAPH_API_VERSION || 'v22.0';
+
 interface FacebookCampaign {
   id: string;
   name: string;
@@ -47,7 +49,7 @@ export async function fetchFacebookCampaigns(
       'insights.date_preset(' + datePreset + '){spend,impressions,clicks,actions}'
     ].join(',');
 
-    const url = `https://graph.facebook.com/v22.0/act_${adAccountId}/campaigns?fields=${fields}&access_token=${accessToken.substring(0, 20)}...`;
+    const url = `https://graph.facebook.com/${META_GRAPH_VERSION}/act_${adAccountId}/campaigns?fields=${fields}&access_token=${accessToken.substring(0, 20)}...`;
     console.log(`🔵 [FB API] Request URL (truncated): ${url.split('access_token')[0]}...`);
 
     // Add timeout to prevent hanging - 10 second timeout
@@ -58,7 +60,7 @@ export async function fetchFacebookCampaigns(
     }, 10000); // 10 second timeout
 
     console.log('🔵 [FB API] Sending request to Facebook...');
-    const fullUrl = `https://graph.facebook.com/v22.0/act_${adAccountId}/campaigns?fields=${fields}&access_token=${accessToken}`;
+    const fullUrl = `https://graph.facebook.com/${META_GRAPH_VERSION}/act_${adAccountId}/campaigns?fields=${fields}&access_token=${accessToken}`;
 
     let response: Response;
     try {
@@ -132,7 +134,7 @@ export async function fetchCampaignInsights(
 ): Promise<FacebookInsights | null> {
   try {
     const fields = 'spend,impressions,clicks,actions';
-    const url = `https://graph.facebook.com/v22.0/${campaignId}/insights?fields=${fields}&time_range={'since':'${dateStart}','until':'${dateEnd}'}&access_token=${accessToken}`;
+    const url = `https://graph.facebook.com/${META_GRAPH_VERSION}/${campaignId}/insights?fields=${fields}&time_range={'since':'${dateStart}','until':'${dateEnd}'}&access_token=${accessToken}`;
 
     const response = await fetch(url);
 
@@ -168,7 +170,7 @@ export async function fetchCampaignInsights(
  */
 export async function testFacebookToken(accessToken: string): Promise<boolean> {
   try {
-    const response = await fetch(`https://graph.facebook.com/v22.0/me?access_token=${accessToken}`);
+    const response = await fetch(`https://graph.facebook.com/${META_GRAPH_VERSION}/me?access_token=${accessToken}`);
     return response.ok;
   } catch (error) {
     return false;
@@ -228,7 +230,7 @@ export async function fetchFacebookAds(
       `insights.date_preset(${datePreset}){spend,impressions,clicks,actions}`
     ].join(',');
 
-    const fullUrl = `https://graph.facebook.com/v22.0/act_${adAccountId}/ads?fields=${fields}&limit=500&access_token=${accessToken}`;
+    const fullUrl = `https://graph.facebook.com/${META_GRAPH_VERSION}/act_${adAccountId}/ads?fields=${fields}&limit=500&access_token=${accessToken}`;
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
@@ -301,7 +303,7 @@ export async function fetchFacebookAdSets(
       `insights.date_preset(${datePreset}){spend,impressions,clicks,actions}`
     ].join(',');
 
-    const fullUrl = `https://graph.facebook.com/v22.0/act_${adAccountId}/adsets?fields=${fields}&limit=500&access_token=${accessToken}`;
+    const fullUrl = `https://graph.facebook.com/${META_GRAPH_VERSION}/act_${adAccountId}/adsets?fields=${fields}&limit=500&access_token=${accessToken}`;
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
@@ -353,7 +355,7 @@ async function fetchAdSetNames(
   if (adsetIds.length === 0) return {};
 
   try {
-    const url = `https://graph.facebook.com/v22.0/?ids=${adsetIds.join(',')}&fields=name&access_token=${accessToken}`;
+    const url = `https://graph.facebook.com/${META_GRAPH_VERSION}/?ids=${adsetIds.join(',')}&fields=name&access_token=${accessToken}`;
     const response = await fetch(url);
     if (!response.ok) return {};
 
@@ -380,7 +382,7 @@ async function fetchCampaignNames(
   if (campaignIds.length === 0) return {};
 
   try {
-    const url = `https://graph.facebook.com/v22.0/?ids=${campaignIds.join(',')}&fields=name&access_token=${accessToken}`;
+    const url = `https://graph.facebook.com/${META_GRAPH_VERSION}/?ids=${campaignIds.join(',')}&fields=name&access_token=${accessToken}`;
     const response = await fetch(url);
     if (!response.ok) return {};
 
@@ -429,7 +431,7 @@ export async function fetchAdInsightsDaily(
     ].join(',');
 
     const timeRange = encodeURIComponent(JSON.stringify({ since: dateStart, until: dateEnd }));
-    const url = `https://graph.facebook.com/v22.0/act_${adAccountId}/insights?fields=${fields}&level=ad&time_increment=1&time_range=${timeRange}&limit=500&access_token=${accessToken}`;
+    const url = `https://graph.facebook.com/${META_GRAPH_VERSION}/act_${adAccountId}/insights?fields=${fields}&level=ad&time_increment=1&time_range=${timeRange}&limit=500&access_token=${accessToken}`;
 
     const response = await fetch(url);
     if (!response.ok) return [];
