@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Exchange code for access token
-    const tokenResponse = await fetch('https://graph.facebook.com/v18.0/oauth/access_token', {
+    const tokenResponse = await fetch('https://graph.facebook.com/v22.0/oauth/access_token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
@@ -56,12 +56,12 @@ export async function GET(request: NextRequest) {
     const accessToken = tokenData.access_token;
 
     // Get Facebook user info and ad accounts
-    const meResponse = await fetch(`https://graph.facebook.com/v18.0/me?fields=id,name&access_token=${accessToken}`);
+    const meResponse = await fetch(`https://graph.facebook.com/v22.0/me?fields=id,name&access_token=${accessToken}`);
     const userData = await meResponse.json();
 
     // Get ad accounts
     const adAccountsResponse = await fetch(
-      `https://graph.facebook.com/v18.0/${userData.id}/adaccounts?fields=id,name,account_id,account_status&access_token=${accessToken}`
+      `https://graph.facebook.com/v22.0/${userData.id}/adaccounts?fields=id,name,account_id,account_status&access_token=${accessToken}`
     );
     const adAccountsData = await adAccountsResponse.json();
 

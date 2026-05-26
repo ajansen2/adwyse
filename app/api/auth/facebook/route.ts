@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Facebook OAuth URL
-    const facebookAuthUrl = new URL('https://www.facebook.com/v18.0/dialog/oauth');
+    const facebookAuthUrl = new URL('https://www.facebook.com/v22.0/dialog/oauth');
     facebookAuthUrl.searchParams.set('client_id', process.env.FACEBOOK_APP_ID!);
     facebookAuthUrl.searchParams.set('redirect_uri', `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/facebook/callback`);
     facebookAuthUrl.searchParams.set('state', state);
