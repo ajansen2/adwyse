@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     let customers;
     try {
       customers = await getGoogleAdsCustomers(tokens.accessToken);
-      console.log(`📊 Found ${customers.length} accessible account(s)`);
+      console.log(`📊 Found ${customers.length} accessible account(s):`, JSON.stringify(customers));
     } catch (error: any) {
       console.error('❌ Failed to list accounts, falling back to manager account:', error.message);
       // Fallback: use manager account ID if listAccessibleCustomers fails
@@ -100,7 +100,8 @@ export async function GET(request: NextRequest) {
         }
 
         // Insert new
-        await supabase
+        console.log(`➕ Inserting Google Ads account: customerId=${customer.customerId}, name=${customer.descriptiveName}, storeId=${storeId}`);
+        const { error: insertError } = await supabase
           .from('ad_accounts')
           .insert({
             store_id: storeId,
@@ -113,7 +114,12 @@ export async function GET(request: NextRequest) {
             is_connected: true,
           });
 
-        console.log(`➕ Added Google Ads account: ${customer.descriptiveName}`);
+        if (insertError) {
+          console.error(`❌ Failed to insert Google Ads account ${customer.customerId}:`, insertError);
+          continue;
+        }
+
+        console.log(`✅ Added Google Ads account: ${customer.descriptiveName}`);
         connectedCount++;
       }
     }
