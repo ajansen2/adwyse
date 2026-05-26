@@ -192,6 +192,7 @@ export async function getGoogleAdsCustomers(accessToken: string): Promise<Google
     throw new Error('Invalid response from Google Ads API');
   }
   const customerResourceNames = data.resourceNames || [];
+  console.log('🔵 [Google Ads] Resource names returned:', JSON.stringify(customerResourceNames));
 
   // Fetch details for each customer
   const customers: GoogleAdsCustomer[] = [];
@@ -200,15 +201,16 @@ export async function getGoogleAdsCustomers(accessToken: string): Promise<Google
     const customerId = resourceName.replace('customers/', '');
 
     try {
+      // Try fetching customer details — use login-customer-id for manager accounts
+      const headers: Record<string, string> = {
+        'Authorization': `Bearer ${accessToken}`,
+        'developer-token': developerToken!,
+        'login-customer-id': customerId,
+      };
+
       const customerResponse = await fetch(
         `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${customerId}`,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'developer-token': developerToken!,
-          },
-        }
+        { method: 'GET', headers }
       );
 
       if (customerResponse.ok) {
@@ -217,9 +219,23 @@ export async function getGoogleAdsCustomers(accessToken: string): Promise<Google
           customerId: customerId,
           descriptiveName: customerData.descriptiveName || `Account ${customerId}`,
         });
+        console.log(`✅ [Google Ads] Got customer: ${customerId} = ${customerData.descriptiveName}`);
+      } else {
+        const errText = await customerResponse.text();
+        console.error(`❌ [Google Ads] Failed to fetch customer ${customerId}: ${customerResponse.status} ${errText.substring(0, 300)}`);
+        // Still add the account with a generic name so the merchant can connect
+        customers.push({
+          customerId: customerId,
+          descriptiveName: `Google Ads Account ${customerId}`,
+        });
       }
     } catch (error) {
       console.error(`Error fetching customer ${customerId}:`, error);
+      // Still add with generic name
+      customers.push({
+        customerId: customerId,
+        descriptiveName: `Google Ads Account ${customerId}`,
+      });
     }
   }
 
