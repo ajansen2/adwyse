@@ -127,7 +127,7 @@ export async function getGoogleAdsCustomers(accessToken: string): Promise<Google
   // Note: listAccessibleCustomers does NOT require login-customer-id header
   // Sending it can cause 501 errors
 
-  const response = await fetch('https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers:listAccessibleCustomers', {
+  const response = await fetch(`https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers:listAccessibleCustomers`, {
     method: 'GET',
     headers: {
       'Authorization': `Bearer ${accessToken}`,
