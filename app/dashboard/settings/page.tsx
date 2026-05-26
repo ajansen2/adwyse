@@ -894,6 +894,28 @@ function SettingsContent() {
     }
   };
 
+  const handleDisconnectAccount = async (accountId: string, platform: string) => {
+    if (!confirm(`Disconnect this ${platform} account?`)) return;
+    try {
+      const response = await authenticatedFetch('/api/ad-accounts/disconnect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accountId }),
+      });
+      if (response.ok) {
+        setAdAccounts(prev => prev.filter(a => a.id !== accountId));
+        setSuccessMessage(`${platform} account disconnected`);
+        setTimeout(() => setSuccessMessage(''), 5000);
+      } else {
+        setErrorMessage('Failed to disconnect account');
+        setTimeout(() => setErrorMessage(''), 5000);
+      }
+    } catch {
+      setErrorMessage('Failed to disconnect account');
+      setTimeout(() => setErrorMessage(''), 5000);
+    }
+  };
+
   // Demo data handlers
   const checkDemoData = async () => {
     if (!store) return;
@@ -1252,13 +1274,21 @@ function SettingsContent() {
                     {adAccounts.filter(a => a.platform === 'facebook').map((account) => (
                       <div key={account.id} className="flex items-center justify-between text-sm">
                         <div className="text-white/70">{account.account_name || `Account ${account.account_id}`}</div>
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          account.is_connected
-                            ? 'bg-green-500/20 text-green-300'
-                            : 'bg-gray-500/20 text-gray-300'
-                        }`}>
-                          {account.is_connected ? 'Connected' : 'Disconnected'}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            account.is_connected
+                              ? 'bg-green-500/20 text-green-300'
+                              : 'bg-gray-500/20 text-gray-300'
+                          }`}>
+                            {account.is_connected ? 'Connected' : 'Disconnected'}
+                          </span>
+                          <button
+                            onClick={() => handleDisconnectAccount(account.id, 'Facebook')}
+                            className="px-2 py-1 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition"
+                          >
+                            Disconnect
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1320,13 +1350,21 @@ function SettingsContent() {
                     {adAccounts.filter(a => a.platform === 'google').map((account) => (
                       <div key={account.id} className="flex items-center justify-between text-sm">
                         <div className="text-white/70">{account.account_name || `Account ${account.account_id}`}</div>
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          account.is_connected
-                            ? 'bg-green-500/20 text-green-300'
-                            : 'bg-gray-500/20 text-gray-300'
-                        }`}>
-                          {account.is_connected ? 'Connected' : 'Disconnected'}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            account.is_connected
+                              ? 'bg-green-500/20 text-green-300'
+                              : 'bg-gray-500/20 text-gray-300'
+                          }`}>
+                            {account.is_connected ? 'Connected' : 'Disconnected'}
+                          </span>
+                          <button
+                            onClick={() => handleDisconnectAccount(account.id, 'Google')}
+                            className="px-2 py-1 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition"
+                          >
+                            Disconnect
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1388,13 +1426,21 @@ function SettingsContent() {
                     {adAccounts.filter(a => a.platform === 'tiktok').map((account) => (
                       <div key={account.id} className="flex items-center justify-between text-sm">
                         <div className="text-white/70">{account.account_name || `Account ${account.account_id}`}</div>
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          account.is_connected
-                            ? 'bg-green-500/20 text-green-300'
-                            : 'bg-gray-500/20 text-gray-300'
-                        }`}>
-                          {account.is_connected ? 'Connected' : 'Disconnected'}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            account.is_connected
+                              ? 'bg-green-500/20 text-green-300'
+                              : 'bg-gray-500/20 text-gray-300'
+                          }`}>
+                            {account.is_connected ? 'Connected' : 'Disconnected'}
+                          </span>
+                          <button
+                            onClick={() => handleDisconnectAccount(account.id, 'TikTok')}
+                            className="px-2 py-1 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition"
+                          >
+                            Disconnect
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
