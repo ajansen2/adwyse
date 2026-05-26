@@ -895,12 +895,12 @@ function SettingsContent() {
   };
 
   const handleDisconnectAccount = async (accountId: string, platform: string) => {
-    if (!confirm(`Disconnect this ${platform} account?`)) return;
+    if (!store || !confirm(`Disconnect this ${platform} account?`)) return;
     try {
       const response = await authenticatedFetch('/api/ad-accounts/disconnect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accountId }),
+        body: JSON.stringify({ accountId, storeId: store.id }),
       });
       if (response.ok) {
         setAdAccounts(prev => prev.filter(a => a.id !== accountId));
