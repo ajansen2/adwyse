@@ -40,14 +40,16 @@ export async function GET(request: NextRequest) {
     const scopes = [
       'read_customers',          // Customer data for attribution
       'read_orders',             // Order data for ROAS tracking
+      'write_pixels',            // Create/manage Web Pixel extension
+      'read_customer_events',    // Access customer events for pixel
     ].join(',');
 
     // Get app URL from environment or construct from request
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || `https://${request.headers.get('host')}`;
     const redirectUri = `${appUrl}/api/auth/shopify/callback`;
 
-    // Use PRODUCTION credentials (for App Store submission), fallback to hardcoded
-    const clientId = process.env.SHOPIFY_CLIENT_ID_PRODUCTION || process.env.SHOPIFY_CLIENT_ID_DEV;
+    // Use the Shopify API key (same as client_id in shopify.app.toml)
+    const clientId = process.env.SHOPIFY_API_KEY || process.env.SHOPIFY_CLIENT_ID_PRODUCTION || process.env.SHOPIFY_CLIENT_ID_DEV;
 
     console.log('🚀 Starting OAuth for shop:', shop);
     console.log('📍 App URL:', appUrl);
