@@ -123,7 +123,7 @@ async function sendAlertEmails(): Promise<{ sent: number; errors: string[] }> {
       const body = getEmailBody(alert);
 
       const { data, error } = await resend.emails.send({
-        from: process.env.EMAIL_FROM || 'AdWyse <alerts@adwyse.ca>',
+        from: process.env.EMAIL_FROM || 'AdWyse <alerts@send.adwyse.ca>',
         to: alert.store_email,
         subject,
         html: body

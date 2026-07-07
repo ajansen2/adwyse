@@ -39,7 +39,7 @@ export async function sendAlertEmail(
     const alertLabel = ALERT_TYPE_LABELS[alert.type] || alert.type;
 
     const { data, error } = await resend.emails.send({
-      from: 'AdWyse Alerts <alerts@adwyse.ca>',
+      from: 'AdWyse Alerts <alerts@send.adwyse.ca>',
       to: recipientEmail,
       subject: `🚨 ${alert.severity.toUpperCase()}: ${alertLabel} - ${storeName}`,
       html: `
@@ -171,7 +171,7 @@ export async function sendDailyDigest(
     const hasAlerts = alerts.length > 0;
 
     const { data, error } = await resend.emails.send({
-      from: 'AdWyse <digest@adwyse.ca>',
+      from: 'AdWyse <digest@send.adwyse.ca>',
       to: recipientEmail,
       subject: `📊 Daily Report: ${storeName} - ${new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`,
       html: `

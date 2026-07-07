@@ -51,7 +51,7 @@ body { font-family: -apple-system, sans-serif; background: #0f172a; color: #fff;
 </body></html>`;
 
     const { data, error } = await resend.emails.send({
-      from: process.env.EMAIL_FROM || 'AdWyse <noreply@adwyse.ca>',
+      from: process.env.EMAIL_FROM || 'AdWyse <noreply@send.adwyse.ca>',
       to,
       subject: subjects[type] || subjects.expired,
       html: emailHtml,
