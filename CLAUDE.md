@@ -306,14 +306,14 @@ These were from other projects (ARGORA DEALS real estate) and have been removed:
 - `/app/dashboard/settings-new-DISABLED` — old settings (was a live route)
 - `/app/dashboard/analytics` — was ARGORA cart recovery analytics (now redirects to /dashboard)
 - `/components/ComprehensiveDashboard.tsx` — unused ARGORA component
+- `/app/analyze` — ARGORA property analyzer page
 
 ## Known Issues / Tech Debt
-- `creatives/list` API depends on `get_top_creatives` RPC that may not exist in DB
-- Profit page bulk COGS: CSV import + Shopify sync endpoints exist (`/api/products/costs/import`) but need testing
-- `/how-it-works`, `/signup`, `/login` pages may still contain stale content (need review)
+- `creatives/list` API depends on `get_top_creatives` RPC that may not exist in DB (has fallback to direct query)
+- Profit page bulk COGS: CSV import + Shopify sync endpoints exist (`/api/products/costs/import`) — need testing with real store
 
 ## What's Next
 - Verify CAPI end-to-end with a real Web pixel
 - Build onboarding email sequence (Resend)
-- Test profit page CSV import and Shopify cost sync
+- Test profit page CSV import and Shopify cost sync with real data
 - Consider: in-app help tooltips, CAPI setup wizard, progressive loading messages
