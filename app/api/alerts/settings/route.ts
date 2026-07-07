@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { checkSubscription } from '@/lib/check-subscription';
+import { checkSubscription } from '@/lib/subscription-tiers';
 import { getAuthenticatedShop } from '@/lib/verify-session';
 
 /**

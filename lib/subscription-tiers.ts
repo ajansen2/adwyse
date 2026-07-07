@@ -167,6 +167,66 @@ export async function getStoreTier(storeId: string): Promise<TierCheck> {
   return { tier, limits: TIER_LIMITS[tier] };
 }
 
+/**
+ * Check subscription status for a store. Consolidated from the old check-subscription.ts.
+ * Used by orders/list, campaigns/list, alerts/settings, reports/settings for data limits.
+ */
+export type SubscriptionStatus = 'active' | 'trial' | 'expired' | 'cancelled' | 'past_due' | 'free';
+
+export interface SubscriptionCheck {
+  valid: boolean;
+  status: SubscriptionStatus;
+  tier: SubscriptionTier;
+  limits: TierLimits;
+  daysRemaining?: number;
+  message?: string;
+}
+
+export async function checkSubscription(storeId: string): Promise<SubscriptionCheck> {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const { data: store, error } = await supabase
+    .from('adwyse_stores')
+    .select('subscription_status, trial_ends_at')
+    .eq('id', storeId)
+    .single();
+
+  if (error || !store) {
+    return { valid: false, status: 'cancelled', tier: 'free', limits: TIER_LIMITS.free, message: 'Store not found' };
+  }
+
+  if (store.subscription_status === 'active') {
+    return { valid: true, status: 'active', tier: 'pro', limits: TIER_LIMITS.pro };
+  }
+
+  if (store.subscription_status === 'trial' || !store.subscription_status) {
+    const trialEndsAt = store.trial_ends_at ? new Date(store.trial_ends_at) : null;
+    const now = new Date();
+
+    if (trialEndsAt && trialEndsAt > now) {
+      const daysRemaining = Math.ceil((trialEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      return { valid: true, status: 'trial', tier: 'trial', limits: TIER_LIMITS.trial, daysRemaining };
+    }
+
+    return {
+      valid: true,
+      status: 'free',
+      tier: 'free',
+      limits: TIER_LIMITS.free,
+      message: 'Your trial has ended. You\'re on the free plan with limited features.'
+    };
+  }
+
+  if (store.subscription_status === 'cancelled') {
+    return { valid: true, status: 'free', tier: 'free', limits: TIER_LIMITS.free, message: 'You\'re on the free plan.' };
+  }
+
+  return { valid: true, status: 'free', tier: 'free', limits: TIER_LIMITS.free };
+}
+
 export async function checkAdAccountLimit(storeId: string): Promise<{ allowed: boolean; current: number; limit: number; message?: string }> {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

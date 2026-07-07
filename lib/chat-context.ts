@@ -81,12 +81,20 @@ export async function buildChatContext(
     .gte('order_created_at', prevWindowStart.toISOString())
     .lt('order_created_at', windowStart.toISOString());
 
-  // Campaigns (aggregated from daily rows)
+  // Campaigns in current window
   const { data: campaignRows } = await supabase
     .from('adwyse_campaigns')
     .select('campaign_name, spend, attributed_revenue, attributed_orders, adwyse_ad_accounts!inner(platform)')
     .eq('store_id', storeId)
     .gte('date', windowStart.toISOString().split('T')[0]);
+
+  // Campaigns in previous window (for spend trend)
+  const { data: prevCampaignRows } = await supabase
+    .from('adwyse_campaigns')
+    .select('spend')
+    .eq('store_id', storeId)
+    .gte('date', prevWindowStart.toISOString().split('T')[0])
+    .lt('date', windowStart.toISOString().split('T')[0]);
 
   // Aggregate campaigns
   const campaignMap = new Map<string, any>();
@@ -140,9 +148,11 @@ export async function buildChatContext(
     .reduce((s, o) => s + (o.order_total || 0), 0);
 
   const prevRevenue = (prevOrders || []).reduce((s, o) => s + (o.order_total || 0), 0);
-  const prevSpend = totalSpend; // we don't have prev period campaign data easily, default to 0 change
+  const prevSpend = (prevCampaignRows || []).reduce((s, c) => s + parseFloat(c.spend || 0), 0);
   const revenueChangePct =
     prevRevenue > 0 ? ((totalRevenue - prevRevenue) / prevRevenue) * 100 : 0;
+  const spendChangePct =
+    prevSpend > 0 ? ((totalSpend - prevSpend) / prevSpend) * 100 : 0;
 
   return {
     storeName: store.store_name || store.shop_domain || 'Your store',
@@ -166,7 +176,7 @@ export async function buildChatContext(
     byPlatform,
     trend: {
       revenueChangePct,
-      spendChangePct: 0,
+      spendChangePct,
     },
   };
 }

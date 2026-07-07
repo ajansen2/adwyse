@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireProTier } from '@/lib/check-subscription';
+import { requireProFeature } from '@/lib/subscription-tiers';
 import { generateInsights, getRecentInsights, dismissInsight, markInsightActioned } from '@/lib/ai-insights';
 import { getAuthenticatedShop } from '@/lib/verify-session';
 
@@ -33,11 +33,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true });
     }
 
-    // Check subscription - AI Insights is a Pro feature
-    const subscriptionCheck = await requireProTier(storeId, 'ai_insights');
-    if ('error' in subscriptionCheck) {
-      return subscriptionCheck.error;
-    }
+    // Check subscription - AI Insights requires Pro (but static insights are free)
+    const gate = await requireProFeature(storeId, 'aiInsights');
+    if (gate) return gate;
 
     // Use enhanced insights generator
     const result = await generateInsights(storeId);

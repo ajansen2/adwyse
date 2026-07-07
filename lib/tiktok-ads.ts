@@ -127,23 +127,7 @@ export async function fetchTikTokCampaigns(
   console.log(`🔵 [TikTok] Fetching campaigns for advertiser: ${advertiserId}`);
 
   try {
-    // First, get campaign list
-    const campaignResponse = await fetch(
-      'https://business-api.tiktok.com/open_api/v1.3/campaign/get/',
-      {
-        method: 'GET',
-        headers: {
-          'Access-Token': accessToken,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          advertiser_id: advertiserId,
-          page_size: 100,
-        }),
-      }
-    );
-
-    // Use POST for campaign list as per TikTok API
+    // Get campaign list (POST as per TikTok API)
     const campaignListResponse = await fetch(
       'https://business-api.tiktok.com/open_api/v1.3/campaign/get/',
       {
@@ -243,6 +227,46 @@ export async function fetchTikTokCampaigns(
     console.error('Error fetching TikTok campaigns:', error);
     return [];
   }
+}
+
+/**
+ * Refresh TikTok access token using the app credentials.
+ * TikTok long-lived tokens last ~24h and need periodic refresh.
+ */
+export async function refreshTikTokToken(refreshToken: string): Promise<{
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+}> {
+  const response = await fetch('https://business-api.tiktok.com/open_api/v1.3/oauth2/access_token/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      app_id: process.env.TIKTOK_APP_ID,
+      secret: process.env.TIKTOK_APP_SECRET,
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(`Failed to refresh TikTok token: ${JSON.stringify(error)}`);
+  }
+
+  const data = await response.json();
+
+  if (data.code !== 0) {
+    throw new Error(`TikTok token refresh error: ${data.message}`);
+  }
+
+  return {
+    accessToken: data.data.access_token,
+    refreshToken: data.data.refresh_token || refreshToken,
+    expiresIn: data.data.expires_in || 86400,
+  };
 }
 
 /**

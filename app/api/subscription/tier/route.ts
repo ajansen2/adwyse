@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { checkSubscription } from '@/lib/check-subscription';
+import { checkSubscription } from '@/lib/subscription-tiers';
 import { getAuthenticatedShop } from '@/lib/verify-session';
 
 export async function GET(request: NextRequest) {

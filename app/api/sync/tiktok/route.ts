@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { fetchTikTokCampaigns } from '@/lib/tiktok-ads';
+import { fetchTikTokCampaigns, refreshTikTokToken } from '@/lib/tiktok-ads';
 
 function getSupabase() {
   return createClient(
@@ -36,8 +36,37 @@ async function syncTikTokForStore(supabase: ReturnType<typeof getSupabase>, stor
     try {
       console.log(`🔄 [SYNC] Processing account: ${account.account_name}`);
 
+      // Proactively refresh token if expired or about to expire
+      let accessToken = account.access_token;
+      const tokenExpiry = account.token_expires_at ? new Date(account.token_expires_at) : null;
+      const isExpired = !tokenExpiry || tokenExpiry < new Date(Date.now() + 5 * 60 * 1000);
+
+      if (isExpired && account.refresh_token) {
+        console.log(`🔑 [SYNC] Token expired for ${account.account_name}, refreshing...`);
+        try {
+          const newTokens = await refreshTikTokToken(account.refresh_token);
+          accessToken = newTokens.accessToken;
+
+          // Persist the new token to DB
+          await supabase
+            .from('ad_accounts')
+            .update({
+              access_token: newTokens.accessToken,
+              refresh_token: newTokens.refreshToken,
+              token_expires_at: new Date(Date.now() + newTokens.expiresIn * 1000).toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', account.id);
+
+          console.log(`✅ [SYNC] Token refreshed for ${account.account_name}`);
+        } catch (refreshError) {
+          console.error(`❌ [SYNC] Token refresh failed for ${account.account_name}:`, refreshError);
+          continue;
+        }
+      }
+
       const campaigns = await fetchTikTokCampaigns(
-        account.access_token,
+        accessToken,
         account.account_id
       );
 
