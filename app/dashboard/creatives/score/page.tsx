@@ -89,7 +89,7 @@ function CreativeScoreContent() {
   if (loading || tierLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900">
-        <Sidebar activePage="creatives" />
+        <Sidebar activePage="creative-score" />
         <main className="lg:ml-64 min-h-screen p-6">
           <DashboardSkeleton />
         </main>
@@ -100,7 +100,7 @@ function CreativeScoreContent() {
   if (!isPro) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900">
-        <Sidebar activePage="creatives" />
+        <Sidebar activePage="creative-score" />
         <main className="lg:ml-64 min-h-screen">
           <UpgradeGate
             feature="AI Creative Score"
@@ -113,7 +113,7 @@ function CreativeScoreContent() {
             ]}
           />
         </main>
-        <MobileNav activePage="creatives" />
+        <MobileNav activePage="creative-score" />
       </div>
     );
   }
@@ -130,7 +130,7 @@ function CreativeScoreContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900">
-      <Sidebar activePage="creatives" />
+      <Sidebar activePage="creative-score" />
       <main className="lg:ml-64 min-h-screen">
         <header className="bg-slate-900/50 backdrop-blur border-b border-white/10 sticky top-0 z-30">
           <div className="px-6 py-4 flex items-center justify-between">
@@ -300,7 +300,7 @@ function CreativeScoreContent() {
           )}
         </div>
       </main>
-      <MobileNav activePage="creatives" />
+      <MobileNav activePage="creative-score" />
     </div>
   );
 }

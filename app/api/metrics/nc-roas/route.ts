@@ -9,21 +9,21 @@ function generateDemoNCRoas() {
     isDemo: true,
     windowDays: 30,
     newCustomers: {
-      orders: 41,
-      revenue: 18234.5,
-      avgOrderValue: 444.74,
+      orders: 127,
+      revenue: 52430.50,
+      avgOrderValue: 412.84,
     },
     repeatCustomers: {
-      orders: 32,
-      revenue: 10244.11,
-      avgOrderValue: 320.13,
+      orders: 89,
+      revenue: 31247.80,
+      avgOrderValue: 351.10,
     },
-    totalSpend: 33406.32,
-    ncRoas: 0.55,
-    repeatRoas: 0.31,
-    blendedRoas: 0.85,
+    totalSpend: 19850.00,
+    ncRoas: 2.64,
+    repeatRoas: 4.21,
+    blendedRoas: 3.18,
     insight:
-      'New customers are spending 39% more per order than repeat customers. Your acquisition is working — it just needs more efficient ad creative to lower CAC.',
+      'New customers are spending 18% more per order than repeat customers. Repeat ROAS is 60% higher than new customer ROAS, suggesting strong retention. Consider scaling acquisition spend while maintaining creative quality.',
   };
 }
 

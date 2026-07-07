@@ -44,18 +44,19 @@ async function syncTikTokForStore(supabase: ReturnType<typeof getSupabase>, stor
       console.log(`📊 [SYNC] Found ${campaigns.length} campaigns`);
 
       for (const campaign of campaigns) {
+        const today = new Date().toISOString().split('T')[0];
         const { data: existingCampaigns } = await supabase
-          .from('campaigns')
+          .from('adwyse_campaigns')
           .select('*')
           .eq('store_id', storeId)
-          .eq('source', 'tiktok')
-          .ilike('campaign_name', campaign.name);
+          .eq('campaign_name', campaign.name)
+          .eq('date', today);
 
         if (existingCampaigns && existingCampaigns.length > 0) {
           await supabase
-            .from('campaigns')
+            .from('adwyse_campaigns')
             .update({
-              ad_spend: campaign.spend,
+              spend: campaign.spend,
               impressions: campaign.impressions,
               clicks: campaign.clicks,
               updated_at: new Date().toISOString(),
@@ -65,16 +66,20 @@ async function syncTikTokForStore(supabase: ReturnType<typeof getSupabase>, stor
           console.log(`✅ Updated campaign: ${campaign.name} ($${campaign.spend})`);
         } else {
           await supabase
-            .from('campaigns')
+            .from('adwyse_campaigns')
             .insert({
               store_id: storeId,
-              source: 'tiktok',
+              ad_account_id: account.id,
               campaign_name: campaign.name,
-              ad_spend: campaign.spend,
+              platform_campaign_id: campaign.id || campaign.name,
+              status: 'active',
+              date: today,
+              spend: campaign.spend,
               impressions: campaign.impressions,
               clicks: campaign.clicks,
-              orders: 0,
-              revenue: 0,
+              conversions: 0,
+              attributed_revenue: 0,
+              attributed_orders: 0,
             });
 
           console.log(`➕ Created campaign: ${campaign.name} ($${campaign.spend})`);

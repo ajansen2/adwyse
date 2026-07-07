@@ -43,54 +43,55 @@ export async function POST(request: NextRequest) {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Find the store by shop domain
-    const { data: store } = await supabase
-      .from('stores')
+    // Try both old and new table naming conventions to ensure complete cleanup
+    // Look up store in adwyse_stores first (current schema), fallback to stores (legacy)
+    let storeId: string | null = null;
+
+    const { data: adwyseStore } = await supabase
+      .from('adwyse_stores')
       .select('id')
       .eq('shop_domain', data.shop_domain)
       .single();
 
-    if (store) {
-      // Delete all data associated with this store
-      // Order matters due to foreign key constraints
-
-      // 1. Delete alerts
-      await supabase
-        .from('alerts')
-        .delete()
-        .eq('store_id', store.id);
-
-      // 2. Delete store settings
-      await supabase
-        .from('store_settings')
-        .delete()
-        .eq('store_id', store.id);
-
-      // 3. Delete campaigns
-      await supabase
-        .from('campaigns')
-        .delete()
-        .eq('store_id', store.id);
-
-      // 4. Delete orders
-      await supabase
-        .from('orders')
-        .delete()
-        .eq('store_id', store.id);
-
-      // 5. Delete ad accounts
-      await supabase
-        .from('ad_accounts')
-        .delete()
-        .eq('store_id', store.id);
-
-      // 6. Delete the store itself
-      await supabase
+    if (adwyseStore) {
+      storeId = adwyseStore.id;
+    } else {
+      const { data: legacyStore } = await supabase
         .from('stores')
-        .delete()
-        .eq('id', store.id);
+        .select('id')
+        .eq('shop_domain', data.shop_domain)
+        .single();
+
+      if (legacyStore) {
+        storeId = legacyStore.id;
+      }
+    }
+
+    if (storeId) {
+      // Delete all data from current (adwyse_*) tables
+      await supabase.from('adwyse_campaigns').delete().eq('store_id', storeId);
+      await supabase.from('adwyse_orders').delete().eq('store_id', storeId);
+      await supabase.from('alerts').delete().eq('store_id', storeId);
+      await supabase.from('store_settings').delete().eq('store_id', storeId);
+      await supabase.from('store_goals').delete().eq('store_id', storeId);
+      await supabase.from('ad_accounts').delete().eq('store_id', storeId);
+      await supabase.from('competitor_ads_cache').delete().eq('store_id', storeId);
+      await supabase.from('tracked_competitors').delete().eq('store_id', storeId);
+      await supabase.from('touchpoints').delete().eq('store_id', storeId);
+      await supabase.from('campaign_daily_stats').delete().eq('store_id', storeId);
+      await supabase.from('meta_capi_events').delete().eq('store_id', storeId);
+
+      // Delete from legacy tables (if they exist)
+      await supabase.from('campaigns').delete().eq('store_id', storeId);
+      await supabase.from('orders').delete().eq('store_id', storeId);
+
+      // Delete store records
+      await supabase.from('adwyse_stores').delete().eq('id', storeId);
+      await supabase.from('stores').delete().eq('id', storeId);
 
       console.log('All shop data deleted for:', data.shop_domain);
+    } else {
+      console.log('No store found for shop domain:', data.shop_domain);
     }
 
     return NextResponse.json({

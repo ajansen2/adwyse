@@ -342,7 +342,7 @@ function CompetitorSpyContent() {
                     Premium
                   </span>
                 </div>
-                <p className="text-white/60 text-sm">Track competitors and spy on their ads</p>
+                <p className="text-white/60 text-sm">Track competitors and spy on their ads <span className="text-white/40">&middot; Currently available for US Meta Ad Library data</span></p>
               </div>
             </div>
           </div>

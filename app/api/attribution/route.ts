@@ -63,6 +63,9 @@ export async function GET(request: NextRequest) {
 
 // POST - Recalculate attribution
 export async function POST(request: NextRequest) {
+  const shop = getAuthenticatedShop(request);
+  if (!shop) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
     const body = await request.json();
     const { storeId, model, startDate, endDate } = body;

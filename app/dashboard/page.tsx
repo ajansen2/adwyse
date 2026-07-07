@@ -101,6 +101,7 @@ function DashboardContent() {
   const itemsPerPage = 20;
   const [latestInsight, setLatestInsight] = useState<any>(null);
   const [funnelData, setFunnelData] = useState<{name: string; value: number}[]>([]);
+  const [funnelIsDemo, setFunnelIsDemo] = useState(false);
   const [generatingInsight, setGeneratingInsight] = useState(false);
   const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'trial' | 'pro' | null>(null);
   const [tierLimits, setTierLimits] = useState<{adAccounts: number; ordersPerMonth: number; aiInsights: boolean; dataRetentionDays?: number} | null>(null);
@@ -172,14 +173,17 @@ function DashboardContent() {
       authenticatedFetch(`/api/analytics/funnel?store_id=${storeId}&days=0`)
         .then(res => res.json())
         .then(data => {
-          if (data.funnel && data.funnel.length > 0) {
+          if (data.funnel && data.funnel.length > 0 && !data.isDemo) {
             setFunnelData(data.funnel);
+            setFunnelIsDemo(false);
           } else {
-            setFunnelData(generateDemoFunnelData());
+            setFunnelData(data.funnel || generateDemoFunnelData());
+            setFunnelIsDemo(true);
           }
         })
         .catch(() => {
           setFunnelData(generateDemoFunnelData());
+          setFunnelIsDemo(true);
         });
     }
   }, [stores, loading]);
@@ -744,7 +748,7 @@ function DashboardContent() {
           <h2 className="text-2xl font-bold text-white mb-3">Unable to Load Dashboard</h2>
           <p className="text-white/80 mb-6">{loadError}</p>
           <p className="text-white/60 text-sm">
-            If this issue persists, please contact support at adam@adwyse.ca
+            If this issue persists, please contact support at support@adwyse.ca
           </p>
         </div>
       </div>
@@ -755,48 +759,8 @@ function DashboardContent() {
     return null; // Redirecting...
   }
 
-  // Billing Required Paywall - blocks entire UI
-  if (showBillingRequired) {
-    return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-6">
-        <div className="max-w-lg w-full">
-          <div className="bg-gradient-to-br from-orange-500/20 to-amber-500/20 border-2 border-orange-500/50 rounded-2xl p-8 text-center">
-            <div className="w-20 h-20 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg className="w-10 h-10 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-            </div>
-            <h2 className="text-3xl font-bold text-white mb-3">Trial Ended</h2>
-            <p className="text-white/70 mb-6 text-lg">
-              Your 7-day free trial has expired. Subscribe to Adwyse to continue tracking your ad attribution.
-            </p>
-            <div className="bg-zinc-900/50 rounded-xl p-4 mb-6">
-              <div className="text-white/60 text-sm mb-1">Adwyse Pro</div>
-              <div className="text-3xl font-bold text-white">$99.99<span className="text-lg font-normal text-white/60">/month</span></div>
-              <div className="text-orange-400 text-sm mt-1">Unlimited attribution & AI insights</div>
-            </div>
-            <button
-              onClick={handleSubscribe}
-              disabled={subscribing}
-              className="w-full py-4 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 disabled:opacity-50 text-white rounded-xl font-bold text-lg transition"
-            >
-              {subscribing ? (
-                <span className="flex items-center justify-center gap-2">
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Processing...
-                </span>
-              ) : (
-                'Subscribe Now'
-              )}
-            </button>
-            <p className="text-white/40 text-sm mt-4">
-              Secure payment through Shopify. Cancel anytime.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Trial ended banner - shown inline instead of blocking the entire UI
+  // Users gracefully downgrade to free tier and can still use basic features
 
   const hasStores = stores.length > 0;
 
@@ -845,6 +809,32 @@ function DashboardContent() {
 
   return (
     <div className="min-h-screen bg-zinc-950">
+      {/* Trial Ended Banner - inline, doesn't block UI */}
+      {showBillingRequired && (
+        <div className="bg-gradient-to-r from-orange-500/10 to-amber-500/10 border-b border-orange-500/30 px-6 py-4">
+          <div className="max-w-6xl mx-auto flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-orange-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <div>
+                <span className="text-white font-medium">Your free trial has ended.</span>
+                <span className="text-white/60 ml-2">You're on the Free plan. Upgrade to Pro to unlock AI Chat, Competitor Spy, Cohorts, and more.</span>
+              </div>
+            </div>
+            <button
+              onClick={handleSubscribe}
+              disabled={subscribing}
+              className="px-6 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 disabled:opacity-50 text-white rounded-lg font-semibold text-sm transition flex-shrink-0"
+            >
+              {subscribing ? 'Processing...' : 'Upgrade to Pro - $99.99/mo'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Onboarding Modal */}
       {ENABLE_EXTRA_COMPONENTS && showOnboarding && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
@@ -1397,6 +1387,14 @@ function DashboardContent() {
               {/* Conversion Funnel */}
               {ENABLE_EXTRA_COMPONENTS && funnelData.length > 0 && (
                 <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-xl p-6 mb-8">
+                  {funnelIsDemo && (
+                    <div className="flex items-center gap-2 mb-4">
+                      <span className="px-2 py-1 text-xs font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full">
+                        Sample Data
+                      </span>
+                      <span className="text-white/40 text-xs">Install the AdWyse pixel to see real funnel data</span>
+                    </div>
+                  )}
                   <FunnelChart data={funnelData} height={280} variant="dark" />
                 </div>
               )}

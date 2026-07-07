@@ -25,11 +25,11 @@ export const TIER_LIMITS: Record<SubscriptionTier, TierLimits> = {
     adAccounts: 1,
     ordersPerMonth: 100,
     dataRetentionDays: 30,
-    aiInsights: false,
+    aiInsights: true,       // Let free users see static AI insights
     aiChat: false,
     competitorSpy: false,
     cohortRetention: false,
-    ncRoas: false,
+    ncRoas: true,           // Let free users see NC-ROAS (core value prop)
     creativeScore: false,
     predictiveBudget: false,
     multiTouchAttribution: false,

@@ -4,7 +4,7 @@ import { navigateInApp } from '@/lib/shopify-app-bridge';
 import { useTier } from '@/lib/use-tier';
 
 interface MobileNavProps {
-  activePage: 'dashboard' | 'orders' | 'campaigns' | 'settings' | 'profit' | 'attribution' | 'webhooks' | 'creatives' | 'ltv' | 'competitor-spy' | 'cohorts';
+  activePage: 'dashboard' | 'orders' | 'campaigns' | 'settings' | 'profit' | 'attribution' | 'webhooks' | 'creative-score' | 'ltv' | 'competitor-spy' | 'cohorts';
 }
 
 const navItems = [

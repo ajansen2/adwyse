@@ -166,38 +166,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Recalculate ROAS for all campaigns
-    const { data: campaigns } = await supabase
-      .from('campaigns')
-      .select('id, ad_spend')
-      .eq('store_id', storeId);
-
-    if (campaigns) {
-      for (const campaign of campaigns) {
-        // Count orders attributed to this campaign
-        const { data: orders } = await supabase
-          .from('orders')
-          .select('total_price')
-          .eq('store_id', storeId)
-          .eq('utm_campaign', campaign.id);
-
-        if (orders) {
-          const revenue = orders.reduce((sum, order) => sum + parseFloat(order.total_price), 0);
-          const orderCount = orders.length;
-          const roas = campaign.ad_spend > 0 ? revenue / campaign.ad_spend : 0;
-
-          await supabase
-            .from('campaigns')
-            .update({
-              revenue,
-              orders: orderCount,
-              roas,
-            })
-            .eq('id', campaign.id);
-        }
-      }
-    }
-
     return NextResponse.json({
       success: true,
       message: `Synced ${totalCampaignsSynced} campaigns with $${totalSpendSynced.toFixed(2)} total spend`,

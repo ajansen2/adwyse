@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getAuthenticatedShop } from '@/lib/verify-session';
 
 interface GoalProgress {
   goal_type: string;
@@ -18,6 +19,9 @@ interface GoalProgress {
  */
 export async function GET(request: NextRequest) {
   try {
+    const shop = getAuthenticatedShop(request);
+    if (!shop) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     const storeId = request.nextUrl.searchParams.get('store_id');
 
     if (!storeId) {
@@ -97,13 +101,13 @@ export async function GET(request: NextRequest) {
     // Get campaigns for spend data
     const { data: campaigns } = await supabase
       .from('adwyse_campaigns')
-      .select('ad_spend, revenue')
+      .select('spend, attributed_revenue')
       .eq('store_id', storeId);
 
     // Calculate totals
     const totalRevenue = orders?.reduce((sum, o) => sum + (o.total_price || 0), 0) || 0;
     const totalOrders = orders?.length || 0;
-    const totalSpend = campaigns?.reduce((sum, c) => sum + (c.ad_spend || 0), 0) || 0;
+    const totalSpend = campaigns?.reduce((sum, c) => sum + (c.spend || 0), 0) || 0;
     const attributedRevenue = orders
       ?.filter(o => o.attributed_platform && o.attributed_platform !== 'direct')
       .reduce((sum, o) => sum + (o.total_price || 0), 0) || 0;

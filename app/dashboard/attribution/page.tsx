@@ -130,6 +130,7 @@ function AttributionContent() {
   const [selectedModel, setSelectedModel] = useState<AttributionModel>('last_click');
   const [attributionData, setAttributionData] = useState<AttributionData | null>(null);
   const [touchpoints, setTouchpoints] = useState<TouchpointData[]>([]);
+  const [isDemo, setIsDemo] = useState(false);
 
   // Load store ID from shop parameter
   useEffect(() => {
@@ -170,8 +171,10 @@ function AttributionContent() {
           const demoData = generateDemoAttributionData(selectedModel);
           setAttributionData(demoData.data);
           setTouchpoints(demoData.touchpoints);
+          setIsDemo(true);
           return;
         }
+        setIsDemo(false);
 
         // Load attribution summary
         const res = await authenticatedFetch(`/api/attribution/summary?storeId=${storeId}&model=${selectedModel}`);
@@ -270,8 +273,19 @@ function AttributionContent() {
         {/* Header */}
         <header className="bg-slate-900/50 backdrop-blur border-b border-white/10 sticky top-0 z-30">
           <div className="px-6 py-4">
-            <h1 className="text-2xl font-bold text-white">Multi-Touch Attribution</h1>
-            <p className="text-white/60 text-sm">Understand how your marketing channels contribute to conversions</p>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-white">Multi-Touch Attribution</h1>
+              {isDemo && (
+                <span className="px-2 py-1 text-xs font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full">
+                  Sample Data
+                </span>
+              )}
+            </div>
+            <p className="text-white/60 text-sm">
+              {isDemo
+                ? 'Showing sample data. Install the AdWyse pixel and track orders with UTM parameters to see real attribution.'
+                : 'Understand how your marketing channels contribute to conversions'}
+            </p>
           </div>
         </header>
 
