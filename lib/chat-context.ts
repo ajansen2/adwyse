@@ -67,7 +67,7 @@ export async function buildChatContext(
   // Orders in current window
   const { data: orders } = await supabase
     .from('orders')
-    .select('order_total, attributed_platform, order_created_at, customer_email')
+    .select('total_price, attributed_platform, order_created_at, customer_email')
     .eq('store_id', storeId)
     .gte('order_created_at', windowStart.toISOString())
     .order('order_created_at', { ascending: false })
@@ -76,7 +76,7 @@ export async function buildChatContext(
   // Orders in previous window for trend
   const { data: prevOrders } = await supabase
     .from('orders')
-    .select('order_total')
+    .select('total_price')
     .eq('store_id', storeId)
     .gte('order_created_at', prevWindowStart.toISOString())
     .lt('order_created_at', windowStart.toISOString());
@@ -137,7 +137,7 @@ export async function buildChatContext(
   });
 
   // Aggregate metrics
-  const totalRevenue = (orders || []).reduce((s, o) => s + (o.order_total || 0), 0);
+  const totalRevenue = (orders || []).reduce((s, o) => s + (o.total_price || 0), 0);
   const totalOrders = (orders || []).length;
   const totalSpend = campaigns.reduce((s, c) => s + c.spend, 0);
   const attributedOrders = (orders || []).filter(
@@ -145,9 +145,9 @@ export async function buildChatContext(
   ).length;
   const attributedRevenue = (orders || [])
     .filter((o) => o.attributed_platform && o.attributed_platform !== 'direct')
-    .reduce((s, o) => s + (o.order_total || 0), 0);
+    .reduce((s, o) => s + (o.total_price || 0), 0);
 
-  const prevRevenue = (prevOrders || []).reduce((s, o) => s + (o.order_total || 0), 0);
+  const prevRevenue = (prevOrders || []).reduce((s, o) => s + (o.total_price || 0), 0);
   const prevSpend = (prevCampaignRows || []).reduce((s, c) => s + parseFloat(c.spend || 0), 0);
   const revenueChangePct =
     prevRevenue > 0 ? ((totalRevenue - prevRevenue) / prevRevenue) * 100 : 0;
@@ -170,7 +170,7 @@ export async function buildChatContext(
     topCampaigns,
     recentOrders: (orders || []).slice(0, 20).map((o) => ({
       date: o.order_created_at,
-      total: o.order_total,
+      total: o.total_price,
       source: o.attributed_platform || 'direct',
     })),
     byPlatform,

@@ -123,7 +123,7 @@ async function sendAlertEmails(): Promise<{ sent: number; errors: string[] }> {
       const body = getEmailBody(alert);
 
       const { data, error } = await resend.emails.send({
-        from: process.env.EMAIL_FROM || 'AdWyse <alerts@adwyse.io>',
+        from: process.env.EMAIL_FROM || 'AdWyse <alerts@adwyse.ca>',
         to: alert.store_email,
         subject,
         html: body
@@ -182,7 +182,7 @@ function getEmailSubject(alert: any): string {
  * Generate email body based on alert
  */
 function getEmailBody(alert: any): string {
-  const dashboardUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.adwyse.io';
+  const dashboardUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://adwyse.ca';
 
   return `
 <!DOCTYPE html>

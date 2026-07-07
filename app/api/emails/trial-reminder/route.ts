@@ -1,12 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Resend } from 'resend';
 
 export async function POST(request: NextRequest) {
   try {
+    // Auth: only callable by cron or internal services with CRON_SECRET
+    const authHeader = request.headers.get('authorization');
+    if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { to, shop, type } = await request.json();
     if (!to || !shop || !type) return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
 
-    const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
-    if (!SENDGRID_API_KEY) return NextResponse.json({ success: false, message: 'Email not configured' });
+    if (!process.env.RESEND_API_KEY) {
+      return NextResponse.json({ success: false, message: 'Email not configured (RESEND_API_KEY missing)' });
+    }
+
+    const resend = new Resend(process.env.RESEND_API_KEY);
 
     const shopName = shop.replace('.myshopify.com', '');
     const appUrl = `https://admin.shopify.com/store/${shopName}/apps/${process.env.SHOPIFY_API_KEY}`;
@@ -40,17 +50,23 @@ body { font-family: -apple-system, sans-serif; background: #0f172a; color: #fff;
 </div>
 </body></html>`;
 
-    await fetch('https://api.sendgrid.com/v3/mail/send', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${SENDGRID_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        personalizations: [{ to: [{ email: to }], subject: subjects[type] }],
-        from: { email: process.env.FROM_EMAIL || 'noreply@adwyse.io', name: 'AdWyse' },
-        content: [{ type: 'text/html', value: emailHtml }],
-      }),
+    const { data, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM || 'AdWyse <noreply@adwyse.ca>',
+      to,
+      subject: subjects[type] || subjects.expired,
+      html: emailHtml,
     });
-    return NextResponse.json({ success: true });
-  } catch { return NextResponse.json({ error: 'Error' }, { status: 500 }); }
+
+    if (error) {
+      console.error('Trial reminder email error:', error);
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, id: data?.id });
+  } catch (err) {
+    console.error('Trial reminder error:', err);
+    return NextResponse.json({ error: 'Error' }, { status: 500 });
+  }
 }
 
 function getEmailContent(type: string, shopName: string) {

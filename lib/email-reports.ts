@@ -216,7 +216,6 @@ export async function sendScheduledReports(frequency: 'weekly' | 'monthly') {
     .from('stores')
     .select(`
       *,
-      merchants (email, full_name),
       email_report_frequency
     `)
     .eq('email_report_frequency', frequency)
@@ -262,9 +261,9 @@ export async function sendScheduledReports(frequency: 'weekly' | 'monthly') {
 
       if (!orders) continue;
 
-      const totalRevenue = orders.reduce((sum, o) => sum + o.order_total, 0);
+      const totalRevenue = orders.reduce((sum, o) => sum + o.total_price, 0);
       const attributedOrders = orders.filter(o => o.ad_source && o.ad_source !== 'direct');
-      const attributedRevenue = attributedOrders.reduce((sum, o) => sum + o.order_total, 0);
+      const attributedRevenue = attributedOrders.reduce((sum, o) => sum + o.total_price, 0);
       const totalSpend = campaigns?.reduce((sum, c) => sum + c.ad_spend, 0) || 0;
 
       const reportData: ReportData = {
@@ -293,7 +292,7 @@ export async function sendScheduledReports(frequency: 'weekly' | 'monthly') {
       const html = generateReportEmail(reportData);
       const subject = `${frequency === 'weekly' ? 'Weekly' : 'Monthly'} Report: ${store.store_name}`;
 
-      await sendReportEmail(store.merchants?.email, subject, html);
+      await sendReportEmail(store.email, subject, html);
     } catch (error) {
       console.error(`Failed to send report for store ${store.id}:`, error);
     }

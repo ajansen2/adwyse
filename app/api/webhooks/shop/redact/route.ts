@@ -76,10 +76,10 @@ export async function POST(request: NextRequest) {
       await supabase.from('store_goals').delete().eq('store_id', storeId);
       await supabase.from('ad_accounts').delete().eq('store_id', storeId);
       await supabase.from('competitor_ads_cache').delete().eq('store_id', storeId);
-      await supabase.from('tracked_competitors').delete().eq('store_id', storeId);
+      await supabase.from('competitor_tracking').delete().eq('store_id', storeId);
       await supabase.from('touchpoints').delete().eq('store_id', storeId);
       await supabase.from('campaign_daily_stats').delete().eq('store_id', storeId);
-      await supabase.from('meta_capi_events').delete().eq('store_id', storeId);
+      await supabase.from('meta_capi_events_log').delete().eq('store_id', storeId);
 
       // Delete from legacy tables (if they exist)
       await supabase.from('campaigns').delete().eq('store_id', storeId);

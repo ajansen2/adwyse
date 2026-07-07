@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
     // Get all orders in window
     const { data: windowOrders } = await supabase
       .from('orders')
-      .select('id, customer_email, order_total, order_created_at')
+      .select('id, customer_email, total_price, order_created_at')
       .eq('store_id', storeId)
       .gte('order_created_at', windowStart.toISOString());
 
@@ -98,10 +98,10 @@ export async function GET(request: NextRequest) {
 
       if (!isExistingCustomer && !alreadySeenInWindow) {
         newOrders += 1;
-        newRevenue += o.order_total || 0;
+        newRevenue += o.total_price || 0;
       } else {
         repeatOrders += 1;
-        repeatRevenue += o.order_total || 0;
+        repeatRevenue += o.total_price || 0;
       }
     });
 

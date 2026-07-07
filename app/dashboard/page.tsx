@@ -534,40 +534,8 @@ function DashboardContent() {
           return;
         }
       } else {
-        // Not embedded - use traditional Supabase session
-        const { data: { session } } = await supabase.auth.getSession();
-
-        if (session) {
-          const { data, error: merchantError } = await supabase
-            .from('merchants')
-            .select('*')
-            .eq('user_id', session.user.id)
-            .single();
-
-          if (!merchantError && data) {
-            merchantData = data as Merchant;
-          }
-        }
-
-        // Fallback: Check for merchant_id cookie
-        if (!merchantData) {
-          const merchantId = document.cookie
-            .split('; ')
-            .find(row => row.startsWith('merchant_id='))
-            ?.split('=')[1];
-
-          if (merchantId) {
-            const { data, error } = await supabase
-              .from('merchants')
-              .select('*')
-              .eq('id', merchantId)
-              .single();
-
-            if (!error && data) {
-              merchantData = data as Merchant;
-            }
-          }
-        }
+        // Not embedded - redirect to connect-store (no standalone auth)
+        // Shopify embedded auth is the only supported flow
       }
 
       // If still no merchant, handle based on whether embedded or not

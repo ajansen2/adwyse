@@ -274,20 +274,21 @@ async function linkOrderToCampaign(
   adSource: string
 ) {
   try {
-    // Try to find existing campaign by name
+    // Try to find existing campaign by name (today's row)
+    const today = new Date().toISOString().split('T')[0];
     const { data: existingCampaign } = await supabase
       .from('campaigns')
       .select('id')
       .eq('store_id', storeId)
-      .eq('name', campaignName)
-      .eq('platform', adSource)
-      .single();
+      .eq('campaign_name', campaignName)
+      .eq('date', today)
+      .maybeSingle();
 
     if (existingCampaign) {
       // Update order with campaign_id
       await supabase
         .from('orders')
-        .update({ campaign_id: existingCampaign.id })
+        .update({ attributed_campaign_id: existingCampaign.id })
         .eq('id', orderId);
 
       console.log('✅ Linked order to existing campaign:', existingCampaign.id);
@@ -297,12 +298,10 @@ async function linkOrderToCampaign(
         .from('campaigns')
         .insert({
           store_id: storeId,
-          name: campaignName,
-          platform: adSource,
+          campaign_name: campaignName,
+          platform_campaign_id: campaignName, // placeholder; real ID comes from ad platform sync
+          date: today,
           status: 'active',
-          total_spend: 0, // Will be updated when syncing with ad platform
-          total_revenue: 0,
-          total_orders: 0,
         })
         .select()
         .single();
@@ -310,7 +309,7 @@ async function linkOrderToCampaign(
       if (newCampaign) {
         await supabase
           .from('orders')
-          .update({ campaign_id: newCampaign.id })
+          .update({ attributed_campaign_id: newCampaign.id })
           .eq('id', orderId);
 
         console.log('✅ Created new campaign and linked order:', newCampaign.id);

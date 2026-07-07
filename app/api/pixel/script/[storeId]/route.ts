@@ -54,7 +54,7 @@ export async function GET(
   };
 
   // Generate the tracking script
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.adwyse.io';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://adwyse.ca';
 
   const script = `
 (function() {

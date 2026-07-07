@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.adwyse.io';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://adwyse.ca';
 
     // Generate installation snippet
     const installationCode = `<!-- AdWyse Tracking Pixel -->

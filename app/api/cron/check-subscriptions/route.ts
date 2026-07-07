@@ -4,8 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
-    const cronSecret = process.env.CRON_SECRET;
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -103,7 +102,10 @@ async function sendBillingReminder(store: any, type: string): Promise<void> {
   try {
     await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/emails/trial-reminder`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.CRON_SECRET}`,
+      },
       body: JSON.stringify({ to: store.email, shop: store.shop_domain, type }),
     });
   } catch {}

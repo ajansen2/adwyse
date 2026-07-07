@@ -134,19 +134,6 @@ export async function GET(request: NextRequest) {
         currency: edge.node.amountSpent?.currencyCode,
       })) || [];
 
-      // Log the query for Built for Shopify tracking
-      try {
-        await supabase.from('segment_queries').insert({
-          store_id: storeId,
-          segment_id: segmentId,
-          member_count: members.length,
-          queried_at: new Date().toISOString(),
-        });
-        console.log('📝 Segment query logged');
-      } catch {
-        // Table may not exist yet - that's OK
-      }
-
       return NextResponse.json({
         segmentId,
         memberCount: members.length,
@@ -260,19 +247,6 @@ export async function POST(request: NextRequest) {
       } catch (error) {
         console.error(`❌ Failed to query segment ${segment.node.name}:`, error);
       }
-    }
-
-    // Log the sync for Built for Shopify compliance
-    try {
-      await supabase.from('segment_queries').insert({
-        store_id: storeId,
-        segment_id: 'sync_all',
-        member_count: totalMembers,
-        queried_at: new Date().toISOString(),
-      });
-      console.log('📝 Segment sync logged');
-    } catch {
-      // Table may not exist yet - that's OK
     }
 
     return NextResponse.json({

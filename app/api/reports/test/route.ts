@@ -6,6 +6,11 @@ import { generateReportEmail, sendReportEmail } from '@/lib/email-reports';
  */
 export async function POST(request: NextRequest) {
   try {
+    // Auth: require session token (called from settings page)
+    const { getAuthenticatedShop } = await import('@/lib/verify-session');
+    const shop = getAuthenticatedShop(request);
+    if (!shop) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     const body = await request.json();
     const { email, storeName, shopDomain } = body;
 

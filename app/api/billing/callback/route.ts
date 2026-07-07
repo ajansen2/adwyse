@@ -145,16 +145,6 @@ export async function GET(request: NextRequest) {
       })
       .eq('id', storeId);
 
-    // Update merchant subscription tier
-    if (store.merchant_id) {
-      await supabase
-        .from('merchants')
-        .update({
-          subscription_tier: 'pro',
-        })
-        .eq('id', store.merchant_id);
-    }
-
     console.log('✅ Database updated with billing info');
 
     // Redirect back to dashboard inside Shopify admin

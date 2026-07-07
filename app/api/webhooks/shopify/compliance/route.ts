@@ -48,20 +48,7 @@ export async function POST(request: NextRequest) {
       case 'customers/redact':
         // Customer requested data deletion
         console.log('🗑️  Customer data redaction:', payload.customer?.id);
-
-        // Delete all abandoned carts for this customer email
-        if (payload.customer?.email) {
-          const { error } = await supabase
-            .from('abandoned_carts')
-            .delete()
-            .eq('customer_email', payload.customer.email);
-
-          if (error) {
-            console.error('❌ Error deleting customer data:', error);
-          } else {
-            console.log('✅ Customer data deleted:', payload.customer.email);
-          }
-        }
+        // No customer-specific data stored beyond orders (handled by Shopify)
         break;
 
       case 'shop/redact':
@@ -76,12 +63,6 @@ export async function POST(request: NextRequest) {
 
         if (stores && stores.length > 0) {
           const storeIds = stores.map(s => s.id);
-
-          // Delete all abandoned carts
-          await supabase
-            .from('abandoned_carts')
-            .delete()
-            .in('store_id', storeIds);
 
           // Delete all stores
           await supabase

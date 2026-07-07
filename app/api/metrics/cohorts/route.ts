@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
     // Pull all orders since the cohort window start
     const { data: orders } = await supabase
       .from('orders')
-      .select('customer_email, order_total, order_created_at')
+      .select('customer_email, total_price, order_created_at')
       .eq('store_id', storeId)
       .gte('order_created_at', startDate.toISOString())
       .not('customer_email', 'is', null)
@@ -151,7 +151,7 @@ export async function GET(request: NextRequest) {
       c.monthlyActive.get(monthOffset)!.add(email);
       c.monthlyRevenue.set(
         monthOffset,
-        (c.monthlyRevenue.get(monthOffset) || 0) + (o.order_total || 0)
+        (c.monthlyRevenue.get(monthOffset) || 0) + (o.total_price || 0)
       );
     });
 

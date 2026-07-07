@@ -14,8 +14,7 @@ export async function GET(request: NextRequest) {
   try {
     // Verify cron secret
     const authHeader = request.headers.get('authorization');
-    const cronSecret = process.env.CRON_SECRET;
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -65,19 +64,19 @@ export async function GET(request: NextRequest) {
         // Yesterday's orders
         const { data: orders } = await supabase
           .from('orders')
-          .select('order_total, attributed_platform')
+          .select('total_price, attributed_platform')
           .eq('store_id', setting.store_id)
           .gte('order_created_at', yesterdayStart.toISOString())
           .lte('order_created_at', yesterdayEnd.toISOString());
 
         const totalRevenue = (orders || []).reduce(
-          (s, o) => s + (o.order_total || 0),
+          (s, o) => s + (o.total_price || 0),
           0
         );
         const totalOrders = (orders || []).length;
         const attributedRevenue = (orders || [])
           .filter((o) => o.attributed_platform && o.attributed_platform !== 'direct')
-          .reduce((s, o) => s + (o.order_total || 0), 0);
+          .reduce((s, o) => s + (o.total_price || 0), 0);
 
         // Yesterday's ad spend
         const yesterdayDateStr = yesterdayStart.toISOString().split('T')[0];
@@ -94,7 +93,7 @@ export async function GET(request: NextRequest) {
 
         // Yesterday's alerts count
         const { count: alertCount } = await supabase
-          .from('performance_alerts')
+          .from('alerts')
           .select('*', { count: 'exact', head: true })
           .eq('store_id', setting.store_id)
           .gte('created_at', yesterdayStart.toISOString())
@@ -170,15 +169,15 @@ export async function POST(request: NextRequest) {
 
     const { data: orders } = await supabase
       .from('orders')
-      .select('order_total, attributed_platform')
+      .select('total_price, attributed_platform')
       .eq('store_id', storeId)
       .gte('order_created_at', start.toISOString());
 
-    const totalRevenue = (orders || []).reduce((s, o) => s + (o.order_total || 0), 0);
+    const totalRevenue = (orders || []).reduce((s, o) => s + (o.total_price || 0), 0);
     const totalOrders = (orders || []).length;
     const attributedRevenue = (orders || [])
       .filter((o) => o.attributed_platform && o.attributed_platform !== 'direct')
-      .reduce((s, o) => s + (o.order_total || 0), 0);
+      .reduce((s, o) => s + (o.total_price || 0), 0);
 
     const todayStr = start.toISOString().split('T')[0];
     const { data: campaignRows } = await supabase
