@@ -1,110 +1,41 @@
 // Shopify App Bridge utilities for embedded apps
 // IMPORTANT: We use the CDN global (window.shopify) NOT npm imports
 // This is required for Shopify's automated "Embedded app checks"
-
-// TypeScript interfaces for Shopify App Bridge CDN global
-interface AppBridgeApp {
-  dispatch?: (action: {
-    type: string;
-    payload?: Record<string, unknown>;
-  }) => void;
-  idToken?: () => Promise<string>;
-}
+// App Bridge 4.x: uses window.shopify directly from the CDN script
 
 declare global {
   interface Window {
     shopify: {
-      createApp(config: {
-        apiKey: string;
-        host: string;
-        forceRedirect?: boolean;
-      }): AppBridgeApp;
-      sessionToken?: {
-        getSessionToken(app: AppBridgeApp): Promise<string>;
+      idToken(): Promise<string>;
+      navigate(path: string): void;
+      toast: {
+        show(message: string, options?: { duration?: number; isError?: boolean }): void;
       };
     };
-    shopifyApp?: AppBridgeApp; // Global instance created by inline script
   }
 }
 
-let appBridge: AppBridgeApp | null = null;
-
 export function initializeAppBridge() {
-  // Check if we're in an iframe (embedded)
+  // App Bridge 4.x auto-initializes from the CDN script + meta tag.
+  // No explicit createApp() call needed.
   const isEmbedded = window.self !== window.top;
+  if (!isEmbedded) return null;
 
-  if (!isEmbedded) {
+  if (!window.shopify) {
+    console.warn('App Bridge CDN not loaded yet');
     return null;
   }
 
-  // Use global instance if it exists (created by inline script in layout.tsx)
-  if (window.shopifyApp && !appBridge) {
-    appBridge = window.shopifyApp;
-    console.log('✅ Using existing App Bridge instance from inline script');
-    return appBridge;
-  }
-
-  // Get host from URL params (Shopify passes this)
-  const urlParams = new URLSearchParams(window.location.search);
-  const host = urlParams.get('host');
-  const shop = urlParams.get('shop');
-
-  if (!host || !shop) {
-    console.warn('Missing host or shop parameter - not embedded in Shopify');
-    return null;
-  }
-
-  if (!appBridge) {
-    try {
-      // Use CDN global instead of npm import
-      if (!window.shopify?.createApp) {
-        console.warn('⚠️ Shopify App Bridge CDN not loaded - continuing without it');
-        return null;
-      }
-
-      appBridge = window.shopify.createApp({
-        apiKey: process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || 'e84f4a7fecd1e8c9c05791a35c0336d4',
-        host: host,
-        forceRedirect: false,
-      });
-
-      console.log('✅ App Bridge initialized from CDN global');
-    } catch (error) {
-      console.error('❌ Failed to initialize App Bridge:', error);
-      return null;
-    }
-  }
-
-  return appBridge;
+  console.log('App Bridge 4.x ready (CDN global)');
+  return window.shopify;
 }
 
 export async function getShopifySessionToken(): Promise<string | null> {
-  if (!appBridge) {
-    initializeAppBridge();
-  }
-
-  if (!appBridge) {
-    return null;
-  }
-
   try {
-    // Use CDN global's session token method
-    // App Bridge from CDN exposes idToken() method on the app instance
-    if (typeof appBridge.idToken === 'function') {
-      const token = await appBridge.idToken();
-      return token;
-    }
-
-    // Fallback: try window.shopify.sessionToken if available
-    if (window.shopify?.sessionToken?.getSessionToken) {
-      const token = await window.shopify.sessionToken.getSessionToken(appBridge);
-      return token;
-    }
-
-    console.error('❌ Session token method not available on App Bridge CDN');
-    return null;
+    if (!window.shopify?.idToken) return null;
+    return await window.shopify.idToken();
   } catch (error) {
-    console.error('❌ Failed to get session token:', error);
+    console.error('Failed to get session token:', error);
     return null;
   }
 }
@@ -134,42 +65,23 @@ export function navigateInApp(path: string) {
   }
 
   if (!isEmbedded) {
-    // Not embedded - use regular navigation
     window.location.href = fullPath;
     return;
   }
 
-  if (!appBridge) {
-    initializeAppBridge();
-  }
-
-  if (!appBridge) {
-    // Fallback to regular navigation if App Bridge not initialized
-    window.location.href = fullPath;
-    return;
-  }
-
-  try {
-    // Use App Bridge CDN's redirect method
-    // The app instance from CDN has redirect methods available
-    if (appBridge.dispatch) {
-      appBridge.dispatch({
-        type: 'Redirect',
-        payload: {
-          path: fullPath,
-          newContext: false,
-        },
-      });
-      console.log('✅ App Bridge navigation to:', fullPath);
-    } else {
-      // Fallback if dispatch not available
-      window.location.href = fullPath;
+  // App Bridge 4.x navigate
+  if (window.shopify?.navigate) {
+    try {
+      window.shopify.navigate(fullPath);
+      console.log('App Bridge navigation to:', fullPath);
+      return;
+    } catch (error) {
+      console.error('App Bridge navigate failed:', error);
     }
-  } catch (error) {
-    console.error('❌ Failed to navigate with App Bridge:', error);
-    // Fallback to regular navigation
-    window.location.href = fullPath;
   }
+
+  // Fallback
+  window.location.href = fullPath;
 }
 
 // Redirect to Shopify admin if app is opened standalone (not embedded)
@@ -181,7 +93,7 @@ export function redirectToShopifyAdmin(shop: string): boolean {
   const storeName = shop.replace('.myshopify.com', '');
   const adminUrl = `https://admin.shopify.com/store/${storeName}/apps/${apiKey}`;
 
-  console.log('🔄 Redirecting to Shopify admin:', adminUrl);
+  console.log('Redirecting to Shopify admin:', adminUrl);
   window.location.href = adminUrl;
   return true;
 }
@@ -189,78 +101,43 @@ export function redirectToShopifyAdmin(shop: string): boolean {
 // Redirect to external URL (like OAuth or billing) - breaks out of iframe as required
 export function redirectToOAuth(url: string) {
   const isEmbedded = window.self !== window.top;
-  console.log('🔄 redirectToOAuth called:', url, 'isEmbedded:', isEmbedded);
+  console.log('redirectToOAuth called:', url, 'isEmbedded:', isEmbedded);
 
   if (!isEmbedded) {
-    // Not embedded - use regular navigation
-    console.log('🔄 Not embedded, direct redirect');
     window.location.href = url;
     return;
   }
 
-  // For embedded apps, we need to break out of the iframe
-  // Try multiple methods in order of preference
-
-  // Method 1: Use window.open with _top target (most reliable)
+  // For embedded apps, break out of the iframe
+  // Method 1: window.open with _top target (most reliable)
   try {
-    console.log('🔄 Trying window.open with _top target...');
     const opened = window.open(url, '_top');
-    if (opened !== null) {
-      console.log('✅ window.open succeeded');
-      return;
-    }
+    if (opened !== null) return;
   } catch (e) {
-    console.log('⚠️ window.open failed:', e);
+    // cross-origin blocked
   }
 
-  // Method 2: Use parent.location (works if same origin)
+  // Method 2: parent.location
   try {
-    console.log('🔄 Trying parent.location...');
     if (window.parent && window.parent !== window) {
       window.parent.location.href = url;
-      console.log('✅ parent.location redirect initiated');
       return;
     }
   } catch (e) {
-    console.log('⚠️ parent.location failed (likely cross-origin):', e);
+    // cross-origin blocked
   }
 
-  // Method 3: Use top.location (works if same origin)
+  // Method 3: top.location
   try {
-    console.log('🔄 Trying top.location...');
     if (window.top && window.top !== window) {
       window.top.location.href = url;
-      console.log('✅ top.location redirect initiated');
       return;
     }
   } catch (e) {
-    console.log('⚠️ top.location failed (likely cross-origin):', e);
+    // cross-origin blocked
   }
 
-  // Method 4: Initialize App Bridge and use dispatch (Shopify's preferred method)
-  if (!appBridge) {
-    initializeAppBridge();
-  }
-
-  if (appBridge && appBridge.dispatch) {
-    try {
-      console.log('🔄 Trying App Bridge dispatch...');
-      appBridge.dispatch({
-        type: 'Redirect',
-        payload: {
-          url: url,
-          newContext: true, // Open in new context (breaks out of iframe)
-        },
-      });
-      console.log('✅ App Bridge dispatch redirect initiated');
-      return;
-    } catch (e) {
-      console.log('⚠️ App Bridge dispatch failed:', e);
-    }
-  }
-
-  // Method 5: Final fallback - just redirect the iframe and hope for the best
-  console.log('🔄 Final fallback: direct iframe redirect');
+  // Final fallback
   window.location.href = url;
 }
 

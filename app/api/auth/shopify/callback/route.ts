@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
     console.log('🔑 Token exchange result:', accessToken ? (accessToken.substring(0, 10) + '...') : 'EMPTY/MISSING');
 
     // Get shop details from Shopify
-    const shopResponse = await fetch(`https://${shop}/admin/api/2024-01/shop.json`, {
+    const shopResponse = await fetch(`https://${shop}/admin/api/2025-07/shop.json`, {
       headers: {
         'X-Shopify-Access-Token': accessToken,
       },
@@ -198,148 +198,73 @@ export async function GET(request: NextRequest) {
 
     console.log('✅ Store ready:', store.id);
 
-    // Register webhooks for abandoned carts
-    // Now that we have protected customer data access, we can use checkouts/* webhooks
+    // Register webhooks via GraphQL webhookSubscriptionCreate
     const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/shopify`;
+    const graphqlUrl = `https://${shop}/admin/api/2025-07/graphql.json`;
 
     console.log('🔧 Attempting to register webhooks for', shop);
     console.log('📍 Webhook URL:', webhookUrl);
 
-    // Register app/uninstalled webhook (for cleanup when merchant uninstalls)
-    const uninstallResponse = await fetch(`https://${shop}/admin/api/2024-01/webhooks.json`, {
-      method: 'POST',
-      headers: {
-        'X-Shopify-Access-Token': accessToken,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        webhook: {
-          topic: 'app/uninstalled',
-          address: `${webhookUrl}/uninstall`,
-          format: 'json',
-        },
-      }),
-    });
-
-    const uninstallData = await uninstallResponse.json();
-    if (!uninstallResponse.ok) {
-      console.error('❌ Failed to register app/uninstalled webhook:', uninstallData);
-    } else {
-      console.log('✅ app/uninstalled webhook registered:', uninstallData.webhook?.id);
-    }
-
-    // Register orders/create webhook (to track recovered carts)
-    const ordersResponse = await fetch(`https://${shop}/admin/api/2024-01/webhooks.json`, {
-      method: 'POST',
-      headers: {
-        'X-Shopify-Access-Token': accessToken,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        webhook: {
-          topic: 'orders/create',
-          address: `${webhookUrl}/orders`,
-          format: 'json',
-        },
-      }),
-    });
-
-    const ordersData = await ordersResponse.json();
-    if (!ordersResponse.ok) {
-      console.error('❌ Failed to register orders/create webhook:', ordersData);
-    } else {
-      console.log('✅ orders/create webhook registered:', ordersData.webhook?.id);
-    }
-
-    // Register GDPR compliance webhooks (REQUIRED by Shopify)
-    const complianceTopics = [
-      'customers/data_request',
-      'customers/redact',
-      'shop/redact'
-    ];
-
-    for (const complianceTopic of complianceTopics) {
-      const complianceResponse = await fetch(`https://${shop}/admin/api/2024-01/webhooks.json`, {
+    // Helper to register a single webhook via GraphQL
+    async function registerWebhookGraphQL(topic: string, endpoint: string) {
+      const callbackUrl = `${webhookUrl}/${endpoint}`;
+      const response = await fetch(graphqlUrl, {
         method: 'POST',
         headers: {
           'X-Shopify-Access-Token': accessToken,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          webhook: {
-            topic: complianceTopic,
-            address: `${webhookUrl}/compliance`,
-            format: 'json',
+          query: `
+            mutation webhookSubscriptionCreate($topic: WebhookSubscriptionTopic!, $webhookSubscription: WebhookSubscriptionInput!) {
+              webhookSubscriptionCreate(topic: $topic, webhookSubscription: $webhookSubscription) {
+                webhookSubscription { id }
+                userErrors { field message }
+              }
+            }
+          `,
+          variables: {
+            topic: topic.toUpperCase().replace(/\//g, '_'),
+            webhookSubscription: {
+              callbackUrl,
+              format: 'JSON',
+            },
           },
         }),
       });
 
-      const complianceData = await complianceResponse.json();
-      if (!complianceResponse.ok) {
-        console.error(`❌ Failed to register ${complianceTopic} webhook:`, complianceData);
-      } else {
-        console.log(`✅ ${complianceTopic} webhook registered:`, complianceData.webhook?.id);
-      }
-    }
-
-    // Register customer event webhooks (REQUIRED for Built for Shopify - Ads & Analytics category)
-    const customerTopics = [
-      'customers/create',
-      'customers/update',
-      'customers/delete'
-    ];
-
-    for (const customerTopic of customerTopics) {
-      const customerResponse = await fetch(`https://${shop}/admin/api/2024-01/webhooks.json`, {
-        method: 'POST',
-        headers: {
-          'X-Shopify-Access-Token': accessToken,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          webhook: {
-            topic: customerTopic,
-            address: `${webhookUrl}/customers`,
-            format: 'json',
-          },
-        }),
-      });
-
-      const customerData = await customerResponse.json();
-      if (!customerResponse.ok) {
-        // Check if already exists (not an error)
-        if (customerResponse.status !== 409 && !JSON.stringify(customerData).includes('already exists')) {
-          console.error(`❌ Failed to register ${customerTopic} webhook:`, customerData);
+      const data = await response.json();
+      const userErrors = data?.data?.webhookSubscriptionCreate?.userErrors || [];
+      if (userErrors.length > 0) {
+        // "already exists" is not a real error
+        const isAlreadyExists = userErrors.some((e: any) => e.message?.includes('already exists'));
+        if (isAlreadyExists) {
+          console.log(`⚠️ ${topic} webhook already exists`);
         } else {
-          console.log(`⚠️ ${customerTopic} webhook already exists`);
+          console.error(`❌ Failed to register ${topic} webhook:`, userErrors);
         }
       } else {
-        console.log(`✅ ${customerTopic} webhook registered:`, customerData.webhook?.id);
+        const id = data?.data?.webhookSubscriptionCreate?.webhookSubscription?.id;
+        console.log(`✅ ${topic} webhook registered:`, id);
       }
     }
 
-    // Register APP_SUBSCRIPTIONS_UPDATE webhook (for billing status changes)
-    const subscriptionWebhookResponse = await fetch(`https://${shop}/admin/api/2024-01/webhooks.json`, {
-      method: 'POST',
-      headers: {
-        'X-Shopify-Access-Token': accessToken,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        webhook: {
-          topic: 'app_subscriptions/update',
-          address: `${webhookUrl}/subscription`,
-          format: 'json',
-        },
-      }),
-    });
+    // Core webhooks
+    await registerWebhookGraphQL('app/uninstalled', 'uninstall');
+    await registerWebhookGraphQL('orders/create', 'orders');
 
-    const subscriptionWebhookData = await subscriptionWebhookResponse.json();
-    if (!subscriptionWebhookResponse.ok) {
-      console.error('❌ Failed to register app_subscriptions/update webhook:', subscriptionWebhookData);
-    } else {
-      console.log('✅ app_subscriptions/update webhook registered:', subscriptionWebhookData.webhook?.id);
+    // GDPR compliance webhooks (REQUIRED by Shopify)
+    for (const topic of ['customers/data_request', 'customers/redact', 'shop/redact']) {
+      await registerWebhookGraphQL(topic, 'compliance');
     }
+
+    // Customer event webhooks (REQUIRED for Built for Shopify - Ads & Analytics category)
+    for (const topic of ['customers/create', 'customers/update', 'customers/delete']) {
+      await registerWebhookGraphQL(topic, 'customers');
+    }
+
+    // Billing status changes
+    await registerWebhookGraphQL('app_subscriptions/update', 'subscription');
 
     console.log('✅ Webhook registration process completed for', shop);
 

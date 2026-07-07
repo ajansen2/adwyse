@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     }
 
     // List all webhooks for this store
-    const response = await fetch(`https://${shop}/admin/api/2024-01/webhooks.json`, {
+    const response = await fetch(`https://${shop}/admin/api/2025-07/webhooks.json`, {
       headers: {
         'X-Shopify-Access-Token': store.access_token,
       },

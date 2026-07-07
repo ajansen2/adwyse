@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     // Check for existing subscriptions using GraphQL
     console.log('💰 [BILLING CREATE] Checking existing subscriptions via GraphQL...');
     const existingResponse = await fetch(
-      `https://${shop}/admin/api/2024-01/graphql.json`,
+      `https://${shop}/admin/api/2025-07/graphql.json`,
       {
         method: 'POST',
         headers: {
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
     console.log('💰 [BILLING CREATE] Creating subscription via GraphQL...');
 
     const chargeResponse = await fetch(
-      `https://${shop}/admin/api/2024-01/graphql.json`,
+      `https://${shop}/admin/api/2025-07/graphql.json`,
       {
         method: 'POST',
         headers: {

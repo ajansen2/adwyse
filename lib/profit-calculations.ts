@@ -404,7 +404,7 @@ export async function syncShopifyInventoryCosts(
   try {
     // Fetch products with inventory data from Shopify
     const response = await fetch(
-      `https://${shopDomain}/admin/api/2024-01/products.json?fields=id,title,variants&limit=250`,
+      `https://${shopDomain}/admin/api/2025-07/products.json?fields=id,title,variants&limit=250`,
       {
         headers: {
           'X-Shopify-Access-Token': accessToken,

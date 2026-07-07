@@ -6,7 +6,7 @@ application_url = "https://adwyse.ca"
 embedded = true
 
 [webhooks]
-api_version = "2024-10"
+api_version = "2025-07"
 # Webhooks are registered via code during OAuth callback
 
 [access_scopes]

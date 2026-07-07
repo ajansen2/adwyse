@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       const url = `${baseUrl}${endpoint}`;
       console.log(`📍 Registering ${topic} webhook:`, url);
 
-      const response = await fetch(`https://${shop}/admin/api/2025-01/webhooks.json`, {
+      const response = await fetch(`https://${shop}/admin/api/2025-07/webhooks.json`, {
         method: 'POST',
         headers: {
           'X-Shopify-Access-Token': store.access_token,

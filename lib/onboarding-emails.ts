@@ -219,13 +219,13 @@ export async function sendOnboardingEmail(
     });
 
     if (error) {
-      console.error('Onboarding email error:', error);
-      return { success: false, error: error.message };
+      console.error('Onboarding email send failed:', error);
+      return { success: false, error: 'Failed to send email' };
     }
 
     return { success: true };
   } catch (err: any) {
-    console.error('Onboarding email failed:', err);
-    return { success: false, error: err?.message || 'Unknown error' };
+    console.error('Onboarding email send failed:', err);
+    return { success: false, error: 'Failed to send email' };
   }
 }

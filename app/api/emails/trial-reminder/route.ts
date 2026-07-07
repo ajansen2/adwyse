@@ -59,7 +59,7 @@ body { font-family: -apple-system, sans-serif; background: #0f172a; color: #fff;
 
     if (error) {
       console.error('Trial reminder email error:', error);
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      return NextResponse.json({ success: false, error: 'Failed to send email' }, { status: 500 });
     }
 
     return NextResponse.json({ success: true, id: data?.id });

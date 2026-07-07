@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
 
     // Check for existing active subscription
     const existingResponse = await fetch(
-      `https://${shop}/admin/api/2024-01/graphql.json`,
+      `https://${shop}/admin/api/2025-07/graphql.json`,
       {
         method: 'POST',
         headers: {
@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
     const returnUrl = `${appUrl}/api/billing/callback?shop=${shop}&store_id=${store.id}`;
 
     const chargeResponse = await fetch(
-      `https://${shop}/admin/api/2024-01/graphql.json`,
+      `https://${shop}/admin/api/2025-07/graphql.json`,
       {
         method: 'POST',
         headers: {

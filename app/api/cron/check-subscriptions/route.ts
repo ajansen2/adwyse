@@ -60,13 +60,14 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, ...results });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Subscription check failed:', error);
+    return NextResponse.json({ error: 'Subscription check failed' }, { status: 500 });
   }
 }
 
 async function checkExistingCharge(store: any): Promise<'active' | 'pending' | 'none'> {
   try {
-    const response = await fetch(`https://${store.shop_domain}/admin/api/2024-10/recurring_application_charges.json`, {
+    const response = await fetch(`https://${store.shop_domain}/admin/api/2025-07/recurring_application_charges.json`, {
       headers: { 'X-Shopify-Access-Token': store.access_token }
     });
     if (!response.ok) return 'none';
@@ -82,7 +83,7 @@ async function createBillingCharge(store: any): Promise<boolean> {
     const apiKey = process.env.SHOPIFY_API_KEY;
     const isTest = store.shop_domain.includes('-test') || store.shop_domain.includes('development');
     const shopName = store.shop_domain.replace('.myshopify.com', '');
-    const response = await fetch(`https://${store.shop_domain}/admin/api/2024-10/recurring_application_charges.json`, {
+    const response = await fetch(`https://${store.shop_domain}/admin/api/2025-07/recurring_application_charges.json`, {
       method: 'POST',
       headers: { 'X-Shopify-Access-Token': store.access_token, 'Content-Type': 'application/json' },
       body: JSON.stringify({

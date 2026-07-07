@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
 
     // Verify subscription status via GraphQL activeSubscriptions query
     const graphqlResponse = await fetch(
-      `https://${shop}/admin/api/2024-01/graphql.json`,
+      `https://${shop}/admin/api/2025-07/graphql.json`,
       {
         method: 'POST',
         headers: {

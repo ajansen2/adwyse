@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
     console.error('Alert cron error:', error);
     return NextResponse.json({
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: 'Alert check failed',
       results
     }, { status: 500 });
   }
@@ -130,7 +130,8 @@ async function sendAlertEmails(): Promise<{ sent: number; errors: string[] }> {
       });
 
       if (error) {
-        results.errors.push(`Alert ${alert.id}: ${error.message}`);
+        console.error(`Alert ${alert.id} email send failed:`, error);
+        results.errors.push(`Alert ${alert.id}: Failed to send email`);
         await logNotification(alert.store_id, alert.id, {
           notification_type: 'email',
           recipient: alert.store_email,

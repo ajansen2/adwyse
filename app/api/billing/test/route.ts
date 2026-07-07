@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
   // Check for existing charges first
   console.log('🔍 [BILLING TEST] Checking existing charges...');
   const existingResponse = await fetch(
-    `https://${shop}/admin/api/2024-01/recurring_application_charges.json`,
+    `https://${shop}/admin/api/2025-07/recurring_application_charges.json`,
     { headers: { 'X-Shopify-Access-Token': accessToken } }
   );
 
@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
   // Create new charge
   console.log('🧪 [BILLING TEST] Creating new charge...');
   const chargeResponse = await fetch(
-    `https://${shop}/admin/api/2024-01/recurring_application_charges.json`,
+    `https://${shop}/admin/api/2025-07/recurring_application_charges.json`,
     {
       method: 'POST',
       headers: {
