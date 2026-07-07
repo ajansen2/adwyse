@@ -516,7 +516,7 @@ function SettingsContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: store.email || 'adam@adwyse.ca',
+          email: store.email || 'support@adwyse.ca',
           storeName: store.store_name,
           shopDomain: store.shop_domain
         }),
@@ -553,7 +553,7 @@ function SettingsContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: store.email || 'adam@adwyse.ca',
+          email: store.email || 'support@adwyse.ca',
           storeName: store.store_name,
           shopDomain: store.shop_domain,
           alertType

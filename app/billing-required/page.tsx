@@ -63,8 +63,8 @@ function BillingRequiredContent() {
     <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-6">
       <div className="text-center p-8 max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl">
         <div className="mb-6">
-          <div className="w-16 h-16 mx-auto bg-purple-500/20 rounded-full flex items-center justify-center">
-            <svg className="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-16 h-16 mx-auto bg-orange-500/20 rounded-full flex items-center justify-center">
+            <svg className="w-8 h-8 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
             </svg>
           </div>
@@ -85,7 +85,7 @@ function BillingRequiredContent() {
         <button
           onClick={handleSubscribe}
           disabled={loading}
-          className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold px-6 py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold px-6 py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? (
             <span className="flex items-center justify-center gap-2">
@@ -108,7 +108,7 @@ export default function BillingRequiredPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
     }>
       <BillingRequiredContent />

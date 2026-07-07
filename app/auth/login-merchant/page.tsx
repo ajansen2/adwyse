@@ -49,9 +49,9 @@ function MerchantLoginContent() {
   }, [searchParams, router, supabase])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+    <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
       <div className="text-center">
-        <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-solid border-purple-600 border-r-transparent mb-4"></div>
+        <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-solid border-orange-500 border-r-transparent mb-4"></div>
         <div className="text-white text-xl">Setting up your account...</div>
         {error && <div className="text-red-400 mt-4">{error}</div>}
       </div>
@@ -62,9 +62,9 @@ function MerchantLoginContent() {
 export default function MerchantLoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-solid border-purple-600 border-r-transparent mb-4"></div>
+          <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-solid border-orange-500 border-r-transparent mb-4"></div>
           <div className="text-white text-xl">Loading...</div>
         </div>
       </div>

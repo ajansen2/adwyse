@@ -32,7 +32,7 @@ export default function ConnectStorePage() {
           Install AdWyse
         </a>
         <p className="text-white/60 text-sm mt-6">
-          Search for "AdWyse" in the Shopify App Store or contact adam@adwyse.ca
+          Search for "AdWyse" in the Shopify App Store or contact support@adwyse.ca
         </p>
       </div>
     </div>

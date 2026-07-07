@@ -234,7 +234,7 @@ export default function PrivacyPage() {
               <div className="space-y-2">
                 <p className="text-white font-semibold">AdWyse</p>
                 <p className="text-zinc-400">Email: <a href="mailto:privacy@adwyse.ca" className="text-amber-400 hover:text-amber-300">privacy@adwyse.ca</a></p>
-                <p className="text-zinc-400">Support: <a href="mailto:adam@adwyse.ca" className="text-amber-400 hover:text-amber-300">adam@adwyse.ca</a></p>
+                <p className="text-zinc-400">Support: <a href="mailto:support@adwyse.ca" className="text-amber-400 hover:text-amber-300">support@adwyse.ca</a></p>
               </div>
             </div>
           </div>
