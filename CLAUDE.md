@@ -308,17 +308,12 @@ These were from other projects (ARGORA DEALS real estate) and have been removed:
 - `/components/ComprehensiveDashboard.tsx` — unused ARGORA component
 
 ## Known Issues / Tech Debt
-- TikTok token refresh not implemented (Google has it, TikTok doesn't — tokens will expire silently)
-- AI Chat spend trend hardcoded to 0% in `/lib/chat-context.ts` (no prev-period campaign data)
-- Profit page requires manual COGS entry per SKU — no bulk import or Shopify cost field sync
-- Two Pro-gating systems coexist: `check-subscription.ts` (old, used by insights/generate) and `subscription-tiers.ts` (new, used everywhere else) — should consolidate
 - `creatives/list` API depends on `get_top_creatives` RPC that may not exist in DB
+- Profit page bulk COGS: CSV import + Shopify sync endpoints exist (`/api/products/costs/import`) but need testing
+- `/how-it-works`, `/signup`, `/login` pages may still contain stale content (need review)
 
 ## What's Next
-- Implement TikTok token refresh (match Google's pattern)
-- Fix AI Chat spend trend (query prev-period campaign data)
-- Add bulk COGS import (CSV or Shopify cost field sync)
-- Consolidate Pro-gating to single system (`subscription-tiers.ts`)
 - Verify CAPI end-to-end with a real Web pixel
 - Build onboarding email sequence (Resend)
+- Test profit page CSV import and Shopify cost sync
 - Consider: in-app help tooltips, CAPI setup wizard, progressive loading messages
