@@ -268,6 +268,59 @@ export async function GET(request: NextRequest) {
 
     console.log('✅ Webhook registration process completed for', shop);
 
+    // Activate Web Pixel extension — auto-creates the pixel so merchants never paste code manually
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://adwyse.ca';
+    const pixelSettings = JSON.stringify({
+      storeId: store.id,
+      endpoint: `${baseUrl}/api/pixel/event`,
+    });
+
+    try {
+      const pixelResponse = await fetch(graphqlUrl, {
+        method: 'POST',
+        headers: {
+          'X-Shopify-Access-Token': accessToken,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: `
+            mutation webPixelCreate($webPixel: WebPixelInput!) {
+              webPixelCreate(webPixel: $webPixel) {
+                webPixel { id settings }
+                userErrors { code field message }
+              }
+            }
+          `,
+          variables: {
+            webPixel: {
+              settings: pixelSettings,
+            },
+          },
+        }),
+      });
+
+      const pixelData = await pixelResponse.json();
+      const pixelErrors = pixelData?.data?.webPixelCreate?.userErrors || [];
+
+      if (pixelErrors.length > 0) {
+        const isAlreadyExists = pixelErrors.some((e: any) =>
+          e.message?.toLowerCase().includes('already exists') ||
+          e.code === 'TAKEN'
+        );
+        if (isAlreadyExists) {
+          console.log('⚠️ Web Pixel already exists for this store — skipping creation');
+        } else {
+          console.error('❌ Web Pixel creation failed:', pixelErrors);
+        }
+      } else {
+        const pixelId = pixelData?.data?.webPixelCreate?.webPixel?.id;
+        console.log('✅ Web Pixel activated:', pixelId);
+      }
+    } catch (pixelError) {
+      // Non-fatal — the pixel can be activated later
+      console.error('⚠️ Web Pixel activation error (non-fatal):', pixelError);
+    }
+
     // Don't force billing during install — merchant starts on free tier
     // They can upgrade to Pro ($99.99/mo) from the dashboard when ready
     const shopName = shop.replace('.myshopify.com', '');

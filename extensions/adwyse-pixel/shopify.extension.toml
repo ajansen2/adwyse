@@ -1,0 +1,25 @@
+type = "web_pixel_extension"
+name = "AdWyse Pixel"
+uid = "adwyse-pixel-ext-001"
+runtime_context = "strict"
+
+[customer_privacy]
+analytics = true
+marketing = true
+preferences = false
+sale_of_data = "disabled"
+
+[settings]
+type = "object"
+
+[settings.fields.storeId]
+name = "Store ID"
+description = "The AdWyse store identifier"
+type = "single_line_text_field"
+validations = [{ name = "min", value = "1" }]
+
+[settings.fields.endpoint]
+name = "Endpoint URL"
+description = "The AdWyse event ingestion endpoint"
+type = "single_line_text_field"
+validations = [{ name = "min", value = "1" }]

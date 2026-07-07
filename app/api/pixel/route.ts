@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 /**
- * Pixel Configuration API
- * Manages pixel settings and provides installation info
+ * LEGACY — Pixel Configuration API (copy-paste snippet instructions)
+ *
+ * The snippet-based installation flow is superseded by the Shopify Web Pixel
+ * extension at /extensions/adwyse-pixel/ which auto-activates on install.
+ * This endpoint still serves pixel config/stats and is safe to keep.
  */
 
 // GET - Get pixel config and installation code

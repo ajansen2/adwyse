@@ -2,8 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 /**
- * Pixel Script Generator
- * Generates a lightweight tracking script for each store
+ * LEGACY — Pixel Script Generator (copy-paste <script> tag approach)
+ *
+ * This endpoint is superseded by the Shopify Web Pixel extension at
+ * /extensions/adwyse-pixel/ which auto-activates on install via the
+ * webPixelCreate GraphQL mutation in the OAuth callback.
+ *
+ * Kept for backward compatibility with any stores that installed before
+ * the Web Pixel migration. Feature flag: USE_LEGACY_PIXEL (default OFF).
  */
 
 export async function GET(
