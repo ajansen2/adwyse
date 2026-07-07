@@ -33,7 +33,7 @@ AdWyse is a Shopify app for ad attribution analytics, competing with Triple Whal
 - Sidebar, MobileNav, dashboard page all use `useTier()` to hide Pro features
 
 ### Tiers
-- **Free**: 1 ad account, 100 orders/mo, 30 days history, basic dashboard + funnel only
+- **Free**: 1 ad account, 100 orders/mo, 30 days history, basic dashboard + funnel + AI Insights + NC-ROAS
 - **Trial**: 7 days, all Pro features
 - **Pro** ($99/mo): Everything — unlimited accounts/orders, AI Chat, Competitor Spy, Cohorts, NC-ROAS, Creative Score, Budget Optimizer, CAPI, Slack, etc.
 
@@ -41,16 +41,18 @@ AdWyse is a Shopify app for ad attribution analytics, competing with Triple Whal
 - `/api/chat` (aiChat)
 - `/api/competitor-ads` (competitorSpy)
 - `/api/budget-optimizer` (predictiveBudget)
-- `/api/metrics/nc-roas` (ncRoas)
 - `/api/metrics/cohorts` (cohortRetention)
 - `/api/creatives/score` (creativeScore)
 - `/api/meta-capi/settings` POST when enabling (conversionsApi)
+- Note: `/api/metrics/nc-roas` and AI Insights are now available on Free tier
 
 ### UI gating
 - Sidebar filters nav items with `proOnly: true` flag
 - Dashboard wraps Pro widgets in `showPro &&`
 - Pro pages (cohorts, creatives/score, competitor-spy) show `<UpgradeGate>` for free users
 - Free users see an "Upgrade to Pro" CTA at bottom of sidebar + upgrade nudge on dashboard
+- Trial expiry shows inline banner (not full-screen paywall) — users gracefully downgrade to Free tier
+- Demo/sample data shows "Sample Data" badge (funnel chart, attribution page)
 
 ---
 
@@ -91,7 +93,7 @@ AdWyse is a Shopify app for ad attribution analytics, competing with Triple Whal
 - `/app/api/metrics/nc-roas/route.ts` — splits by customer_email history
 - `/components/dashboard/NCRoasCard.tsx` — dual metric card on dashboard
 - Revenue split bar, AOV comparison, auto-generated insight
-- **Pro gated**
+- **Available on Free tier** (core value prop for all users)
 
 ### 6. Predictive Budget Optimizer
 - `/lib/predictive-budget.ts` — trend analysis, linear regression, day-of-week patterns
@@ -272,21 +274,51 @@ if (!isPro) return <UpgradeGate feature="..." description="..." />;
 
 ---
 
-## Current Status (April 9, 2026)
+## Current Status (July 6, 2026)
 - All features built and deployed to Vercel
 - Pricing page updated with all 12+ Pro features
 - Homepage pricing section updated
 - Tier gating enforced on all Pro endpoints + UI
-- Free users see stripped-down dashboard + upgrade nudges
-- Competitor Spy live with Apify (US-only, deduped, brand-filtered)
-- CAPI code built but needs merchant with a Meta Web Pixel to test end-to-end (Adam's Meta pixel is an App dataset, not Web — needs to create a Web pixel via Shopify Facebook & Instagram channel)
+- Free tier now includes AI Insights + NC-ROAS (gives merchants value before upgrading)
+- Trial expiry uses inline banner, not full-screen paywall — graceful downgrade to Free
+- Competitor Spy live with Apify (US-only with disclosure, deduped, brand-filtered)
+- CAPI code built but needs merchant with a Meta Web Pixel to test end-to-end
 - Slack daily digest cron active
 - `?force_tier=free` URL param available for testing free tier experience
+- Google & TikTok sync now write to correct `adwyse_campaigns` table
+- GDPR redact now cleans all `adwyse_*` tables
+- Auth checks added to `goals/progress` and `attribution` POST endpoints
+- All ARGORA contamination removed (wrong-app pages, emails, routes, branding)
+- Demo data labeled with "Sample Data" badges on funnel + attribution pages
+- Support email: support@adwyse.ca
+
+## Deleted Routes (July 2026 cleanup)
+These were from other projects (ARGORA DEALS real estate) and have been removed:
+- `/app/api/property/analyze` — real estate analyzer
+- `/app/api/recovery/send-email` — cart recovery (Argora)
+- `/app/api/carts/list` — abandoned carts (Argora)
+- `/app/api/cron/test-recovery` — cart recovery test
+- `/app/api/emails/welcome|payment-failed|payment-success|subscription-cancelled` — ARGORA email templates
+- `/app/demo` — ARGORA DEALS demo page
+- `/app/properties/*` — real estate property pages
+- `/app/roi-calculator` — real estate ROI calculator
+- `/app/client/[subdomain]` — ARGORA client dashboard
+- `/app/dashboard/settings-new-DISABLED` — old settings (was a live route)
+- `/app/dashboard/analytics` — was ARGORA cart recovery analytics (now redirects to /dashboard)
+- `/components/ComprehensiveDashboard.tsx` — unused ARGORA component
+
+## Known Issues / Tech Debt
+- TikTok token refresh not implemented (Google has it, TikTok doesn't — tokens will expire silently)
+- AI Chat spend trend hardcoded to 0% in `/lib/chat-context.ts` (no prev-period campaign data)
+- Profit page requires manual COGS entry per SKU — no bulk import or Shopify cost field sync
+- Two Pro-gating systems coexist: `check-subscription.ts` (old, used by insights/generate) and `subscription-tiers.ts` (new, used everywhere else) — should consolidate
+- `creatives/list` API depends on `get_top_creatives` RPC that may not exist in DB
 
 ## What's Next
-- Test free tier visuals (use `?force_tier=free`)
+- Implement TikTok token refresh (match Google's pattern)
+- Fix AI Chat spend trend (query prev-period campaign data)
+- Add bulk COGS import (CSV or Shopify cost field sync)
+- Consolidate Pro-gating to single system (`subscription-tiers.ts`)
 - Verify CAPI end-to-end with a real Web pixel
-- Get first 5 real merchant users
-- Submit to Shopify App Store
 - Build onboarding email sequence (Resend)
-- Consider: in-app help tooltips, CAPI setup wizard
+- Consider: in-app help tooltips, CAPI setup wizard, progressive loading messages
