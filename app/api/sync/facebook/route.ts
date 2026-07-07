@@ -237,7 +237,7 @@ export async function GET(request: NextRequest) {
       .from('ad_accounts')
       .select('store_id')
       .eq('platform', 'facebook')
-      .eq('status', 'active');
+      .eq('is_connected', true);
 
     if (!stores || stores.length === 0) {
       return NextResponse.json({ message: 'No stores to sync' });
