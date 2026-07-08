@@ -82,13 +82,18 @@ export async function GET(request: NextRequest) {
         // Insert new
         await supabase
           .from('ad_accounts')
-          .insert({
+          .upsert({
             store_id: storeId,
             platform: 'tiktok',
             account_id: advertiser.advertiserId,
             account_name: advertiserName,
             access_token: accessToken,
             is_connected: true,
+            sync_status: 'idle',
+            last_sync_error: null,
+            updated_at: new Date().toISOString(),
+          }, {
+            onConflict: 'store_id,platform,account_id',
           });
 
         console.log(`➕ Added TikTok account: ${advertiserName}`);
@@ -109,7 +114,7 @@ export async function GET(request: NextRequest) {
         .eq('store_id', storeId)
         .eq('platform', 'tiktok')
         .eq('is_connected', true)
-        .eq('sync_status', 'idle');
+        .in('sync_status', ['idle', 'failed', 'done']);
 
       after(async () => {
         try {

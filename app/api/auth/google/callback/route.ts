@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
         console.log(`➕ Inserting Google Ads account: customerId=${customer.customerId}, name=${customer.descriptiveName}, storeId=${storeId}`);
         const { error: insertError } = await supabase
           .from('ad_accounts')
-          .insert({
+          .upsert({
             store_id: storeId,
             platform: 'google',
             account_id: customer.customerId,
@@ -114,6 +114,11 @@ export async function GET(request: NextRequest) {
             refresh_token: tokens.refreshToken,
             token_expires_at: new Date(Date.now() + tokens.expiresIn * 1000).toISOString(),
             is_connected: true,
+            sync_status: 'idle',
+            last_sync_error: null,
+            updated_at: new Date().toISOString(),
+          }, {
+            onConflict: 'store_id,platform,account_id',
           });
 
         if (insertError) {
@@ -142,7 +147,7 @@ export async function GET(request: NextRequest) {
         .update({ sync_status: 'queued' })
         .eq('store_id', storeId)
         .eq('is_connected', true)
-        .eq('sync_status', 'idle');
+        .in('sync_status', ['idle', 'failed', 'done']);
 
       // Trigger the sync via our own endpoint (non-blocking HTTP call)
       // This runs in a separate Vercel function invocation with its own timeout
