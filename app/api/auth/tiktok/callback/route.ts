@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { exchangeTikTokCode, getTikTokAdvertiserInfo } from '@/lib/tiktok-ads';
 import { checkAdAccountLimit } from '@/lib/subscription-tiers';
+import { getServiceSupabase, syncTikTokForStore } from '@/lib/sync-engine';
 
 /**
  * Handle TikTok Ads OAuth callback
@@ -97,6 +98,14 @@ export async function GET(request: NextRequest) {
     const message = skippedDueToLimit > 0
       ? `Connected ${connectedCount} account(s). ${skippedDueToLimit} skipped — upgrade to Pro for more.`
       : `Connected ${connectedCount} TikTok Ads account(s)`;
+
+    // Fire initial sync in the background (don't block the callback response)
+    if (connectedCount > 0) {
+      const syncSupa = getServiceSupabase();
+      syncTikTokForStore(syncSupa, storeId).catch((err) =>
+        console.error('[ON-CONNECT] TikTok initial sync failed:', err)
+      );
+    }
 
     return returnHtmlResponse(true, message);
 

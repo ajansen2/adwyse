@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 import { checkAdAccountLimit } from '@/lib/subscription-tiers';
+import { getServiceSupabase, syncFacebookForStore } from '@/lib/sync-engine';
 
 // Facebook OAuth - Handle callback
 export async function GET(request: NextRequest) {
@@ -119,6 +120,14 @@ export async function GET(request: NextRequest) {
       }
     } else {
       console.log('⚠️ No ad accounts found for this Facebook user');
+    }
+
+    // Fire initial sync in the background (don't block the callback response)
+    if (adAccountsData.data && adAccountsData.data.length > 0) {
+      const syncSupa = getServiceSupabase();
+      syncFacebookForStore(syncSupa, storeId!).catch((err) =>
+        console.error('[ON-CONNECT] Facebook initial sync failed:', err)
+      );
     }
 
     // Clear cookies

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { exchangeGoogleCode, getGoogleAdsCustomers } from '@/lib/google-ads';
 import { checkAdAccountLimit } from '@/lib/subscription-tiers';
+import { getServiceSupabase, syncGoogleForStore } from '@/lib/sync-engine';
 
 /**
  * Handle Google Ads OAuth callback
@@ -127,6 +128,14 @@ export async function GET(request: NextRequest) {
     const message = skippedDueToLimit > 0
       ? `Connected ${connectedCount} account(s). ${skippedDueToLimit} skipped — upgrade to Pro for more.`
       : `Connected ${connectedCount} Google Ads account(s)`;
+
+    // Fire initial sync in the background (don't block the callback response)
+    if (connectedCount > 0) {
+      const syncSupa = getServiceSupabase();
+      syncGoogleForStore(syncSupa, storeId).catch((err) =>
+        console.error('[ON-CONNECT] Google initial sync failed:', err)
+      );
+    }
 
     return returnHtmlResponse(true, message);
 

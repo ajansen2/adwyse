@@ -1,129 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { fetchTikTokCampaigns, refreshTikTokToken } from '@/lib/tiktok-ads';
-
-function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  );
-}
-
-/**
- * Sync TikTok campaigns for a single store
- */
-async function syncTikTokForStore(supabase: ReturnType<typeof getSupabase>, storeId: string) {
-  const { data: adAccounts, error: accountsError } = await supabase
-    .from('ad_accounts')
-    .select('*')
-    .eq('store_id', storeId)
-    .eq('platform', 'tiktok')
-    .eq('is_connected', true);
-
-  if (accountsError) throw accountsError;
-
-  if (!adAccounts || adAccounts.length === 0) {
-    return { success: true, campaignsSynced: 0, totalSpend: 0 };
-  }
-
-  console.log(`📊 [SYNC] Found ${adAccounts.length} TikTok Ads account(s) for store ${storeId}`);
-
-  let totalCampaignsSynced = 0;
-  let totalSpendSynced = 0;
-
-  for (const account of adAccounts) {
-    try {
-      console.log(`🔄 [SYNC] Processing account: ${account.account_name}`);
-
-      // Proactively refresh token if expired or about to expire
-      let accessToken = account.access_token;
-      const tokenExpiry = account.token_expires_at ? new Date(account.token_expires_at) : null;
-      const isExpired = !tokenExpiry || tokenExpiry < new Date(Date.now() + 5 * 60 * 1000);
-
-      if (isExpired && account.refresh_token) {
-        console.log(`🔑 [SYNC] Token expired for ${account.account_name}, refreshing...`);
-        try {
-          const newTokens = await refreshTikTokToken(account.refresh_token);
-          accessToken = newTokens.accessToken;
-
-          // Persist the new token to DB
-          await supabase
-            .from('ad_accounts')
-            .update({
-              access_token: newTokens.accessToken,
-              refresh_token: newTokens.refreshToken,
-              token_expires_at: new Date(Date.now() + newTokens.expiresIn * 1000).toISOString(),
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', account.id);
-
-          console.log(`✅ [SYNC] Token refreshed for ${account.account_name}`);
-        } catch (refreshError) {
-          console.error(`❌ [SYNC] Token refresh failed for ${account.account_name}:`, refreshError);
-          continue;
-        }
-      }
-
-      const campaigns = await fetchTikTokCampaigns(
-        accessToken,
-        account.account_id
-      );
-
-      console.log(`📊 [SYNC] Found ${campaigns.length} campaigns`);
-
-      for (const campaign of campaigns) {
-        const today = new Date().toISOString().split('T')[0];
-        const { data: existingCampaigns } = await supabase
-          .from('adwyse_campaigns')
-          .select('*')
-          .eq('store_id', storeId)
-          .eq('campaign_name', campaign.name)
-          .eq('date', today);
-
-        if (existingCampaigns && existingCampaigns.length > 0) {
-          await supabase
-            .from('adwyse_campaigns')
-            .update({
-              spend: campaign.spend,
-              impressions: campaign.impressions,
-              clicks: campaign.clicks,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', existingCampaigns[0].id);
-
-          console.log(`✅ Updated campaign: ${campaign.name} ($${campaign.spend})`);
-        } else {
-          await supabase
-            .from('adwyse_campaigns')
-            .insert({
-              store_id: storeId,
-              ad_account_id: account.id,
-              campaign_name: campaign.name,
-              platform_campaign_id: campaign.id || campaign.name,
-              status: 'active',
-              date: today,
-              spend: campaign.spend,
-              impressions: campaign.impressions,
-              clicks: campaign.clicks,
-              conversions: 0,
-              attributed_revenue: 0,
-              attributed_orders: 0,
-            });
-
-          console.log(`➕ Created campaign: ${campaign.name} ($${campaign.spend})`);
-        }
-
-        totalCampaignsSynced++;
-        totalSpendSynced += campaign.spend;
-      }
-    } catch (accountError) {
-      console.error(`Error syncing account ${account.account_name}:`, accountError);
-    }
-  }
-
-  return { success: true, campaignsSynced: totalCampaignsSynced, totalSpend: totalSpendSynced };
-}
+import { getServiceSupabase, syncTikTokForStore } from '@/lib/sync-engine';
 
 /**
  * Cron handler — syncs all stores with connected TikTok accounts
@@ -135,28 +11,30 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = getSupabase();
+    const supabase = getServiceSupabase();
 
-    const { data: accounts } = await supabase
+    const { data: accounts, error: accountsError } = await supabase
       .from('ad_accounts')
       .select('store_id')
       .eq('platform', 'tiktok')
       .eq('is_connected', true);
 
+    if (accountsError) throw accountsError;
+
     if (!accounts || accounts.length === 0) {
       return NextResponse.json({ message: 'No stores to sync' });
     }
 
-    const storeIds = [...new Set(accounts.map(a => a.store_id))];
+    const storeIds = [...new Set(accounts.map((a: any) => a.store_id))];
     let totalSynced = 0;
 
     for (const storeId of storeIds) {
       try {
         const result = await syncTikTokForStore(supabase, storeId);
         if (result.success) totalSynced++;
-        console.log(`✅ [CRON] TikTok sync for store ${storeId}: ${result.campaignsSynced} campaigns`);
+        console.log(`[CRON] TikTok sync for store ${storeId}: ${result.campaignsSynced} campaigns`);
       } catch (error) {
-        console.error(`❌ [CRON] Error syncing store ${storeId}:`, error);
+        console.error(`[CRON] Error syncing store ${storeId}:`, error);
       }
     }
 
@@ -165,17 +43,15 @@ export async function GET(request: NextRequest) {
       message: `Synced ${totalSynced}/${storeIds.length} stores`,
     });
   } catch (error) {
-    console.error('❌ TikTok cron sync error:', error);
+    console.error('TikTok cron sync error:', error);
     return NextResponse.json({ error: 'Failed to run cron sync' }, { status: 500 });
   }
 }
 
 /**
- * Sync TikTok Ads campaign data to database (manual trigger)
+ * Manual trigger — sync TikTok for a single store
  */
 export async function POST(request: NextRequest) {
-  console.log('🚀 [SYNC] TikTok Ads sync started');
-
   try {
     const body = await request.json();
     const { storeId } = body;
@@ -184,7 +60,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Store ID required' }, { status: 400 });
     }
 
-    const supabase = getSupabase();
+    const supabase = getServiceSupabase();
     const result = await syncTikTokForStore(supabase, storeId);
 
     return NextResponse.json({
