@@ -28,6 +28,9 @@ export { AnimatedCard, StaggerContainer, StaggerItem, FadeIn, SlideIn, Pulse, Co
 // Data Export
 export { ExportButton } from './ExportButton';
 
+// Sample Data
+export { SampleDataBadge } from './SampleDataBadge';
+
 // Landing page components (existing)
 export { InteractiveGlobe } from './interactive-globe';
 export { StatsMarquee } from './stats-marquee';

@@ -17,6 +17,7 @@ interface OnboardingSetupCardProps {
   onConnectGoogle: () => void;
   onConnectMeta: () => void;
   onConnectTikTok: () => void;
+  onViewSampleData?: () => void;
 }
 
 export function OnboardingSetupCard({
@@ -25,6 +26,7 @@ export function OnboardingSetupCard({
   onConnectGoogle,
   onConnectMeta,
   onConnectTikTok,
+  onViewSampleData,
 }: OnboardingSetupCardProps) {
   const [status, setStatus] = useState<OnboardingStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -146,6 +148,18 @@ export function OnboardingSetupCard({
           </div>
         </div>
       </div>
+
+      {/* Sample data link */}
+      {onViewSampleData && (
+        <div className="mb-4">
+          <button
+            onClick={onViewSampleData}
+            className="text-white/50 hover:text-white/80 text-sm underline underline-offset-2 transition"
+          >
+            or view sample data
+          </button>
+        </div>
+      )}
 
       {/* Steps */}
       <div className="space-y-4">

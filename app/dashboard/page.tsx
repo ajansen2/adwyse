@@ -7,8 +7,9 @@ import { initializeAppBridge, isEmbeddedInShopify, navigateInApp, getShopifySess
 import Link from 'next/link';
 import { Sidebar, MobileNav, GettingStarted, ProfitSummary, AlertsWidget, GoalProgress, BudgetOptimizer, CompetitorSpy, QuickActions, AskAdWyse, NCRoasCard, OnboardingSetupCard } from '@/components/dashboard';
 import { useTier } from '@/lib/use-tier';
-import { MetricCard, DashboardSkeleton, StaggerContainer, StaggerItem, ErrorState, EmptyState, EmptyStateIcons } from '@/components/ui';
+import { MetricCard, DashboardSkeleton, StaggerContainer, StaggerItem, ErrorState, EmptyState, EmptyStateIcons, SampleDataBadge } from '@/components/ui';
 import { RevenueChart, FunnelChart } from '@/components/charts';
+import { SampleDataProvider, useSampleData } from '@/lib/use-sample-data';
 
 // Demo store ID for Adam's store
 const DEMO_STORE_ID = '987c61dd-7696-47ca-bf05-37876953b0ca';
@@ -80,6 +81,9 @@ function DashboardContent() {
   // Tier gating — free users only see basic widgets
   const { isPro: tierIsPro, loading: tierLoading, tier: tierValue } = useTier();
   const showPro = tierIsPro;
+
+  // Sample data toggle — when ON, all widgets render from static dataset
+  const { showSampleData, enableSampleData, sampleData } = useSampleData();
 
   // Sync useTier() result into subscriptionTier state for badge/banners
   useEffect(() => {
@@ -802,11 +806,19 @@ function DashboardContent() {
     .reduce((sum, order) => sum + order.total_price, 0);
 
   // Calculate total ad spend and average ROAS
-  const totalSpend = campaigns.reduce((sum, campaign) => sum + campaign.total_spend, 0);
-  const avgROAS = totalSpend > 0 ? (attributedRevenue / totalSpend) : 0;
+  const realTotalSpend = campaigns.reduce((sum, campaign) => sum + campaign.total_spend, 0);
+  const realAvgROAS = realTotalSpend > 0 ? (attributedRevenue / realTotalSpend) : 0;
+
+  // When sample data is active, override all top-level metrics with the static dataset
+  const totalOrders_eff = showSampleData ? sampleData.overview.totalOrders : totalOrders;
+  const totalRevenue_eff = showSampleData ? sampleData.overview.totalRevenue : totalRevenue;
+  const totalSpend = showSampleData ? sampleData.overview.totalSpend : realTotalSpend;
+  const avgROAS = showSampleData ? sampleData.overview.blendedRoas : realAvgROAS;
+  const chartData_eff = showSampleData ? sampleData.revenueOverTime : chartData;
+  const funnelData_eff = showSampleData ? sampleData.funnel : funnelData;
 
   // Get max value for chart scaling
-  const maxRevenue = Math.max(...chartData.map(d => d.revenue), 1);
+  const maxRevenue = Math.max(...chartData_eff.map(d => d.revenue), 1);
 
   // Export to CSV function
   const handleExportCSV = () => {
@@ -1309,6 +1321,10 @@ function DashboardContent() {
                   onConnectGoogle={handleConnectGoogle}
                   onConnectMeta={handleConnectMeta}
                   onConnectTikTok={handleConnectTikTok}
+                  onViewSampleData={() => {
+                    enableSampleData();
+                    setOnboardingIncomplete(false);
+                  }}
                 />
               )}
             </div>
@@ -1326,14 +1342,21 @@ function DashboardContent() {
                 />
               )}
 
+              {/* Sample Data banner — shown across all widgets when toggle is on */}
+              {showSampleData && (
+                <div className="mb-6">
+                  <SampleDataBadge />
+                </div>
+              )}
+
               {/* MetricCards with staggered entrance animation */}
               {ENABLE_EXTRA_COMPONENTS && (
                 <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" staggerDelay={0.1}>
                   <StaggerItem>
                     <MetricCard
                       title="Total Orders"
-                      value={totalOrders}
-                      previousValue={previousPeriodMetrics?.totalOrders}
+                      value={totalOrders_eff}
+                      previousValue={showSampleData ? undefined : previousPeriodMetrics?.totalOrders}
                       sparklineData={ordersSparkline}
                       icon={
                         <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1347,8 +1370,8 @@ function DashboardContent() {
                   <StaggerItem>
                     <MetricCard
                       title="Total Revenue"
-                      value={totalRevenue}
-                      previousValue={previousPeriodMetrics?.totalRevenue}
+                      value={totalRevenue_eff}
+                      previousValue={showSampleData ? undefined : previousPeriodMetrics?.totalRevenue}
                       format="currency"
                       sparklineData={revenueSparkline}
                       icon={
@@ -1396,11 +1419,11 @@ function DashboardContent() {
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                   <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-xl p-4">
                     <div className="text-white/60 text-sm">Total Orders</div>
-                    <div className="text-2xl font-bold text-white">{totalOrders}</div>
+                    <div className="text-2xl font-bold text-white">{totalOrders_eff}</div>
                   </div>
                   <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-xl p-4">
                     <div className="text-white/60 text-sm">Total Revenue</div>
-                    <div className="text-2xl font-bold text-white">${totalRevenue.toFixed(2)}</div>
+                    <div className="text-2xl font-bold text-white">${totalRevenue_eff.toFixed(2)}</div>
                   </div>
                   <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-xl p-4">
                     <div className="text-white/60 text-sm">Ad Spend</div>
@@ -1422,13 +1445,13 @@ function DashboardContent() {
                       <p className="text-white/60 text-sm">{dateRange.label}</p>
                     </div>
                   </div>
-                  {ordersError ? (
+                  {ordersError && !showSampleData ? (
                     <ErrorState
                       message="Couldn't load revenue data"
                       onRetry={() => window.location.reload()}
                     />
-                  ) : chartData.length > 0 ? (
-                    <RevenueChart data={dateRangeOption === 'all' ? chartData.filter(d => d.revenue > 0 || d.adRevenue > 0) : chartData.slice(-30)} dateRangeLabel={dateRange.label} />
+                  ) : chartData_eff.length > 0 ? (
+                    <RevenueChart data={showSampleData ? chartData_eff : (dateRangeOption === 'all' ? chartData.filter(d => d.revenue > 0 || d.adRevenue > 0) : chartData.slice(-30))} dateRangeLabel={showSampleData ? 'Last 30 days (sample)' : dateRange.label} />
                   ) : (
                     <div className="flex items-center justify-center h-64 text-white/40 text-sm">
                       No revenue data yet — orders will appear here as customers purchase from your store.
@@ -1438,25 +1461,27 @@ function DashboardContent() {
               )}
 
               {/* Conversion Funnel */}
-              {ENABLE_EXTRA_COMPONENTS && funnelData.length > 0 && (
+              {ENABLE_EXTRA_COMPONENTS && funnelData_eff.length > 0 && (
                 <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-xl p-6 mb-8">
-                  {funnelIsDemo && (
+                  {(funnelIsDemo || showSampleData) && (
                     <div className="flex items-center gap-2 mb-4">
                       <span className="px-2 py-1 text-xs font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full">
                         Sample Data
                       </span>
-                      <span className="text-white/40 text-xs">Install the AdWyse pixel to see real funnel data</span>
+                      {!showSampleData && (
+                        <span className="text-white/40 text-xs">Install the AdWyse pixel to see real funnel data</span>
+                      )}
                     </div>
                   )}
-                  <FunnelChart data={funnelData} height={280} variant="dark" />
+                  <FunnelChart data={funnelData_eff} height={280} variant="dark" />
                 </div>
               )}
 
               {/* Profit Summary — Pro */}
-              {showPro && ENABLE_EXTRA_COMPONENTS && (totalRevenue > 0 || totalSpend > 0) && (
+              {showPro && ENABLE_EXTRA_COMPONENTS && (totalRevenue_eff > 0 || totalSpend > 0) && (
                 <div className="mb-8">
                   <ProfitSummary
-                    revenue={totalRevenue}
+                    revenue={totalRevenue_eff}
                     adSpend={totalSpend}
                   />
                 </div>
@@ -1687,12 +1712,13 @@ function DashboardContent() {
               )}
 
               {/* Info box when no orders */}
-              {ENABLE_EXTRA_COMPONENTS && orders.length === 0 && !ordersError && (
+              {ENABLE_EXTRA_COMPONENTS && orders.length === 0 && !ordersError && !showSampleData && (
                 <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-12">
                   <EmptyState
                     icon={EmptyStateIcons.orders}
                     title="No orders tracked yet"
                     description="Orders from your store appear here automatically, usually within a minute of purchase."
+                    secondaryAction={{ label: 'or view sample data', onClick: enableSampleData }}
                   />
                 </div>
               )}
@@ -1859,15 +1885,17 @@ function DashboardContent() {
 
 export default function DashboardPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-solid border-orange-500 border-r-transparent mb-4"></div>
-          <div className="text-white text-xl">Loading dashboard...</div>
+    <SampleDataProvider>
+      <Suspense fallback={
+        <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-solid border-orange-500 border-r-transparent mb-4"></div>
+            <div className="text-white text-xl">Loading dashboard...</div>
+          </div>
         </div>
-      </div>
-    }>
-      <DashboardContent />
-    </Suspense>
+      }>
+        <DashboardContent />
+      </Suspense>
+    </SampleDataProvider>
   );
 }

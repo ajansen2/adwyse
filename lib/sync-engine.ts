@@ -112,7 +112,8 @@ export async function syncGoogleForStore(
     .select('*')
     .eq('store_id', storeId)
     .eq('platform', 'google')
-    .eq('is_connected', true);
+    .eq('is_connected', true)
+    .not('is_demo', 'is', true);
 
   if (accountsError) throw accountsError;
   if (!adAccounts || adAccounts.length === 0) {
@@ -174,7 +175,8 @@ export async function syncFacebookForStore(
     .select('*')
     .eq('store_id', storeId)
     .eq('platform', 'facebook')
-    .eq('is_connected', true);
+    .eq('is_connected', true)
+    .not('is_demo', 'is', true);
 
   if (accountsError) throw accountsError;
   if (!adAccounts || adAccounts.length === 0) {
@@ -231,7 +233,8 @@ export async function syncTikTokForStore(
     .select('*')
     .eq('store_id', storeId)
     .eq('platform', 'tiktok')
-    .eq('is_connected', true);
+    .eq('is_connected', true)
+    .not('is_demo', 'is', true);
 
   if (accountsError) throw accountsError;
   if (!adAccounts || adAccounts.length === 0) {
