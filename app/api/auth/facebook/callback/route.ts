@@ -89,11 +89,21 @@ export async function GET(request: NextRequest) {
       let skippedDueToLimit = 0;
 
       for (const adAccount of adAccountsData.data) {
-        // Re-check limit before each account (in case they're on free tier)
-        const currentLimit = await checkAdAccountLimit(storeId);
-        if (!currentLimit.allowed) {
-          skippedDueToLimit++;
-          continue;
+        // Check if this account already exists (reconnect vs new connect)
+        const { data: existingAccount } = await supabase.from('ad_accounts')
+          .select('id')
+          .eq('store_id', storeId)
+          .eq('platform', 'facebook')
+          .eq('account_id', adAccount.account_id)
+          .maybeSingle();
+
+        // Only check limits for genuinely NEW accounts, not reconnects
+        if (!existingAccount) {
+          const currentLimit = await checkAdAccountLimit(storeId);
+          if (!currentLimit.allowed) {
+            skippedDueToLimit++;
+            continue;
+          }
         }
 
         const { error: upsertError } = await supabase.from('ad_accounts').upsert({
