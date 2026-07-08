@@ -221,9 +221,10 @@ export async function fetchTikTokCampaigns(
     console.log(`🔵 [TikTok] Found ${campaigns.length} campaigns`);
     return campaigns;
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching TikTok campaigns:', error);
-    return [];
+    // Re-throw so the sync engine can mark the account as failed
+    throw error;
   }
 }
 

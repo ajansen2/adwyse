@@ -328,9 +328,9 @@ export async function fetchGoogleAdsCampaigns(
     console.log(`🔵 [Google Ads] Found ${campaigns.length} campaigns`);
     return campaigns;
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching Google Ads campaigns:', error);
-    return [];
+    throw error;
   }
 }
 
