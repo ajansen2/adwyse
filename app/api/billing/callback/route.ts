@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { Resend } from 'resend';
+import { subscriptionConfirmationContent } from '@/lib/email-templates';
 
 /**
  * Returns an HTML page that redirects window.top (breaks out of Shopify's iframe).
@@ -146,6 +148,24 @@ export async function GET(request: NextRequest) {
       .eq('id', storeId);
 
     console.log('✅ Database updated with billing info');
+
+    // Send subscription confirmation email
+    if (store.email) {
+      try {
+        const resend = new Resend(process.env.RESEND_API_KEY);
+        const confirmation = subscriptionConfirmationContent(shop);
+        await resend.emails.send({
+          from: confirmation.from,
+          to: store.email,
+          subject: confirmation.subject,
+          html: confirmation.html,
+        });
+        console.log('✅ Subscription confirmation email sent to', store.email);
+      } catch (emailErr) {
+        // Non-fatal — billing is confirmed, email is best-effort
+        console.error('⚠️ Subscription confirmation email failed (non-fatal):', emailErr);
+      }
+    }
 
     // Redirect back to dashboard inside Shopify admin
     const dashboardUrl = buildShopifyAdminUrl(shop, { billing: 'success' });

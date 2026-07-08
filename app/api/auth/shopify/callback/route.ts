@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
+import { Resend } from 'resend';
+import { welcomeEmailContent } from '@/lib/email-templates';
 
 /**
  * Returns an HTML page that redirects window.top (breaks out of Shopify's iframe).
@@ -194,6 +196,24 @@ export async function GET(request: NextRequest) {
       }
 
       store = newStore;
+
+      // Send welcome email for genuinely new installs
+      if (shopInfo.email) {
+        try {
+          const resend = new Resend(process.env.RESEND_API_KEY);
+          const welcome = welcomeEmailContent(shop);
+          await resend.emails.send({
+            from: welcome.from,
+            to: shopInfo.email,
+            subject: welcome.subject,
+            html: welcome.html,
+          });
+          console.log('✅ Welcome email sent to', shopInfo.email);
+        } catch (emailErr) {
+          // Non-fatal — store is created, email is best-effort
+          console.error('⚠️ Welcome email failed (non-fatal):', emailErr);
+        }
+      }
     }
 
     console.log('✅ Store ready:', store.id);
