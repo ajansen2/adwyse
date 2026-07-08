@@ -101,12 +101,30 @@ async function upsertCampaign(
   }
 }
 
+// ── Stale sync rescue ──────────────────────────────────────────────
+
+async function rescueStaleRunning(supabase: Supabase, storeId: string, platform: string) {
+  const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+  await supabase
+    .from('ad_accounts')
+    .update({
+      sync_status: 'failed',
+      last_sync_error: 'Sync timed out — will retry on next sync cycle',
+    })
+    .eq('store_id', storeId)
+    .eq('platform', platform)
+    .eq('sync_status', 'running')
+    .lt('updated_at', tenMinutesAgo);
+}
+
 // ── Google ───────────────────────────────────────────────────────────
 
 export async function syncGoogleForStore(
   supabase: Supabase,
   storeId: string
 ): Promise<{ success: boolean; campaignsSynced: number; totalSpend: number; errors: string[] }> {
+  await rescueStaleRunning(supabase, storeId, 'google');
+
   const { data: adAccounts, error: accountsError } = await supabase
     .from('ad_accounts')
     .select('*')
@@ -170,6 +188,8 @@ export async function syncFacebookForStore(
   supabase: Supabase,
   storeId: string
 ): Promise<{ success: boolean; campaignsSynced: number; totalSpend: number; errors: string[] }> {
+  await rescueStaleRunning(supabase, storeId, 'facebook');
+
   const { data: adAccounts, error: accountsError } = await supabase
     .from('ad_accounts')
     .select('*')
@@ -228,6 +248,8 @@ export async function syncTikTokForStore(
   supabase: Supabase,
   storeId: string
 ): Promise<{ success: boolean; campaignsSynced: number; totalSpend: number; errors: string[] }> {
+  await rescueStaleRunning(supabase, storeId, 'tiktok');
+
   const { data: adAccounts, error: accountsError } = await supabase
     .from('ad_accounts')
     .select('*')

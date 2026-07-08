@@ -23,13 +23,10 @@ import { getSlackWebhook, sendSlackAlert } from '@/lib/slack-notifications';
  */
 
 export async function GET(request: NextRequest) {
-  // Verify cron secret for security
+  // Verify cron secret — no dev bypass, use CRON_SECRET from .env.local
   const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    // In development, allow without secret
-    if (process.env.NODE_ENV === 'production') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const results = {

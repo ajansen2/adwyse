@@ -1,13 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getAuthenticatedShop } from '@/lib/verify-session';
 
 // API endpoint to look up merchant by shop URL (bypasses RLS)
+// Auth: Shopify session token required — validates caller is the shop owner
 export async function GET(request: NextRequest) {
   try {
+    const authenticatedShop = getAuthenticatedShop(request);
+    if (!authenticatedShop) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const shop = request.nextUrl.searchParams.get('shop');
 
     if (!shop) {
       return NextResponse.json({ error: 'Missing shop parameter' }, { status: 400 });
+    }
+
+    // Ensure the authenticated shop matches the requested shop
+    if (authenticatedShop !== shop) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Use service role key to bypass RLS

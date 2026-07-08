@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthenticatedShop } from '@/lib/verify-session';
 import { generateAlertEmail, sendAlertEmail } from '@/lib/performance-alerts';
 
 /**
  * Send a test alert email
+ * Auth: Shopify session token required
  */
 export async function POST(request: NextRequest) {
+  const shop = getAuthenticatedShop(request);
+  if (!shop) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const body = await request.json();
     const { email, storeName, shopDomain, alertType } = body;

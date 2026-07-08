@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     // Look up the ad account and verify it belongs to the caller's shop
     const { data: accountRow, error: fetchError } = await supabase
       .from('ad_accounts')
-      .select('id, store_id, platform, sync_status, last_synced_at')
+      .select('id, store_id, platform, sync_status, last_synced_at, updated_at')
       .eq('id', accountId)
       .maybeSingle();
 
@@ -51,12 +51,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Reject if already running/queued
+    // Reject if already running/queued — unless stuck for 10+ minutes
     if (account.sync_status === 'running' || account.sync_status === 'queued') {
-      return NextResponse.json(
-        { error: 'Sync already in progress' },
-        { status: 429 }
-      );
+      const updatedAt = (account as any).updated_at ? new Date((account as any).updated_at).getTime() : Date.now();
+      const staleThreshold = 10 * 60 * 1000;
+      if (Date.now() - updatedAt < staleThreshold) {
+        return NextResponse.json(
+          { error: 'Sync already in progress' },
+          { status: 429 }
+        );
+      }
+      // Stale running — allow re-queue
     }
 
     // Reject if synced less than 5 minutes ago
