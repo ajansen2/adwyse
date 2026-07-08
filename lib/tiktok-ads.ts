@@ -144,15 +144,13 @@ export async function fetchTikTokCampaigns(
     );
 
     if (!campaignListResponse.ok) {
-      console.error('Failed to fetch TikTok campaigns');
-      return [];
+      throw new Error(`TikTok API returned ${campaignListResponse.status} — your access may have expired. Reconnect TikTok in Settings.`);
     }
 
     const campaignData = await campaignListResponse.json();
 
     if (campaignData.code !== 0) {
-      console.error('TikTok API error:', campaignData.message);
-      return [];
+      throw new Error(`TikTok API error: ${campaignData.message || 'Unknown error'} — try reconnecting TikTok in Settings.`);
     }
 
     const campaignList = campaignData.data?.list || [];

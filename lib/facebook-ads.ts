@@ -78,14 +78,16 @@ export async function fetchFacebookCampaigns(
     console.log(`🔵 [FB API] Response received. Status: ${response.status}`);
 
     if (!response.ok) {
-      const error = await response.json();
+      const error = await response.json().catch(() => ({}));
       console.error('❌ [FB API] Error response:', JSON.stringify(error));
-      // Return empty array instead of throwing if it's just "no campaigns"
-      if (error?.error?.code === 100 || error?.error?.code === 190) {
-        console.log('ℹ️ [FB API] No ad account or invalid token, returning empty array');
-        return [];
+      const fbError = error?.error;
+      if (fbError?.code === 190) {
+        throw new Error('Facebook access token expired — reconnect Meta Ads in Settings.');
       }
-      throw new Error(`Facebook API error: ${JSON.stringify(error)}`);
+      if (fbError?.code === 100) {
+        throw new Error(`Facebook API error: ${fbError?.message || 'Invalid request'} — check your ad account connection.`);
+      }
+      throw new Error(`Facebook API error: ${fbError?.message || response.status} — try reconnecting Meta Ads in Settings.`);
     }
 
     const data = await response.json();

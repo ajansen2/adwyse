@@ -286,7 +286,7 @@ export async function fetchGoogleAdsCampaigns(
     );
 
     if (!response.ok) {
-      const error = await response.json();
+      const error = await response.json().catch(() => ({}));
       console.error('Google Ads API error:', error);
 
       // If token expired and we have refresh token, try to refresh
@@ -296,7 +296,7 @@ export async function fetchGoogleAdsCampaigns(
         return fetchGoogleAdsCampaigns(newTokens.accessToken, customerId);
       }
 
-      return [];
+      throw new Error(`Google Ads API error (${response.status}) — ${error?.error?.message || 'try reconnecting Google Ads in Settings.'}`);
     }
 
     const data = await response.json();
