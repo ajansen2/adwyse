@@ -7,5 +7,6 @@ ALTER TABLE adwyse_ad_accounts
 -- Recreate the ad_accounts view to include the new columns
 DROP VIEW IF EXISTS ad_accounts CASCADE;
 CREATE VIEW ad_accounts AS SELECT * FROM adwyse_ad_accounts;
-GRANT ALL ON ad_accounts TO authenticated, anon;
+GRANT ALL ON ad_accounts TO authenticated;
 ALTER VIEW ad_accounts SET (security_invoker = on);
+-- NOTE: Do NOT grant to anon — the anon key is public (in frontend bundle).
