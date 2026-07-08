@@ -106,7 +106,7 @@ async function upsertCampaign(
 export async function syncGoogleForStore(
   supabase: Supabase,
   storeId: string
-): Promise<{ success: boolean; campaignsSynced: number; totalSpend: number }> {
+): Promise<{ success: boolean; campaignsSynced: number; totalSpend: number; errors: string[] }> {
   const { data: adAccounts, error: accountsError } = await supabase
     .from('ad_accounts')
     .select('*')
@@ -116,11 +116,12 @@ export async function syncGoogleForStore(
 
   if (accountsError) throw accountsError;
   if (!adAccounts || adAccounts.length === 0) {
-    return { success: true, campaignsSynced: 0, totalSpend: 0 };
+    return { success: true, campaignsSynced: 0, totalSpend: 0, errors: [] };
   }
 
   let totalCampaignsSynced = 0;
   let totalSpendSynced = 0;
+  const errors: string[] = [];
 
   for (const account of adAccounts) {
     await markSyncRunning(supabase, account.id);
@@ -155,10 +156,11 @@ export async function syncGoogleForStore(
       const msg = err?.message || 'Unknown error during Google sync';
       console.error(`[SYNC] Google account ${account.account_name} failed:`, msg);
       await markSyncFailed(supabase, account.id, msg);
+      errors.push(`${account.account_name}: ${msg}`);
     }
   }
 
-  return { success: true, campaignsSynced: totalCampaignsSynced, totalSpend: totalSpendSynced };
+  return { success: errors.length === 0, campaignsSynced: totalCampaignsSynced, totalSpend: totalSpendSynced, errors };
 }
 
 // ── Facebook ────────────────────────────────────────────────────────
@@ -166,7 +168,7 @@ export async function syncGoogleForStore(
 export async function syncFacebookForStore(
   supabase: Supabase,
   storeId: string
-): Promise<{ success: boolean; campaignsSynced: number; totalSpend: number }> {
+): Promise<{ success: boolean; campaignsSynced: number; totalSpend: number; errors: string[] }> {
   const { data: adAccounts, error: accountsError } = await supabase
     .from('ad_accounts')
     .select('*')
@@ -176,11 +178,12 @@ export async function syncFacebookForStore(
 
   if (accountsError) throw accountsError;
   if (!adAccounts || adAccounts.length === 0) {
-    return { success: true, campaignsSynced: 0, totalSpend: 0 };
+    return { success: true, campaignsSynced: 0, totalSpend: 0, errors: [] };
   }
 
   let totalCampaignsSynced = 0;
   let totalSpendSynced = 0;
+  const errors: string[] = [];
 
   for (const account of adAccounts) {
     await markSyncRunning(supabase, account.id);
@@ -210,10 +213,11 @@ export async function syncFacebookForStore(
       const msg = err?.message || 'Unknown error during Facebook sync';
       console.error(`[SYNC] Facebook account ${account.account_name} failed:`, msg);
       await markSyncFailed(supabase, account.id, msg);
+      errors.push(`${account.account_name}: ${msg}`);
     }
   }
 
-  return { success: true, campaignsSynced: totalCampaignsSynced, totalSpend: totalSpendSynced };
+  return { success: errors.length === 0, campaignsSynced: totalCampaignsSynced, totalSpend: totalSpendSynced, errors };
 }
 
 // ── TikTok ──────────────────────────────────────────────────────────
@@ -221,7 +225,7 @@ export async function syncFacebookForStore(
 export async function syncTikTokForStore(
   supabase: Supabase,
   storeId: string
-): Promise<{ success: boolean; campaignsSynced: number; totalSpend: number }> {
+): Promise<{ success: boolean; campaignsSynced: number; totalSpend: number; errors: string[] }> {
   const { data: adAccounts, error: accountsError } = await supabase
     .from('ad_accounts')
     .select('*')
@@ -231,11 +235,12 @@ export async function syncTikTokForStore(
 
   if (accountsError) throw accountsError;
   if (!adAccounts || adAccounts.length === 0) {
-    return { success: true, campaignsSynced: 0, totalSpend: 0 };
+    return { success: true, campaignsSynced: 0, totalSpend: 0, errors: [] };
   }
 
   let totalCampaignsSynced = 0;
   let totalSpendSynced = 0;
+  const errors: string[] = [];
 
   for (const account of adAccounts) {
     await markSyncRunning(supabase, account.id);
@@ -271,10 +276,11 @@ export async function syncTikTokForStore(
       const msg = err?.message || 'Unknown error during TikTok sync';
       console.error(`[SYNC] TikTok account ${account.account_name} failed:`, msg);
       await markSyncFailed(supabase, account.id, msg);
+      errors.push(`${account.account_name}: ${msg}`);
     }
   }
 
-  return { success: true, campaignsSynced: totalCampaignsSynced, totalSpend: totalSpendSynced };
+  return { success: errors.length === 0, campaignsSynced: totalCampaignsSynced, totalSpend: totalSpendSynced, errors };
 }
 
 // ── Dispatch by platform ────────────────────────────────────────────

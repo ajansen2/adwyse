@@ -63,6 +63,14 @@ export async function POST(request: NextRequest) {
     const supabase = getServiceSupabase();
     const result = await syncGoogleForStore(supabase, storeId);
 
+    if (!result.success) {
+      return NextResponse.json({
+        success: false,
+        error: result.errors.join('; ') || 'Sync failed for one or more accounts',
+        campaignsSynced: result.campaignsSynced,
+      }, { status: 422 });
+    }
+
     return NextResponse.json({
       success: true,
       message: `Synced ${result.campaignsSynced} campaigns with $${result.totalSpend.toFixed(2)} total spend`,
