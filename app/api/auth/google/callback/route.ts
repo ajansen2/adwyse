@@ -129,12 +129,17 @@ export async function GET(request: NextRequest) {
       ? `Connected ${connectedCount} account(s). ${skippedDueToLimit} skipped — upgrade to Pro for more.`
       : `Connected ${connectedCount} Google Ads account(s)`;
 
-    // Fire initial sync in the background (don't block the callback response)
+    // Run initial sync before responding — on Vercel serverless, fire-and-forget
+    // gets killed when the response is sent, so we must await it.
     if (connectedCount > 0) {
-      const syncSupa = getServiceSupabase();
-      syncGoogleForStore(syncSupa, storeId).catch((err) =>
-        console.error('[ON-CONNECT] Google initial sync failed:', err)
-      );
+      try {
+        const syncSupa = getServiceSupabase();
+        await syncGoogleForStore(syncSupa, storeId);
+        console.log('[ON-CONNECT] Google initial sync completed');
+      } catch (err) {
+        console.error('[ON-CONNECT] Google initial sync failed:', err);
+        // Non-fatal — the cron will retry, and sync_status will show 'failed'
+      }
     }
 
     return returnHtmlResponse(true, message);

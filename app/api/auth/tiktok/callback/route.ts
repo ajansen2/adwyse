@@ -99,12 +99,16 @@ export async function GET(request: NextRequest) {
       ? `Connected ${connectedCount} account(s). ${skippedDueToLimit} skipped — upgrade to Pro for more.`
       : `Connected ${connectedCount} TikTok Ads account(s)`;
 
-    // Fire initial sync in the background (don't block the callback response)
+    // Run initial sync before responding — on Vercel serverless, fire-and-forget
+    // gets killed when the response is sent, so we must await it.
     if (connectedCount > 0) {
-      const syncSupa = getServiceSupabase();
-      syncTikTokForStore(syncSupa, storeId).catch((err) =>
-        console.error('[ON-CONNECT] TikTok initial sync failed:', err)
-      );
+      try {
+        const syncSupa = getServiceSupabase();
+        await syncTikTokForStore(syncSupa, storeId);
+        console.log('[ON-CONNECT] TikTok initial sync completed');
+      } catch (err) {
+        console.error('[ON-CONNECT] TikTok initial sync failed:', err);
+      }
     }
 
     return returnHtmlResponse(true, message);

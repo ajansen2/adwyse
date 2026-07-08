@@ -122,12 +122,16 @@ export async function GET(request: NextRequest) {
       console.log('⚠️ No ad accounts found for this Facebook user');
     }
 
-    // Fire initial sync in the background (don't block the callback response)
+    // Run initial sync before responding — on Vercel serverless, fire-and-forget
+    // gets killed when the response is sent, so we must await it.
     if (adAccountsData.data && adAccountsData.data.length > 0) {
-      const syncSupa = getServiceSupabase();
-      syncFacebookForStore(syncSupa, storeId!).catch((err) =>
-        console.error('[ON-CONNECT] Facebook initial sync failed:', err)
-      );
+      try {
+        const syncSupa = getServiceSupabase();
+        await syncFacebookForStore(syncSupa, storeId!);
+        console.log('[ON-CONNECT] Facebook initial sync completed');
+      } catch (err) {
+        console.error('[ON-CONNECT] Facebook initial sync failed:', err);
+      }
     }
 
     // Clear cookies
