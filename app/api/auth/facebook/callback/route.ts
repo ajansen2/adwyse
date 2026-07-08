@@ -122,16 +122,22 @@ export async function GET(request: NextRequest) {
       console.log('⚠️ No ad accounts found for this Facebook user');
     }
 
-    // Run initial sync before responding — on Vercel serverless, fire-and-forget
-    // gets killed when the response is sent, so we must await it.
+    // Mark accounts as queued — don't await inline (Vercel 60s timeout risk)
     if (adAccountsData.data && adAccountsData.data.length > 0) {
-      try {
-        const syncSupa = getServiceSupabase();
-        await syncFacebookForStore(syncSupa, storeId!);
-        console.log('[ON-CONNECT] Facebook initial sync completed');
-      } catch (err) {
-        console.error('[ON-CONNECT] Facebook initial sync failed:', err);
-      }
+      const syncSupa = getServiceSupabase();
+      await syncSupa
+        .from('adwyse_ad_accounts')
+        .update({ sync_status: 'queued' })
+        .eq('store_id', storeId!)
+        .eq('platform', 'facebook')
+        .eq('is_connected', true)
+        .eq('sync_status', 'idle');
+
+      fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/sync/facebook`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storeId }),
+      }).catch(err => console.error('[ON-CONNECT] Facebook sync trigger failed:', err));
     }
 
     // Clear cookies

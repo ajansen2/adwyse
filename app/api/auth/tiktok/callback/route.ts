@@ -99,16 +99,22 @@ export async function GET(request: NextRequest) {
       ? `Connected ${connectedCount} account(s). ${skippedDueToLimit} skipped — upgrade to Pro for more.`
       : `Connected ${connectedCount} TikTok Ads account(s)`;
 
-    // Run initial sync before responding — on Vercel serverless, fire-and-forget
-    // gets killed when the response is sent, so we must await it.
+    // Mark accounts as queued — don't await inline (Vercel 60s timeout risk)
     if (connectedCount > 0) {
-      try {
-        const syncSupa = getServiceSupabase();
-        await syncTikTokForStore(syncSupa, storeId);
-        console.log('[ON-CONNECT] TikTok initial sync completed');
-      } catch (err) {
-        console.error('[ON-CONNECT] TikTok initial sync failed:', err);
-      }
+      const syncSupa = getServiceSupabase();
+      await syncSupa
+        .from('adwyse_ad_accounts')
+        .update({ sync_status: 'queued' })
+        .eq('store_id', storeId)
+        .eq('platform', 'tiktok')
+        .eq('is_connected', true)
+        .eq('sync_status', 'idle');
+
+      fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/sync/tiktok`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storeId }),
+      }).catch(err => console.error('[ON-CONNECT] TikTok sync trigger failed:', err));
     }
 
     return returnHtmlResponse(true, message);

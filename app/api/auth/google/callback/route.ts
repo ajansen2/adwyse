@@ -129,17 +129,29 @@ export async function GET(request: NextRequest) {
       ? `Connected ${connectedCount} account(s). ${skippedDueToLimit} skipped — upgrade to Pro for more.`
       : `Connected ${connectedCount} Google Ads account(s)`;
 
-    // Run initial sync before responding — on Vercel serverless, fire-and-forget
-    // gets killed when the response is sent, so we must await it.
+    // Mark accounts as queued for sync — the onboarding card polls sync_status
+    // and the cron will pick these up. We do NOT await the sync inline because
+    // a merchant with 200 campaigns would hold the OAuth redirect open until
+    // Vercel's 60s function limit kills it.
     if (connectedCount > 0) {
-      try {
-        const syncSupa = getServiceSupabase();
-        await syncGoogleForStore(syncSupa, storeId);
-        console.log('[ON-CONNECT] Google initial sync completed');
-      } catch (err) {
-        console.error('[ON-CONNECT] Google initial sync failed:', err);
-        // Non-fatal — the cron will retry, and sync_status will show 'failed'
-      }
+      const syncSupa = getServiceSupabase();
+      // Mark all newly connected accounts as queued
+      await syncSupa
+        .from('adwyse_ad_accounts')
+        .update({ sync_status: 'queued' })
+        .eq('store_id', storeId)
+        .eq('is_connected', true)
+        .eq('sync_status', 'idle');
+
+      // Trigger the sync via our own endpoint (non-blocking HTTP call)
+      // This runs in a separate Vercel function invocation with its own timeout
+      fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/sync/google`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ storeId }),
+      }).catch(err => console.error('[ON-CONNECT] Google sync trigger failed:', err));
     }
 
     return returnHtmlResponse(true, message);
