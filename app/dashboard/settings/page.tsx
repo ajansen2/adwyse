@@ -259,6 +259,15 @@ function SettingsContent() {
           } catch (err) {
             console.error('Error loading goals:', err);
           }
+
+          // Auto-check pixel status on load
+          try {
+            const pixelRes = await authenticatedFetch(`/api/pixel/verify?store_id=${data.store.id}`);
+            const pixelData = await pixelRes.json();
+            setPixelVerified(pixelData.verified || false);
+          } catch {
+            setPixelVerified(false);
+          }
         } else {
           console.log('🔧 Settings: No store in response data');
         }
@@ -1450,7 +1459,7 @@ function SettingsContent() {
             </div>
           </div>
 
-          {/* Tracking Pixel Installation */}
+          {/* Tracking Pixel */}
           <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6 mb-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 bg-cyan-500/20 rounded-lg flex items-center justify-center">
@@ -1460,67 +1469,40 @@ function SettingsContent() {
               </div>
               <div>
                 <h2 className="text-xl font-bold text-white">Tracking Pixel</h2>
-                <p className="text-white/60 text-sm">First-party tracking that bypasses ad blockers</p>
+                <p className="text-white/60 text-sm">First-party tracking managed by Shopify Web Pixel</p>
               </div>
             </div>
 
+            {/* Status indicator */}
             <div className="p-4 bg-slate-900/50 rounded-lg border border-white/10 mb-4">
-              <p className="text-white/70 text-sm mb-3">
-                Add this code to your Shopify theme&apos;s <code className="px-1.5 py-0.5 bg-white/10 rounded text-cyan-300">theme.liquid</code> file,
-                just before the closing <code className="px-1.5 py-0.5 bg-white/10 rounded text-cyan-300">&lt;/head&gt;</code> tag:
-              </p>
-              <div className="relative">
-                <pre className="p-4 bg-black/50 rounded-lg text-green-400 text-sm font-mono overflow-x-auto">
-{`<script src="${typeof window !== 'undefined' ? window.location.origin : 'https://your-domain.com'}/api/pixel/script/${store?.id || 'YOUR_STORE_ID'}" async></script>`}
-                </pre>
-                <button
-                  onClick={handleCopyPixelCode}
-                  className="absolute top-2 right-2 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg transition flex items-center gap-2"
-                >
-                  {pixelCopied ? (
-                    <>
-                      <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      Copied!
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                      Copy
-                    </>
-                  )}
-                </button>
+              <div className="flex items-center gap-3">
+                {pixelVerified === null ? (
+                  <>
+                    <div className="w-3 h-3 bg-white/30 rounded-full" />
+                    <span className="text-white/60 text-sm">Checking pixel status...</span>
+                  </>
+                ) : pixelVerified ? (
+                  <>
+                    <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse" />
+                    <span className="text-green-400 font-medium text-sm">Tracking active — installed automatically</span>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-3 h-3 bg-amber-400 rounded-full" />
+                    <span className="text-amber-400 font-medium text-sm">Not active — no events received recently</span>
+                  </>
+                )}
               </div>
+              <p className="text-white/50 text-xs mt-2">
+                The Web Pixel extension activates automatically when AdWyse is installed. No manual setup required.
+              </p>
             </div>
 
             <div className="flex items-center gap-4">
               <button
-                onClick={handleVerifyPixel}
-                disabled={pixelVerifying}
-                className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 disabled:bg-cyan-800 disabled:cursor-not-allowed text-white rounded-lg font-medium transition flex items-center gap-2"
-              >
-                {pixelVerifying ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Verifying...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Verify Installation
-                  </>
-                )}
-              </button>
-
-              <button
                 onClick={handleSendTestPixel}
                 disabled={sendingTestPixel}
-                className="px-4 py-2 bg-white/10 hover:bg-white/20 disabled:bg-white/5 disabled:cursor-not-allowed text-white rounded-lg font-medium transition flex items-center gap-2"
+                className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 disabled:bg-cyan-800 disabled:cursor-not-allowed text-white rounded-lg font-medium transition flex items-center gap-2"
               >
                 {sendingTestPixel ? (
                   <>
@@ -1544,26 +1526,6 @@ function SettingsContent() {
                 )}
               </button>
             </div>
-
-            {pixelVerified !== null && (
-              <div className={`mt-3 flex items-center gap-2 text-sm ${pixelVerified ? 'text-green-400' : 'text-red-400'}`}>
-                {pixelVerified ? (
-                  <>
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    Pixel is active and tracking!
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                    Pixel not detected. Send a test event or install the pixel on your store.
-                  </>
-                )}
-              </div>
-            )}
 
             <div className="mt-4 pt-4 border-t border-white/10">
               <h3 className="text-white font-medium mb-2">What this pixel tracks:</h3>

@@ -11,3 +11,4 @@ export { QuickActions } from './QuickActions';
 export { AskAdWyse } from './AskAdWyse';
 export { NCRoasCard } from './NCRoasCard';
 export { UpgradeGate } from './UpgradeGate';
+export { OnboardingSetupCard } from './OnboardingSetupCard';

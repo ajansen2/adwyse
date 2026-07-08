@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { initializeAppBridge, isEmbeddedInShopify, navigateInApp, getShopifySessionToken, redirectToOAuth, authenticatedFetch } from '@/lib/shopify-app-bridge';
 import Link from 'next/link';
-import { Sidebar, MobileNav, GettingStarted, ProfitSummary, AlertsWidget, GoalProgress, BudgetOptimizer, CompetitorSpy, QuickActions, AskAdWyse, NCRoasCard } from '@/components/dashboard';
+import { Sidebar, MobileNav, GettingStarted, ProfitSummary, AlertsWidget, GoalProgress, BudgetOptimizer, CompetitorSpy, QuickActions, AskAdWyse, NCRoasCard, OnboardingSetupCard } from '@/components/dashboard';
 import { useTier } from '@/lib/use-tier';
 import { MetricCard, DashboardSkeleton, StaggerContainer, StaggerItem } from '@/components/ui';
 import { RevenueChart, FunnelChart } from '@/components/charts';
@@ -113,6 +113,7 @@ function DashboardContent() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(1);
   const [showBillingRequired, setShowBillingRequired] = useState(false);
+  const [onboardingIncomplete, setOnboardingIncomplete] = useState<boolean | null>(null); // null = loading
   const [subscribing, setSubscribing] = useState(false);
   const [showUpgradeSuccess, setShowUpgradeSuccess] = useState(false);
   // Getting Started checklist state
@@ -648,6 +649,17 @@ function DashboardContent() {
                 .then(res => res.json())
                 .then(data => setHasAlerts(data.roas_alert_enabled || data.spend_alert_enabled))
                 .catch(() => setHasAlerts(false));
+
+              // Check onboarding status (drives setup card vs dashboard)
+              authenticatedFetch(`/api/onboarding/status?store_id=${storeId}`)
+                .then(res => res.json())
+                .then(data => {
+                  setOnboardingIncomplete(!data.onboardingCompleted);
+                })
+                .catch(() => {
+                  // If API fails, don't block dashboard — show it
+                  setOnboardingIncomplete(false);
+                });
             }
           }
         } catch (error) {
@@ -691,6 +703,51 @@ function DashboardContent() {
     await supabase.auth.signOut();
     navigateInApp('/');
   };
+
+  // OAuth connect handlers for onboarding card
+  const openOAuthPopup = (url: string, name: string) => {
+    const width = 600;
+    const height = 700;
+    const left = (window.screen.width - width) / 2;
+    const top = (window.screen.height - height) / 2;
+    window.open(url, name, `width=${width},height=${height},left=${left},top=${top}`);
+  };
+
+  const handleConnectGoogle = () => {
+    if (!stores[0]) return;
+    openOAuthPopup(`/api/auth/google?store_id=${stores[0].id}`, 'Google OAuth');
+  };
+
+  const handleConnectMeta = () => {
+    if (!stores[0]) return;
+    openOAuthPopup(`/api/auth/facebook?store_id=${stores[0].id}`, 'Facebook OAuth');
+  };
+
+  const handleConnectTikTok = () => {
+    if (!stores[0]) return;
+    openOAuthPopup(`/api/auth/tiktok?store_id=${stores[0].id}`, 'TikTok OAuth');
+  };
+
+  // Listen for OAuth popup completion messages (for onboarding card)
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (
+        event.data?.type === 'facebook_connected' ||
+        event.data?.type === 'google_connected' ||
+        event.data?.type === 'tiktok_connected'
+      ) {
+        // Trigger a re-check of onboarding status immediately
+        if (stores[0]?.id) {
+          authenticatedFetch(`/api/onboarding/status?store_id=${stores[0].id}`)
+            .then(res => res.json())
+            .then(data => setOnboardingIncomplete(!data.onboardingCompleted))
+            .catch(() => {});
+        }
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [stores]);
 
   if (loading) {
     return (
@@ -1237,6 +1294,19 @@ function DashboardContent() {
                   Takes less than 2 minutes
                 </p>
               </div>
+            </div>
+          ) : onboardingIncomplete ? (
+            // Onboarding Setup Card — shown INSTEAD of dashboard when setup is incomplete
+            <div>
+              {stores[0]?.id && (
+                <OnboardingSetupCard
+                  storeId={stores[0].id}
+                  onComplete={() => setOnboardingIncomplete(false)}
+                  onConnectGoogle={handleConnectGoogle}
+                  onConnectMeta={handleConnectMeta}
+                  onConnectTikTok={handleConnectTikTok}
+                />
+              )}
             </div>
           ) : (
             // Dashboard with Stats
