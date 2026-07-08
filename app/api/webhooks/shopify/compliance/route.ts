@@ -78,6 +78,8 @@ export async function POST(request: NextRequest) {
         console.log('⚠️  Unknown compliance topic:', topic);
     }
 
+    console.log(`[WEBHOOK] topic=${topic} shop=${shop} outcome=processed`);
+
     // Always return 200 to acknowledge receipt
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {

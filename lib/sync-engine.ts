@@ -123,7 +123,15 @@ export async function syncGoogleForStore(
   supabase: Supabase,
   storeId: string
 ): Promise<{ success: boolean; campaignsSynced: number; totalSpend: number; errors: string[] }> {
+  const syncStart = Date.now();
   await rescueStaleRunning(supabase, storeId, 'google');
+
+  const { data: storeRow } = await supabase
+    .from('stores')
+    .select('shop_domain')
+    .eq('id', storeId)
+    .single();
+  const shopDomain = storeRow?.shop_domain || storeId;
 
   const { data: adAccounts, error: accountsError } = await supabase
     .from('ad_accounts')
@@ -179,6 +187,9 @@ export async function syncGoogleForStore(
     }
   }
 
+  const duration = ((Date.now() - syncStart) / 1000).toFixed(1);
+  console.log(`[SYNC] platform=google shop=${shopDomain} accounts=${adAccounts.length} campaigns_synced=${totalCampaignsSynced} spend=$${totalSpendSynced.toFixed(2)} duration=${duration}s errors=${errors.length}`);
+
   return { success: errors.length === 0, campaignsSynced: totalCampaignsSynced, totalSpend: totalSpendSynced, errors };
 }
 
@@ -188,7 +199,15 @@ export async function syncFacebookForStore(
   supabase: Supabase,
   storeId: string
 ): Promise<{ success: boolean; campaignsSynced: number; totalSpend: number; errors: string[] }> {
+  const syncStart = Date.now();
   await rescueStaleRunning(supabase, storeId, 'facebook');
+
+  const { data: storeRow } = await supabase
+    .from('stores')
+    .select('shop_domain')
+    .eq('id', storeId)
+    .single();
+  const shopDomain = storeRow?.shop_domain || storeId;
 
   const { data: adAccounts, error: accountsError } = await supabase
     .from('ad_accounts')
@@ -239,6 +258,9 @@ export async function syncFacebookForStore(
     }
   }
 
+  const duration = ((Date.now() - syncStart) / 1000).toFixed(1);
+  console.log(`[SYNC] platform=facebook shop=${shopDomain} accounts=${adAccounts.length} campaigns_synced=${totalCampaignsSynced} spend=$${totalSpendSynced.toFixed(2)} duration=${duration}s errors=${errors.length}`);
+
   return { success: errors.length === 0, campaignsSynced: totalCampaignsSynced, totalSpend: totalSpendSynced, errors };
 }
 
@@ -248,7 +270,15 @@ export async function syncTikTokForStore(
   supabase: Supabase,
   storeId: string
 ): Promise<{ success: boolean; campaignsSynced: number; totalSpend: number; errors: string[] }> {
+  const syncStart = Date.now();
   await rescueStaleRunning(supabase, storeId, 'tiktok');
+
+  const { data: storeRow } = await supabase
+    .from('stores')
+    .select('shop_domain')
+    .eq('id', storeId)
+    .single();
+  const shopDomain = storeRow?.shop_domain || storeId;
 
   const { data: adAccounts, error: accountsError } = await supabase
     .from('ad_accounts')
@@ -304,6 +334,9 @@ export async function syncTikTokForStore(
       errors.push(`${account.account_name}: ${msg}`);
     }
   }
+
+  const duration = ((Date.now() - syncStart) / 1000).toFixed(1);
+  console.log(`[SYNC] platform=tiktok shop=${shopDomain} accounts=${adAccounts.length} campaigns_synced=${totalCampaignsSynced} spend=$${totalSpendSynced.toFixed(2)} duration=${duration}s errors=${errors.length}`);
 
   return { success: errors.length === 0, campaignsSynced: totalCampaignsSynced, totalSpend: totalSpendSynced, errors };
 }

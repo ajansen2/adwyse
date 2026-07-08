@@ -39,6 +39,8 @@ export async function POST(request: NextRequest) {
         console.log('Unknown customer topic:', topic);
     }
 
+    console.log(`[WEBHOOK] topic=${topic} shop=${shop} outcome=acknowledged`);
+
     // Always return 200 to acknowledge receipt
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {

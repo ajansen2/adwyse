@@ -87,9 +87,9 @@ export async function POST(request: NextRequest) {
     if (updateError) {
       console.error('⚠️ Failed to update store subscription (non-critical):', updateError);
       // Return 200 anyway - don't let DB errors cause webhook failures
-    } else {
-      console.log('✅ Store subscription updated successfully');
     }
+
+    console.log(`[WEBHOOK] topic=${topic} shop=${shop} outcome=${subscriptionStatus}`);
 
     return NextResponse.json({ success: true }, { status: 200 });
 

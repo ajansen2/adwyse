@@ -41,12 +41,15 @@ export async function POST(request: NextRequest) {
 
     const storeIds = stores.map(s => s.id);
 
-    // Mark all stores as uninstalled
+    // Mark all stores as uninstalled with 30-day retention window
+    const purgeAfter = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
     const { error: updateError } = await supabase
       .from('stores')
       .update({
         subscription_status: 'cancelled',
         access_token: 'revoked',
+        is_active: false,
+        purge_after: purgeAfter,
         updated_at: new Date().toISOString()
       })
       .in('id', storeIds);
@@ -56,7 +59,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to update store' }, { status: 500 });
     }
 
-    console.log('✅ Store(s) marked as cancelled:', shop, `(${storeIds.length} stores)`);
+    console.log(`[WEBHOOK] topic=app/uninstalled shop=${shop} outcome=cancelled purge_after=${purgeAfter}`);
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {

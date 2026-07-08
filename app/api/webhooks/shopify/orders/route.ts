@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
     if (insertError) {
       // Check if order already exists
       if (insertError.code === '23505') { // Unique constraint violation
-        console.log('⚠️  Order already tracked:', orderData.id);
+        console.log(`[WEBHOOK] topic=orders/create shop=${shop} outcome=duplicate order=#${orderData.order_number || orderData.name}`);
         return NextResponse.json({ success: true, message: 'Order already tracked' }, { status: 200 });
       }
 
@@ -142,13 +142,7 @@ export async function POST(request: NextRequest) {
       }, { status: 200 });
     }
 
-    console.log('✅ Order tracked with attribution:', {
-      orderId: insertedOrder.id,
-      shopifyOrderId: orderData.id,
-      orderTotal,
-      adSource,
-      utmCampaign: utmParams.utm_campaign,
-    });
+    console.log(`[WEBHOOK] topic=orders/create shop=${shop} outcome=created order=#${orderData.order_number || orderData.name} revenue=$${orderTotal.toFixed(2)}`);
 
     // If we have a campaign name and ad source, try to link to campaign
     if (utmParams.utm_campaign && adSource) {

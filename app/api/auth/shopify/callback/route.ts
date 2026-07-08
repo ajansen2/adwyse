@@ -149,7 +149,8 @@ export async function GET(request: NextRequest) {
     let store;
 
     if (existingStore) {
-      console.log('✅ Store already exists, updating access token');
+      const isReinstall = existingStore.is_active === false;
+      console.log(isReinstall ? '🔄 Reinstall detected, reactivating store' : '✅ Store already exists, updating access token');
 
       // Update existing store with new access token and reset trial
       const { data: updatedStore, error: updateError } = await supabase
@@ -159,7 +160,9 @@ export async function GET(request: NextRequest) {
           store_name: shopInfo.name || shop,
           email: shopInfo.email,
           subscription_status: 'trial',
-          trial_ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Reset 7-day trial
+          trial_ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Fresh 7-day trial
+          is_active: true,
+          purge_after: null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', existingStore.id)
