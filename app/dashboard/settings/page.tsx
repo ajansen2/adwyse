@@ -141,16 +141,17 @@ function SettingsContent() {
           console.log('🔧 Settings: Setting store, id =', data.store.id);
           setStore(data.store);
 
-          // Load ad accounts
+          // Load ad accounts via API (client-side anon key can't access this table)
           console.log('🔧 Settings: Loading ad accounts...');
-          const { data: accounts } = await supabase
-            .from('ad_accounts')
-            .select('*')
-            .eq('store_id', data.store.id);
-
-          if (accounts) {
-            console.log('🔧 Settings: Setting ad accounts, count:', accounts.length);
-            setAdAccounts(accounts);
+          try {
+            const accountsRes = await authenticatedFetch(`/api/ad-accounts?store_id=${data.store.id}`);
+            const accountsData = await accountsRes.json();
+            if (accountsData.accounts) {
+              console.log('🔧 Settings: Setting ad accounts, count:', accountsData.accounts.length);
+              setAdAccounts(accountsData.accounts);
+            }
+          } catch (e) {
+            console.error('🔧 Settings: Failed to load ad accounts:', e);
           }
 
           // Load email report settings via XHR (works better in iframe)
