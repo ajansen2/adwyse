@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { after } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 import { checkAdAccountLimit } from '@/lib/subscription-tiers';
@@ -122,7 +123,7 @@ export async function GET(request: NextRequest) {
       console.log('⚠️ No ad accounts found for this Facebook user');
     }
 
-    // Mark accounts as queued — don't await inline (Vercel 60s timeout risk)
+    // Queue sync and run via after() — Vercel keeps function alive for it
     if (adAccountsData.data && adAccountsData.data.length > 0) {
       const syncSupa = getServiceSupabase();
       await syncSupa
@@ -133,11 +134,14 @@ export async function GET(request: NextRequest) {
         .eq('is_connected', true)
         .eq('sync_status', 'idle');
 
-      fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/sync/facebook`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ storeId }),
-      }).catch(err => console.error('[ON-CONNECT] Facebook sync trigger failed:', err));
+      after(async () => {
+        try {
+          await syncFacebookForStore(syncSupa, storeId!);
+          console.log('[ON-CONNECT] Facebook sync completed via after()');
+        } catch (err) {
+          console.error('[ON-CONNECT] Facebook sync failed:', err);
+        }
+      });
     }
 
     // Clear cookies
