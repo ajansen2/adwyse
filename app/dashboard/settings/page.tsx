@@ -14,6 +14,21 @@ interface Store {
   trial_ends_at: string | null;
 }
 
+// Check if a sync error message indicates an auth problem
+function isAuthError(errorText: string): boolean {
+  const authKeywords = ['expired', 'token', 'unauthorized', 'revoked', 'access', 'invalid_grant', 'permission'];
+  const lower = errorText.toLowerCase();
+  return authKeywords.some(kw => lower.includes(kw));
+}
+
+// Format a sync error message for display
+function formatSyncError(errorText: string): string {
+  if (isAuthError(errorText)) {
+    return `${errorText} — Reconnect above`;
+  }
+  return errorText;
+}
+
 function SettingsContent() {
   console.log('🔧 SettingsContent component rendering...');
   const [loading, setLoading] = useState(true);
@@ -38,7 +53,6 @@ function SettingsContent() {
   const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'trial' | 'pro'>('pro');
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgrading, setUpgrading] = useState(false);
-  const [pixelCopied, setPixelCopied] = useState(false);
   const [pixelVerifying, setPixelVerifying] = useState(false);
   const [pixelVerified, setPixelVerified] = useState<boolean | null>(null);
   const [attributionModel, setAttributionModel] = useState<'last_click' | 'first_click' | 'linear' | 'time_decay' | 'position_based'>('last_click');
@@ -626,14 +640,6 @@ function SettingsContent() {
     }
   };
 
-  const handleCopyPixelCode = () => {
-    if (!store) return;
-    const pixelCode = `<script src="${window.location.origin}/api/pixel/script/${store.id}" async></script>`;
-    navigator.clipboard.writeText(pixelCode);
-    setPixelCopied(true);
-    setTimeout(() => setPixelCopied(false), 3000);
-  };
-
   const handleVerifyPixel = async () => {
     if (!store) return;
     setPixelVerifying(true);
@@ -817,12 +823,14 @@ function SettingsContent() {
         setSuccessMessage(data.message || 'TikTok Ads campaigns synced successfully!');
         setTimeout(() => setSuccessMessage(''), 5000);
       } else {
-        setErrorMessage(data.error || 'Failed to sync TikTok Ads campaigns');
-        setTimeout(() => setErrorMessage(''), 5000);
+        const errText = data.error || 'Failed to sync TikTok Ads campaigns';
+        setErrorMessage(formatSyncError(errText));
+        setTimeout(() => setErrorMessage(''), 8000);
       }
     } catch (error: any) {
-      setErrorMessage(error?.message || 'Failed to sync TikTok Ads campaigns');
-      setTimeout(() => setErrorMessage(''), 5000);
+      const errText = error?.message || 'Failed to sync TikTok Ads campaigns';
+      setErrorMessage(formatSyncError(errText));
+      setTimeout(() => setErrorMessage(''), 8000);
     } finally {
       setSyncingTikTok(false);
     }
@@ -859,12 +867,14 @@ function SettingsContent() {
         setSuccessMessage(data.message || 'Google Ads campaigns synced successfully!');
         setTimeout(() => setSuccessMessage(''), 5000);
       } else {
-        setErrorMessage(data.error || 'Failed to sync Google Ads campaigns');
-        setTimeout(() => setErrorMessage(''), 5000);
+        const errText = data.error || 'Failed to sync Google Ads campaigns';
+        setErrorMessage(formatSyncError(errText));
+        setTimeout(() => setErrorMessage(''), 8000);
       }
     } catch (error: any) {
-      setErrorMessage(error?.message || 'Failed to sync Google Ads campaigns');
-      setTimeout(() => setErrorMessage(''), 5000);
+      const errText = error?.message || 'Failed to sync Google Ads campaigns';
+      setErrorMessage(formatSyncError(errText));
+      setTimeout(() => setErrorMessage(''), 8000);
     } finally {
       setSyncingGoogle(false);
     }
@@ -893,12 +903,14 @@ function SettingsContent() {
         setSuccessMessage(data.message || 'Facebook campaigns synced successfully!');
         setTimeout(() => setSuccessMessage(''), 5000);
       } else {
-        setErrorMessage(data.error || 'Failed to sync Facebook campaigns');
-        setTimeout(() => setErrorMessage(''), 5000);
+        const errText = data.error || 'Failed to sync Facebook campaigns';
+        setErrorMessage(formatSyncError(errText));
+        setTimeout(() => setErrorMessage(''), 8000);
       }
     } catch (error: any) {
-      setErrorMessage(error?.message || 'Failed to sync Facebook campaigns');
-      setTimeout(() => setErrorMessage(''), 5000);
+      const errText = error?.message || 'Failed to sync Facebook campaigns';
+      setErrorMessage(formatSyncError(errText));
+      setTimeout(() => setErrorMessage(''), 8000);
     } finally {
       setSyncing(false);
     }

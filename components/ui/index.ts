@@ -4,6 +4,7 @@
 export { MetricCard, type TrendDirection } from './MetricCard';
 export { DataTable, type Column } from './DataTable';
 export { EmptyState, EmptyStateIcons } from './EmptyState';
+export { ErrorState } from './ErrorState';
 export { Badge, PlatformBadge, StatusBadge, SeverityBadge, type Platform, type Status, type Severity } from './Badge';
 export { Skeleton, MetricCardSkeleton, TableSkeleton, TableRowSkeleton, ChartSkeleton, DashboardSkeleton, CardSkeleton, ListSkeleton } from './LoadingSkeleton';
 export { Card, StatCard, FeatureCard, AlertCard } from './Card';

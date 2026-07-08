@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Sidebar, MobileNav } from '@/components/dashboard';
-import { MetricCard, DataTable, PlatformBadge, DashboardSkeleton, type Column } from '@/components/ui';
+import { MetricCard, DataTable, PlatformBadge, DashboardSkeleton, EmptyState, EmptyStateIcons, ErrorState, type Column } from '@/components/ui';
 import { authenticatedFetch } from '@/lib/shopify-app-bridge';
 
 type DateRangeOption = '7d' | '14d' | '30d' | '90d' | 'all' | 'custom';
@@ -37,6 +37,7 @@ interface Order {
 function OrdersContent() {
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [fetchError, setFetchError] = useState(false);
   const [dateRangeOption, setDateRangeOption] = useState<DateRangeOption>('30d');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [customStartDate, setCustomStartDate] = useState('');
@@ -99,6 +100,8 @@ function OrdersContent() {
             if (ordersRes.ok) {
               const ordersData = await ordersRes.json();
               setOrders(ordersData.orders || []);
+            } else {
+              setFetchError(true);
             }
           }
         }
@@ -384,32 +387,49 @@ function OrdersContent() {
             />
           </div>
 
-          {/* Orders Table */}
-          <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl overflow-hidden">
-            <DataTable
-              data={filteredOrders}
-              columns={columns}
-              keyExtractor={(row) => row.id}
-              searchable={true}
-              searchPlaceholder="Search by order #, email, or campaign..."
-              searchFn={(row, query) => {
-                const q = query.toLowerCase();
-                return (
-                  row.order_number?.toLowerCase().includes(q) ||
-                  row.customer_email?.toLowerCase().includes(q) ||
-                  row.utm_campaign?.toLowerCase().includes(q) ||
-                  row.attributed_platform?.toLowerCase().includes(q)
-                );
-              }}
-              exportable={true}
-              exportFilename="adwyse_orders"
-              emptyMessage="No orders found. Orders will appear here once customers make purchases."
-              pageSize={20}
-              striped={false}
-              hoverable={true}
-              variant="dark"
-            />
-          </div>
+          {/* Orders Table or Empty/Error State */}
+          {fetchError ? (
+            <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl">
+              <ErrorState
+                message="Couldn't load order data"
+                onRetry={() => window.location.reload()}
+              />
+            </div>
+          ) : filteredOrders.length > 0 ? (
+            <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl overflow-hidden">
+              <DataTable
+                data={filteredOrders}
+                columns={columns}
+                keyExtractor={(row) => row.id}
+                searchable={true}
+                searchPlaceholder="Search by order #, email, or campaign..."
+                searchFn={(row, query) => {
+                  const q = query.toLowerCase();
+                  return (
+                    row.order_number?.toLowerCase().includes(q) ||
+                    row.customer_email?.toLowerCase().includes(q) ||
+                    row.utm_campaign?.toLowerCase().includes(q) ||
+                    row.attributed_platform?.toLowerCase().includes(q)
+                  );
+                }}
+                exportable={true}
+                exportFilename="adwyse_orders"
+                emptyMessage="No orders match your search."
+                pageSize={20}
+                striped={false}
+                hoverable={true}
+                variant="dark"
+              />
+            </div>
+          ) : (
+            <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-12">
+              <EmptyState
+                icon={EmptyStateIcons.orders}
+                title="No orders tracked yet"
+                description="Orders from your store appear here automatically, usually within a minute of purchase."
+              />
+            </div>
+          )}
         </div>
       </main>
       <MobileNav activePage="orders" />

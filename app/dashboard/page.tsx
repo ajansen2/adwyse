@@ -7,7 +7,7 @@ import { initializeAppBridge, isEmbeddedInShopify, navigateInApp, getShopifySess
 import Link from 'next/link';
 import { Sidebar, MobileNav, GettingStarted, ProfitSummary, AlertsWidget, GoalProgress, BudgetOptimizer, CompetitorSpy, QuickActions, AskAdWyse, NCRoasCard, OnboardingSetupCard } from '@/components/dashboard';
 import { useTier } from '@/lib/use-tier';
-import { MetricCard, DashboardSkeleton, StaggerContainer, StaggerItem } from '@/components/ui';
+import { MetricCard, DashboardSkeleton, StaggerContainer, StaggerItem, ErrorState, EmptyState, EmptyStateIcons } from '@/components/ui';
 import { RevenueChart, FunnelChart } from '@/components/charts';
 
 // Demo store ID for Adam's store
@@ -97,6 +97,7 @@ function DashboardContent() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showBillingSuccess, setShowBillingSuccess] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [ordersError, setOrdersError] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
   const [latestInsight, setLatestInsight] = useState<any>(null);
@@ -582,6 +583,9 @@ function DashboardContent() {
             if (ordersJson.limits) {
               setOrdersLimitInfo(ordersJson.limits);
             }
+            setOrdersError(false);
+          } else {
+            setOrdersError(true);
           }
 
           // Get campaigns
@@ -1410,7 +1414,7 @@ function DashboardContent() {
               )}
 
               {/* Revenue Chart */}
-              {ENABLE_EXTRA_COMPONENTS && chartData.length > 0 && (
+              {ENABLE_EXTRA_COMPONENTS && (
                 <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-xl p-6 mb-8">
                   <div className="flex items-center justify-between mb-4">
                     <div>
@@ -1418,7 +1422,18 @@ function DashboardContent() {
                       <p className="text-white/60 text-sm">{dateRange.label}</p>
                     </div>
                   </div>
-                  <RevenueChart data={dateRangeOption === 'all' ? chartData.filter(d => d.revenue > 0 || d.adRevenue > 0) : chartData.slice(-30)} dateRangeLabel={dateRange.label} />
+                  {ordersError ? (
+                    <ErrorState
+                      message="Couldn't load revenue data"
+                      onRetry={() => window.location.reload()}
+                    />
+                  ) : chartData.length > 0 ? (
+                    <RevenueChart data={dateRangeOption === 'all' ? chartData.filter(d => d.revenue > 0 || d.adRevenue > 0) : chartData.slice(-30)} dateRangeLabel={dateRange.label} />
+                  ) : (
+                    <div className="flex items-center justify-center h-64 text-white/40 text-sm">
+                      No revenue data yet — orders will appear here as customers purchase from your store.
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1672,33 +1687,13 @@ function DashboardContent() {
               )}
 
               {/* Info box when no orders */}
-              {ENABLE_EXTRA_COMPONENTS && orders.length === 0 && (
-                <div className="bg-blue-500/10 backdrop-blur border border-blue-500/30 rounded-xl p-6 mb-6">
-                  <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0">
-                      <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-white font-semibold mb-2">How Attribution Tracking Works</h3>
-                      <p className="text-white/70 text-sm mb-3">
-                        AdWyse automatically tracks every order and shows you exactly which ads are driving sales. 100% automatic, no setup required.
-                      </p>
-                      <div className="bg-zinc-900/50 rounded-lg p-4 text-sm text-white/60">
-                        <p className="mb-2"><strong className="text-white/80">How it works:</strong></p>
-                        <ol className="list-decimal list-inside space-y-1 ml-2">
-                          <li>Customers click on your Facebook, Google, or TikTok ads</li>
-                          <li>When they purchase, AdWyse automatically tracks which ad drove the sale</li>
-                          <li>Orders appear here with full attribution data (source, campaign, etc.)</li>
-                          <li>Connect ad accounts in Settings to see ROAS and get AI insights</li>
-                        </ol>
-                      </div>
-                      <p className="text-white/50 text-xs mt-3">
-                        ✅ Webhooks active - tracking all orders automatically. No technical setup required.
-                      </p>
-                    </div>
-                  </div>
+              {ENABLE_EXTRA_COMPONENTS && orders.length === 0 && !ordersError && (
+                <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-12">
+                  <EmptyState
+                    icon={EmptyStateIcons.orders}
+                    title="No orders tracked yet"
+                    description="Orders from your store appear here automatically, usually within a minute of purchase."
+                  />
                 </div>
               )}
 

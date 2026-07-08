@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { UserPlus, Repeat, Lightbulb, Loader2 } from 'lucide-react';
+import { ErrorState } from '@/components/ui';
 
 interface NCRoasData {
   isDemo: boolean;
@@ -21,13 +22,17 @@ interface NCRoasCardProps {
 export function NCRoasCard({ storeId }: NCRoasCardProps) {
   const [data, setData] = useState<NCRoasData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
 
   useEffect(() => {
     if (!storeId) return;
     fetch(`/api/metrics/nc-roas?store_id=${storeId}`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error('Failed');
+        return r.json();
+      })
       .then(setData)
-      .catch(() => {})
+      .catch(() => setFetchError(true))
       .finally(() => setLoading(false));
   }, [storeId]);
 
@@ -35,6 +40,17 @@ export function NCRoasCard({ storeId }: NCRoasCardProps) {
     return (
       <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-5 flex items-center justify-center h-48">
         <Loader2 className="w-6 h-6 text-orange-400 animate-spin" />
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl">
+        <ErrorState
+          message="Couldn't load NC-ROAS data"
+          onRetry={() => window.location.reload()}
+        />
       </div>
     );
   }

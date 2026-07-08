@@ -2,18 +2,19 @@
 
 import React from 'react';
 
-interface Action {
-  label: string;
-  onClick: () => void;
-  variant?: 'primary' | 'secondary';
-  icon?: React.ReactNode;
-}
+// Action can be a button (onClick) or a link (href)
+type ActionConfig =
+  | { label: string; onClick: () => void; href?: never }
+  | { label: string; href: string; onClick?: never };
 
 interface EmptyStateProps {
-  icon?: React.ReactNode;
   title: string;
-  description?: string;
-  actions?: Action[];
+  description: string;
+  action?: ActionConfig;
+  secondaryAction?: ActionConfig;
+  icon?: React.ReactNode;
+  /** Extra content rendered below the description/actions (e.g. inline connect buttons) */
+  children?: React.ReactNode;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
 }
@@ -51,6 +52,16 @@ export const EmptyStateIcons = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
     </svg>
   ),
+  creatives: (
+    <svg className="w-full h-full" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    </svg>
+  ),
+  revenue: (
+    <svg className="w-full h-full" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  ),
   inbox: (
     <svg className="w-full h-full" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
@@ -68,11 +79,34 @@ export const EmptyStateIcons = {
   )
 };
 
+function ActionButton({ action }: { action: ActionConfig }) {
+  if ('href' in action && action.href) {
+    return (
+      <a
+        href={action.href}
+        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm bg-orange-500 hover:bg-orange-600 text-white transition-colors duration-200"
+      >
+        {action.label}
+      </a>
+    );
+  }
+  return (
+    <button
+      onClick={action.onClick}
+      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm bg-orange-500 hover:bg-orange-600 text-white transition-colors duration-200"
+    >
+      {action.label}
+    </button>
+  );
+}
+
 export function EmptyState({
   icon,
   title,
   description,
-  actions,
+  action,
+  secondaryAction,
+  children,
   size = 'md',
   className = ''
 }: EmptyStateProps) {
@@ -102,40 +136,41 @@ export function EmptyState({
   return (
     <div className={`flex flex-col items-center justify-center text-center ${sizes.container} ${className}`}>
       {icon && (
-        <div className={`${sizes.icon} text-gray-300 mb-4`}>
+        <div className={`${sizes.icon} text-white/30 mb-4`}>
           {icon}
         </div>
       )}
 
-      <h3 className={`font-medium text-gray-900 ${sizes.title}`}>
+      <h3 className={`font-medium text-white ${sizes.title}`}>
         {title}
       </h3>
 
-      {description && (
-        <p className={`mt-1 text-gray-500 max-w-sm ${sizes.description}`}>
-          {description}
-        </p>
+      <p className={`mt-1 text-white/60 max-w-sm ${sizes.description}`}>
+        {description}
+      </p>
+
+      {(action || secondaryAction) && (
+        <div className="mt-6 flex items-center gap-3">
+          {action && <ActionButton action={action} />}
+          {secondaryAction && (
+            <span className="text-white/40">
+              {secondaryAction.href ? (
+                <a href={secondaryAction.href} className="text-white/50 hover:text-white/80 text-sm underline underline-offset-2 transition">
+                  {secondaryAction.label}
+                </a>
+              ) : (
+                <button onClick={secondaryAction.onClick} className="text-white/50 hover:text-white/80 text-sm underline underline-offset-2 transition">
+                  {secondaryAction.label}
+                </button>
+              )}
+            </span>
+          )}
+        </div>
       )}
 
-      {actions && actions.length > 0 && (
-        <div className="mt-6 flex items-center gap-3">
-          {actions.map((action, index) => (
-            <button
-              key={index}
-              onClick={action.onClick}
-              className={`
-                inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm
-                transition-colors duration-200
-                ${action.variant === 'secondary'
-                  ? 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
-                  : 'text-white bg-indigo-600 hover:bg-indigo-700'
-                }
-              `}
-            >
-              {action.icon}
-              {action.label}
-            </button>
-          ))}
+      {children && (
+        <div className="mt-6 w-full">
+          {children}
         </div>
       )}
     </div>

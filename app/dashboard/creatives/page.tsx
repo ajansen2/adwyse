@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Sidebar, MobileNav, UpgradeGate } from '@/components/dashboard';
-import { MetricCard } from '@/components/ui';
+import { MetricCard, EmptyState, EmptyStateIcons, ErrorState } from '@/components/ui';
 import { useTier } from '@/lib/use-tier';
 import { authenticatedFetch } from '@/lib/shopify-app-bridge';
 
@@ -40,13 +40,51 @@ interface Summary {
   fatiguedCreatives: number;
 }
 
+interface AdAccount {
+  id: string;
+  platform: string;
+  sync_status: string | null;
+  last_synced_at: string | null;
+  last_sync_error: string | null;
+}
+
 function CreativesContent() {
   const { isPro, loading: tierLoading } = useTier();
   const [loading, setLoading] = useState(true);
   const [creatives, setCreatives] = useState<Creative[]>([]);
   const [fatigue, setFatigue] = useState<FatigueAlert[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
+  const [fetchError, setFetchError] = useState(false);
+  const [storeId, setStoreId] = useState<string | null>(null);
+  const [adAccounts, setAdAccounts] = useState<AdAccount[]>([]);
   const searchParams = useSearchParams();
+
+  // OAuth connect helpers
+  const openOAuthPopup = (url: string, name: string) => {
+    const width = 600;
+    const height = 700;
+    const left = (window.screen.width - width) / 2;
+    const top = (window.screen.height - height) / 2;
+    window.open(url, name, `width=${width},height=${height},left=${left},top=${top}`);
+  };
+
+  const handleConnectGoogle = () => {
+    if (!storeId) return;
+    openOAuthPopup(`/api/auth/google?store_id=${storeId}`, 'Google OAuth');
+  };
+
+  const handleConnectMeta = () => {
+    if (!storeId) return;
+    openOAuthPopup(`/api/auth/facebook?store_id=${storeId}`, 'Facebook OAuth');
+  };
+
+  const handleConnectTikTok = () => {
+    if (!storeId) return;
+    openOAuthPopup(`/api/auth/tiktok?store_id=${storeId}`, 'TikTok OAuth');
+  };
+
+  // Check if any account is doing its first-ever sync
+  const isFirstSync = adAccounts.some(a => a.sync_status === 'syncing' && !a.last_synced_at);
 
   useEffect(() => {
     const loadCreatives = async () => {
@@ -62,17 +100,31 @@ function CreativesContent() {
         if (lookupRes.ok) {
           const data = await lookupRes.json();
           if (data.store) {
+            setStoreId(data.store.id);
+
+            // Fetch ad accounts for sync status context
+            try {
+              const accountsRes = await authenticatedFetch(`/api/ad-accounts?store_id=${data.store.id}`);
+              if (accountsRes.ok) {
+                const accountsData = await accountsRes.json();
+                setAdAccounts(accountsData.accounts || []);
+              }
+            } catch { /* non-critical */ }
+
             const creativesRes = await authenticatedFetch(`/api/creatives/list?store_id=${data.store.id}`);
             if (creativesRes.ok) {
               const creativesData = await creativesRes.json();
               setCreatives(creativesData.creatives || []);
               setFatigue(creativesData.fatigue || []);
               setSummary(creativesData.summary || null);
+            } else {
+              setFetchError(true);
             }
           }
         }
       } catch (error) {
         console.error('Error loading creatives:', error);
+        setFetchError(true);
       } finally {
         setLoading(false);
       }
@@ -121,7 +173,9 @@ function CreativesContent() {
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-solid border-orange-500 border-r-transparent mb-4"></div>
-          <div className="text-white text-xl">Loading creatives...</div>
+          <div className="text-white text-sm">
+            Loading creatives...{isFirstSync ? ' — first sync can take a few minutes' : ''}
+          </div>
         </div>
       </div>
     );
@@ -306,18 +360,54 @@ function CreativesContent() {
                 ))}
               </div>
             </div>
+          ) : fetchError ? (
+            <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl">
+              <ErrorState
+                message="Couldn't load creative data"
+                onRetry={() => window.location.reload()}
+              />
+            </div>
           ) : (
-            <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-12 text-center">
-              <svg className="w-16 h-16 text-white/20 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <h3 className="text-xl font-bold text-white mb-2">No Creative Data Yet</h3>
-              <p className="text-white/60 mb-4">
-                Creative-level data will appear once your ad platforms sync this information.
-              </p>
-              <p className="text-white/40 text-sm">
-                Connect Facebook Ads, Google Ads, or TikTok Ads in Settings to get started.
-              </p>
+            <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-12">
+              <EmptyState
+                icon={EmptyStateIcons.creatives}
+                title="No creative data yet"
+                description="Connect an ad account to see performance at the creative level — fatigue alerts, top performers, and spend breakdowns."
+              >
+                {/* Inline connect buttons */}
+                <div className="flex flex-wrap justify-center gap-3">
+                  <button
+                    onClick={handleConnectGoogle}
+                    className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/15 rounded-lg text-white text-sm font-medium transition"
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                    </svg>
+                    Google Ads
+                  </button>
+                  <button
+                    onClick={handleConnectMeta}
+                    className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/15 rounded-lg text-white text-sm font-medium transition"
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="#1877F2">
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    </svg>
+                    Meta Ads
+                  </button>
+                  <button
+                    onClick={handleConnectTikTok}
+                    className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/15 rounded-lg text-white text-sm font-medium transition"
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.88-2.88 2.89 2.89 0 012.88-2.88c.28 0 .55.04.81.11V9.03a6.37 6.37 0 00-.81-.05 6.3 6.3 0 00-6.3 6.3A6.3 6.3 0 009.49 21.6a6.3 6.3 0 006.3-6.3V9.41a8.16 8.16 0 004.78 1.53V7.51a4.82 4.82 0 01-.98-.82z"/>
+                    </svg>
+                    TikTok Ads
+                  </button>
+                </div>
+              </EmptyState>
             </div>
           )}
         </div>
