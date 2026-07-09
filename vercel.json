@@ -50,6 +50,10 @@
     {
       "path": "/api/cron/purge-data",
       "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/cron/lead-scanner",
+      "schedule": "0 12 * * *"
     }
   ]
 }
